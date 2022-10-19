@@ -1,0 +1,6 @@
+[submodule "ASAP7"]
+	path = ASAP7
+	url = https://github.com/Centre-for-Hardware-Security/asap7_reference_design.git
+[submodule "ISPD22"]
+	path = ISPD22
+	url = /home/jk176/Desktop/git/ISPD22/
