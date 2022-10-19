@@ -4,6 +4,3 @@
 [submodule "ISPD22"]
 	path = ISPD22
 	url = /home/jk176/Desktop/git/ISPD22/
-[submodule "gdrive"]
-	path = gdrive
-	url = https://github.com/prasmussen/gdrive.git
