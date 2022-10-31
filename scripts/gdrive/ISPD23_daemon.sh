@@ -1,13 +1,13 @@
 #!/bin/bash
 
-source daemon_procedures.sh
+source ISPD23_daemon_procedures.sh
 
 # settings
 ##################
 
 ## misc key parameters
 ##
-round="final"
+round="alpha"
 ## wait b/w cycles [s]
 check_interval="60"
 ## max runs allowed to be started in parallel per team
@@ -17,14 +17,17 @@ max_parallel_uploads="10"
 
 ## folders
 ##
-google_root_folder="1nM-f1NAfyWAZ4EKmpQ7LJBUJwyBzxLCa"
-local_root_folder="$HOME/ISPD22"
+google_root_folder="1G1EENqSquzCQbxI1Ij-4vbD8C3yrC_FF"
+local_root_folder="$HOME/nyu_projects/ISPD23"
 teams_root_folder="$local_root_folder/data/$round"
 scripts_folder="$local_root_folder/scripts/eval"
+#NOTE this currently points to the ISPD22 benchmarks, via sym link
 baselines_root_folder="$local_root_folder/benchmarks/__release/__$round"
 
 ## benchmarks
 ##
+#TODO to be updated to new alpha benchmarks
+#TODO integrate procedure to init related folders on Gdrive for participants folders
 benchmarks="AES_1 AES_2 AES_3 Camellia CAST MISTY openMSP430_1 PRESENT SEED TDEA"
 ## (TODO) use this for testing
 #benchmarks="PRESENT"
@@ -33,14 +36,16 @@ benchmarks="AES_1 AES_2 AES_3 Camellia CAST MISTY openMSP430_1 PRESENT SEED TDEA
 ##
 ## NOTE use pipe as separator!
 ## NOTE at least one email must be given (otherwise grep -Ev used below will exclude all)
-emails_excluded_for_notification="ispd22contest.drive@gmail.com"
+emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 
 ## innovus
 ##
-innovus_bin="/opt/cadence/installs/INNOVUS181/bin/innovus"
+innovus_bin="innovus"
 # NOTE as above, use pipe as separate and provide at least one term
-# NOTE 'IMPOAX' errors are related to OA loading, which always fails on hansolo
-# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which are not reasons to kill; are there other errors for IMPEXT?
+# NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
+# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill.
+	#TODO Are there other errors for IMPEXT?
+	#TODO kill for DRCs this year, or handle via eval script?
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT"
 # NOTE as above, use pipe as separate and provide at least one term
 innovus_errors_for_checking="ERROR|StackTrace"
@@ -48,6 +53,7 @@ innovus_errors_for_checking="ERROR|StackTrace"
 ## benchmarks and file handlers
 ##
 ## NOTE only to be changed if you know what you're doing
+#TODO revise into one script, lef, etc. for ASAP7
 benchmarks_10_metal_layers="AES_1 AES_2 AES_3"
 benchmarks_6_metal_layers="Camellia CAST CEP MISTY openMSP430_1 openMSP430_2 PRESENT SEED SPARX TDEA"
 scripts_regions="exploit_eval.tcl exploit_eval.sh exploit_regions.tcl exploit_regions_metal1--metal6.tcl post_process_exploit_regions.sh"
@@ -66,12 +72,12 @@ echo "0)  Checking Google root folder \"$google_root_folder\" ..."
 declare -A google_team_folders
 while read -r a b; do
 	google_team_folders[$a]=$b
-## (TODO) use this to work on __test folder only
-#done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '__test'" | awk '{print $1" "$2}')
+# (TODO) use this to work on __test folder only
+done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '__test'" | awk '{print $1" "$2}')
 ## (TODO) use this to work on other folders only
 #done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = 'NTUsplace'" | awk '{print $1" "$2}')
-# (TODO) use this for actual runs
-done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
+## (TODO) use this for actual runs
+#done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
 
 echo "0)   Found ${#google_team_folders[@]} folders, one for each team"
 
@@ -146,9 +152,10 @@ while true; do
 	echo "2) Done"
 	echo ""
 
-	#https://epoch.vercel.app
-	#2022-03-30 21:00:00 GST (UTC+4)
-	if [[ $(date +%s) < 1648659600 ]]; then
+##NOTE use for deadline mode
+#	#https://epoch.vercel.app
+#	#2022-03-30 21:00:00 GST (UTC+4)
+#	if [[ $(date +%s) < 1648659600 ]]; then
 
 		echo "3) Download new submissions, if any ..."
 		echo "3)  Time: $(date)"
@@ -169,11 +176,11 @@ while true; do
 		echo "4) Done"
 		echo ""
 
-	else
-		echo "3, 4) Deadline passed -- no more downloads and start of evaluation ..."
-		echo "3, 4)"
-		echo ""
-	fi
+#	else
+#		echo "3, 4) Deadline passed -- no more downloads and start of evaluation ..."
+#		echo "3, 4)"
+#		echo ""
+#	fi
 
 	echo "5) Sleep/wait for $check_interval s ..."
 	echo "5)  Time: $(date)"
