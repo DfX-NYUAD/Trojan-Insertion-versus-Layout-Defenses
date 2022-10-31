@@ -21,7 +21,7 @@ progress_bar() {
 	# create a string of spaces, then change them to dots
 	printf -v dots "%*s" "$(( $p * $w ))" ""; dots=${dots// /.}
 	# print those dots on a fixed-width space plus the percentage etc. 
-	printf "\r\e[K|%-*s| %3d %% %s" "$w" "$dots" "$p" "$*" # use the following to write to stderr: ">&2"
+	printf "\r\e[K|%-*s| %3d %% %s" "$w" "$dots" "$p" "$*" #>&2 ## use to write to stderr
 }
 
 sleeping() {
