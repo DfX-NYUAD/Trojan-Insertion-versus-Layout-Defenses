@@ -115,8 +115,6 @@ sleeping() {
 	echo "ISPD23 -- "
 }
 
-#TODO only support ZIP archives, but still ZIP archives w/in subfolders
-#TODO check whether files w/in ZIP archives need the same basename still?
 google_downloads() {
 
 	## iterate over keys / google IDs
@@ -157,9 +155,10 @@ google_downloads() {
 				fi
 
 				# add files of subfolder to google_folder_files
-				while read -r a b; do
+				while read -r a b c; do
 					google_folder_files[$a]=$b
-				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2}')
+					google_folder_files_type[$a]=$c
+				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
 			done
 
 			## iterate over keys / google IDs
@@ -170,7 +169,7 @@ google_downloads() {
 					continue
 				fi
 
-				# skip folders (if any), as their files are already included in the google_folder_files array
+				# skip subfolders (if any), as their files are already included in the google_folder_files array
 				if [[ ${google_folder_files_type[$file]} == "dir" ]]; then
 					continue
 				fi
