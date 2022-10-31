@@ -9,10 +9,10 @@ initialize() {
 
 	while read -r a b; do
 		google_team_folders[$a]=$b
-	# (TODO) use this to work on __test folder only
-	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '__test'" | awk '{print $1" "$2}')
-	## (TODO) use this for actual runs
-	#done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
+#	# (TODO) use this for testing, to work on __test folder only
+#	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '__test'" | awk '{print $1" "$2}')
+	# (TODO) use this for actual runs
+	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
 	
 	echo "0)   Found ${#google_team_folders[@]} folders, one for each team"
 	
