@@ -5,7 +5,7 @@ initialize() {
 	## query drive for root folder, extract columns 1 and 2 from response
 	## store into associative array; key is google file/folder ID, value is actual file/folder name
 	
-	echo "0)  Checking Google root folder \"$google_root_folder\" ..."
+	echo "ISPD23 -- 0)  Checking Google root folder \"$google_root_folder\" ..."
 
 	while read -r a b; do
 		google_team_folders[$a]=$b
@@ -14,11 +14,11 @@ initialize() {
 	# (TODO) use this for actual runs
 	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
 	
-	echo "0)   Found ${#google_team_folders[@]} folders, one for each team"
+	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} folders, one for each team"
 	
 	# init local array for folder references, helpful for faster gdrive access later on throughout all other procedures
 	#
-	echo "0)   Obtain all Google folder IDs/references ..."
+	echo "ISPD23 -- 0)   Obtain all Google folder IDs/references ..."
 	
 	## iterate over keys / google IDs
 	for google_team_folder in "${!google_team_folders[@]}"; do
@@ -40,7 +40,7 @@ initialize() {
 			# in case the related benchmark folder is missing, create it on the drive
 			if [[ ${google_benchmark_folders[$id]} == "" ]]; then
 
-				echo "0)    Init missing Google folder for round \"$round\", team \"$team\", benchmark \"$benchmark\" ..."
+				echo "ISPD23 -- 0)    Init missing Google folder for round \"$round\", team \"$team\", benchmark \"$benchmark\" ..."
 
 				# work with empty dummy folders in tmp dir
 				mkdir -p $tmp_root_folder/$benchmark
@@ -55,7 +55,7 @@ initialize() {
 	
 	# Check corresponding local folders
 	#
-	echo "0)   Check corresponding local folders in $teams_root_folder/ ..."
+	echo "ISPD23 -- 0)   Check corresponding local folders in $teams_root_folder/ ..."
 	
 	## iterate over values / actual names
 	for team in "${google_team_folders[@]}"; do
@@ -112,7 +112,7 @@ sleeping() {
 	done
 
 	# final newline to finish progress bar
-	echo ""
+	echo "ISPD23 -- "
 }
 
 #TODO only support ZIP archives, but still ZIP archives w/in subfolders
@@ -126,7 +126,7 @@ google_downloads() {
 		team=${google_team_folders[$google_team_folder]}
 		team_folder="$teams_root_folder/$team"
 
-		echo "3)  Checking team folder \"$team\" (Google team folder ID \"$google_team_folder\") for new submission files ..."
+		echo "ISPD23 -- 3)  Checking team folder \"$team\" (Google team folder ID \"$google_team_folder\") for new submission files ..."
 
 		for benchmark in $benchmarks; do
 
@@ -134,7 +134,7 @@ google_downloads() {
 			id="$team:$benchmark"
 
 			# NOTE relatively verbose; turned off for now
-#			echo "3)   Checking for benchmark \"$benchmark\" ..."
+			echo "ISPD23 -- 3)   Checking benchmark \"$benchmark\" ..."
 
 			downloads_folder="$team_folder/$benchmark/downloads"
 			declare -A basename_folders=()
@@ -179,7 +179,7 @@ google_downloads() {
 				actual_file_name=${google_folder_files[$file]}
 				basename=${actual_file_name%.*}
 				## DBG
-				#echo "basename: $basename"
+				#echo "ISPD23 -- basename: $basename"
 
 				# sanity check for malformated file names with only suffix, like ".nfs000000001f6680dd00000194"
 				if [[ $basename == "" ]]; then
@@ -198,7 +198,7 @@ google_downloads() {
 					#mkdir $downloads_folder_ 2> /dev/null
 
 					## DBG
-					#echo "new downloads_folder_: $downloads_folder_"
+					#echo "ISPD23 -- new downloads_folder_: $downloads_folder_"
 
 					# memorize new folder in basenames array
 					basename_folders[$basename]="$downloads_folder_"
@@ -207,10 +207,10 @@ google_downloads() {
 				else
 					downloads_folder_=${basename_folders[$basename]}
 					## DBG
-					#echo "existing downloads_folder_: $downloads_folder_"
+					#echo "ISPD23 -- existing downloads_folder_: $downloads_folder_"
 				fi
 
-				echo "3)   Download new submission file \"$actual_file_name\" (Google file ID \"$file\") into dedicated folder \"$downloads_folder_\" ..."
+				echo "ISPD23 -- 3)   Download new submission file \"$actual_file_name\" (Google file ID \"$file\") into dedicated folder \"$downloads_folder_\" ..."
 				./gdrive download -f --path $downloads_folder_ $file > /dev/null 2>&1
 
 				# memorize to not download again, but only if the download succeeded
@@ -224,7 +224,7 @@ google_downloads() {
 				actual_file_name_=$(echo $actual_file_name | sed 's/\.\.\./*/g')
 				if [[ $(file $downloads_folder_/$actual_file_name_ | awk '{print $2}') == 'Zip' ]]; then
 
-					echo "3)   Unpacking zip file \"$actual_file_name_\" into dedicated folder \"$downloads_folder_\" ..."
+					echo "ISPD23 -- 3)   Unpacking zip file \"$actual_file_name_\" into dedicated folder \"$downloads_folder_\" ..."
 					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ > /dev/null 2>&1
 					rm $downloads_folder_/$actual_file_name_ > /dev/null 2>&1
 				## else, if these are regular files, chances are good that processing is too fast,
@@ -279,7 +279,7 @@ google_uploads() {
 			(
 				google_benchmark_folder=${google_benchmark_folders[$id]}
 
-				echo "2)  Upload results folder \"$uploads_folder/$folder\", benchmark \"$benchmark\", team folder \"$team\" (Google team folder ID \"$google_team_folder\", benchmark folder ID \"$google_benchmark_folder\") ..."
+				echo "ISPD23 -- 2)  Upload results folder \"$uploads_folder/$folder\", benchmark \"$benchmark\", team folder \"$team\" (Google team folder ID \"$google_team_folder\", benchmark folder ID \"$google_benchmark_folder\") ..."
 				./gdrive upload -p $google_benchmark_folder -r $uploads_folder/$folder > /dev/null 2>&1
 
 				## cleanup locally, but only if upload succeeded
@@ -293,7 +293,7 @@ google_uploads() {
 
 				## also send out email notification of successful upload
 				#
-				echo "2)  Send out email about uploaded results folder \"$uploads_folder/$folder\", benchmark \"$benchmark\", team \"$team\" ..."
+				echo "ISPD23 -- 2)  Send out email about uploaded results folder \"$uploads_folder/$folder\", benchmark \"$benchmark\", team \"$team\" ..."
 
 				google_uploaded_folder=$(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and name = '$folder'" 2> /dev/null | awk '{print $1}')
 				text="The evaluation results for your latest $round round submission, benchmark $benchmark, are available in your corresponding Google Drive folder, within subfolder \"$folder\".\n\nDirect link: https://drive.google.com/drive/folders/$google_uploaded_folder"
@@ -327,8 +327,8 @@ check_eval() {
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
 				mkdir $uploads_folder > /dev/null 2>&1
 
-				echo "1)"
-				echo "1)  Checking work folder \"$work_folder/$folder\""
+				echo "ISPD23 -- 1)"
+				echo "ISPD23 -- 1)  Checking work folder \"$work_folder/$folder\""
 				# (related uploads folder: \"$uploads_folder\") ..."
 
 				## enter work folder
@@ -342,10 +342,10 @@ check_eval() {
 				## exploit eval
 				#
 				if [[ -e DONE.exploit_eval ]]; then
-					echo "1)   Exploitable regions: done"
+					echo "ISPD23 -- 1)   Exploitable regions: done"
 					status[exploit_eval]=1
 				else
-					echo "1)   Exploitable regions: still working ..."
+					echo "ISPD23 -- 1)   Exploitable regions: still working ..."
 					status[exploit_eval]=0
 				fi
 				## for dbg only (e.g., manual re-upload of work folders just moved from backup_up to work again)
@@ -357,8 +357,8 @@ check_eval() {
 				errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
 				if [[ $errors != "" ]]; then
 
-					echo "1)    Exploitable regions: some error occurred for Innovus run ..."
-					echo "ERROR: process failed for evaluation of exploitable regions -- $errors" >> errors.rpt
+					echo "ISPD23 -- 1)    Exploitable regions: some error occurred for Innovus run ..."
+					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- $errors" >> errors.rpt
 
 					status[exploit_eval]=2
 				fi
@@ -369,8 +369,8 @@ check_eval() {
 				errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2> /dev/null; echo $?)
 				if [[ $errors_interrupt == 0 ]]; then
 
-					echo "1)    Exploitable regions: Innovus run got interrupted ..."
-					echo "ERROR: process failed for evaluation of exploitable regions -- INTERRUPT" >> errors.rpt
+					echo "ISPD23 -- 1)    Exploitable regions: Innovus run got interrupted ..."
+					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- INTERRUPT" >> errors.rpt
 
 					status[exploit_eval]=2
 				fi
@@ -378,10 +378,10 @@ check_eval() {
 				## probing
 				#
 				if [[ -e DONE.probing ]]; then
-					echo "1)   Probing: done"
+					echo "ISPD23 -- 1)   Probing: done"
 					status[probing]=1
 				else
-					echo "1)   Probing: still working ..."
+					echo "ISPD23 -- 1)   Probing: still working ..."
 					status[probing]=0
 				fi
 				## for dbg only (e.g., manual re-upload of work folders just moved from backup_up to work again)
@@ -390,8 +390,8 @@ check_eval() {
 				errors=$(grep -E "$innovus_errors_for_checking" summarize_assets.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
 				if [[ $errors != "" ]]; then
 
-					echo "1)    Probing: some error occurred for Innovus run ..."
-					echo "ERROR: process failed for evaluation of probing -- $errors" >> errors.rpt
+					echo "ISPD23 -- 1)    Probing: some error occurred for Innovus run ..."
+					echo "ISPD23 -- ERROR: process failed for evaluation of probing -- $errors" >> errors.rpt
 
 					status[probing]=2
 				fi
@@ -399,8 +399,8 @@ check_eval() {
 				errors_interrupt=$(grep -q "INTERRUPT" summarize_assets.log* 2> /dev/null; echo $?)
 				if [[ $errors_interrupt == 0 ]]; then
 
-					echo "1)    Probing: Innovus run got interrupted ..."
-					echo "ERROR: process failed for evaluation of probing -- INTERRUPT" >> errors.rpt
+					echo "ISPD23 -- 1)    Probing: Innovus run got interrupted ..."
+					echo "ISPD23 -- ERROR: process failed for evaluation of probing -- INTERRUPT" >> errors.rpt
 
 					status[probing]=2
 				fi
@@ -408,7 +408,7 @@ check_eval() {
 				## if there's any error, kill all the processes; only runs w/o any errors should be kept going
 				if [[ ${status[exploit_eval]} == 2 || ${status[probing]} == 2 ]]; then
 
-					echo "1)    Kill all processes, as some error occurred, and move on ..."
+					echo "ISPD23 -- 1)    Kill all processes, as some error occurred, and move on ..."
 
 					cat PID.exploit_eval | xargs kill 2> /dev/null 
 					# also memorize that the exploit eval process was killed; required to break exploit_eval.sh inner loop
@@ -427,23 +427,23 @@ check_eval() {
 
 				## compute scores
 				if ! [[ -e errors.rpt ]]; then
-					echo "1)   Computing scores ..."
+					echo "ISPD23 -- 1)   Computing scores ..."
 				else
 					# NOTE not really skipping the script itself; scores.sh is called in any case to track the related errors, if any, in errors.rpt as well
-					echo "1)   Skipping scores, as there were some errors ..."
+					echo "ISPD23 -- 1)   Skipping scores, as there were some errors ..."
 				fi
 				./scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null 2>&1
 
 				## cp all rpt files to uploads folder
-				echo "1)   Copying report files to uploads folder \"$uploads_folder\" ..."
+				echo "ISPD23 -- 1)   Copying report files to uploads folder \"$uploads_folder\" ..."
 				cp *.rpt $uploads_folder/
 
 				## re-include processed files to uploads folder
-				echo "1)   Including backup of processed files to uploads folder \"$uploads_folder\" ..."
+				echo "ISPD23 -- 1)   Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 				mv processed_files.zip $uploads_folder/ 2> /dev/null
 
 				## backup work dir
-				echo "1)   Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
+				echo "ISPD23 -- 1)   Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
 				mv $work_folder/$folder $backup_work_folder/
 
 				# return to previous main dir
@@ -483,7 +483,7 @@ check_submission() {
 	## However, given that participants may revise the implementation of assets and other logic, doing better is not easy. The subsequent LEC run checks at least for equivalence of DFFs,
 	## but not other logic. Further, the probing and exploit regions scripts would also fail if the assets are missing, so this here is really only an initial quick check to short-cut further efforts if possible.
 
-	echo "4)  $id:   Check whether assets are maintained ..."
+	echo "ISPD23 -- 4)  $id:   Check whether assets are maintained ..."
 
 	# create versions of assets fiels w/ extended escape of special chars, so that grep later on can match
 	# https://unix.stackexchange.com/a/211838
@@ -501,7 +501,7 @@ check_submission() {
 	(
 		error=0
 
-		echo "4)  $id:    Check cell assets ..."
+		echo "ISPD23 -- 4)  $id:    Check cell assets ..."
 		for ((i=0; i<${#cells_assets[@]}; i++)); do
 			asset=${cells_assets[$i]}
 			escaped_asset=${escaped_cells_assets[$i]}
@@ -511,10 +511,10 @@ check_submission() {
 
 			if [[ $? == 1 ]]; then
 				error=1
-				echo "ERROR: the cell asset \"$asset\" is not maintained in the DEF." >> errors.rpt
+				echo "ISPD23 -- ERROR: the cell asset \"$asset\" is not maintained in the DEF." >> errors.rpt
 			fi
 		done
-#		echo "4)  $id:    Check cell assets done."
+#		echo "ISPD23 -- 4)  $id:    Check cell assets done."
 
 		exit $error
 	) &
@@ -523,7 +523,7 @@ check_submission() {
 	(
 		error=0
 
-		echo "4)  $id:    Check net assets ..."
+		echo "ISPD23 -- 4)  $id:    Check net assets ..."
 		for ((i=0; i<${#nets_assets[@]}; i++)); do
 			asset=${nets_assets[$i]}
 			escaped_asset=${escaped_nets_assets[$i]}
@@ -533,10 +533,10 @@ check_submission() {
 
 			if [[ $? == 1 ]]; then
 				error=1
-				echo "ERROR: the net asset \"$asset\" is not maintained in the DEF." >> errors.rpt
+				echo "ISPD23 -- ERROR: the net asset \"$asset\" is not maintained in the DEF." >> errors.rpt
 			fi
 		done
-#		echo "4)  $id:    Check net assets done."
+#		echo "ISPD23 -- 4)  $id:    Check net assets done."
 
 		exit $error
 	) &
@@ -548,11 +548,11 @@ check_submission() {
 
 	if [[ $status != 0 ]]; then
 
-		echo "4)  $id:   Some asset(s) is/are missing. Skipping other checks ..."
+		echo "ISPD23 -- 4)  $id:   Some asset(s) is/are missing. Skipping other checks ..."
 
 		return 1
 	else
-		echo "4)  $id:   Check whether assets are maintained passed."
+		echo "ISPD23 -- 4)  $id:   Check whether assets are maintained passed."
 	fi
 
 	# reset status (not needed really as non-zero status would render this code skipped)
@@ -563,7 +563,7 @@ check_submission() {
 	##
 
 	(
-		echo "4)  $id:   Pins design checks ..."
+		echo "ISPD23 -- 4)  $id:   Pins design checks ..."
 
 		#TODO check_pins.sh
 		./check_pins > /dev/null 2>&1
@@ -572,13 +572,13 @@ check_submission() {
 		errors=$(grep -q "FAIL" check_pins.rpt 2> /dev/null; echo $?)
 		if [[ $errors == 0 ]]; then
 
-			echo "ERROR: For pins design check -- see check_pins.rpt for more details." >> errors.rpt
-			echo "4)  $id:    Some pins design check(s) failed."
+			echo "ISPD23 -- ERROR: For pins design check -- see check_pins.rpt for more details." >> errors.rpt
+			echo "ISPD23 -- 4)  $id:    Some pins design check(s) failed."
 
 			exit 1
 		fi
 
-		echo "4)  $id:   Pins design checks passed."
+		echo "ISPD23 -- 4)  $id:   Pins design checks passed."
 
 		exit 0
 	) &
@@ -589,7 +589,7 @@ check_submission() {
 	##
 
 	(
-		echo "4)  $id:   PDN checks ..."
+		echo "ISPD23 -- 4)  $id:   PDN checks ..."
 
 		sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null 2>&1' &
 
@@ -601,7 +601,7 @@ check_submission() {
 
 			if [[ -e DONE.pg ]]; then
 
-#				echo "|"
+#				echo "ISPD23 -- |"
 
 				break
 			else
@@ -610,11 +610,11 @@ check_submission() {
 				errors=$(grep -E "$innovus_errors_for_checking" pg.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
 				if [[ $errors != "" ]]; then
 
-#					echo "|"
+#					echo "ISPD23 -- |"
 
-					echo "4)  $id:    Some error occurred for PDN checks. Killing process ..."
+					echo "ISPD23 -- 4)  $id:    Some error occurred for PDN checks. Killing process ..."
 
-					echo "ERROR: process failed for PDN design checks -- $errors" >> errors.rpt
+					echo "ISPD23 -- ERROR: process failed for PDN design checks -- $errors" >> errors.rpt
 
 					cat PID.pg | xargs kill 2> /dev/null
 
@@ -632,7 +632,7 @@ check_submission() {
 		errors=$(grep -q "ERROR: For PG check" errors.rpt 2> /dev/null; echo $?)
 		if [[ $errors == 0 ]]; then
 
-			echo "4)  $id:    Some failure occurred during PDN design checks."
+			echo "ISPD23 -- 4)  $id:    Some failure occurred during PDN design checks."
 
 			exit 1
 		fi
@@ -640,13 +640,13 @@ check_submission() {
 		errors=$(grep -q "FAIL" pg_metals_eval.rpt 2> /dev/null; echo $?)
 		if [[ $errors == 0 ]]; then
 
-			echo "ERROR: For PG check -- see pg_metals_eval.rpt for more details." >> errors.rpt
-			echo "4)  $id:    Some PDN design check(s) failed."
+			echo "ISPD23 -- ERROR: For PG check -- see pg_metals_eval.rpt for more details." >> errors.rpt
+			echo "ISPD23 -- 4)  $id:    Some PDN design check(s) failed."
 
 			exit 1
 		fi
 
-		echo "4)  $id:   PDN checks passed."
+		echo "ISPD23 -- 4)  $id:   PDN checks passed."
 
 		exit 0
 	) &
@@ -657,7 +657,7 @@ check_submission() {
 	##
 
 	(
-		echo "4)  $id:   LEC design checks ..."
+		echo "ISPD23 -- 4)  $id:   LEC design checks ..."
 
 		sh -c 'echo $$ > PID.lec; exec /opt/cadence/installs/CONFRML181/bin/lec_64 -nogui -xl -dofile lec.do > lec.log 2>&1' &
 
@@ -669,7 +669,7 @@ check_submission() {
 
 			if [[ -e DONE.lec ]]; then
 
-#				echo "|"
+#				echo "ISPD23 -- |"
 
 				break
 			else
@@ -678,11 +678,11 @@ check_submission() {
 				errors=$(grep -E "Error|StackTrace|License check failed!" lec.log 2> /dev/null)
 				if [[ $errors != "" ]]; then
 
-#					echo "|"
+#					echo "ISPD23 -- |"
 
-					echo "4)  $id:    Some error occurred for LEC run. Killing process ..."
+					echo "ISPD23 -- 4)  $id:    Some error occurred for LEC run. Killing process ..."
 
-					echo "ERROR: process failed for LEC design checks -- $errors" >> errors.rpt
+					echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> errors.rpt
 
 					cat PID.lec | xargs kill 2> /dev/null
 
@@ -722,12 +722,12 @@ check_submission() {
 		issues=$(tail -n 2 check_equivalence.rpt | grep "Non-equivalent" 2> /dev/null | awk '{print $NF}')
 		if [[ $issues != "" ]]; then
 
-			echo "ERROR: LEC design checks failure -- $issues equivalence issues; see check_equivalence.rpt for more details." >> errors.rpt
-			echo "Equivalence issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues equivalence issues; see check_equivalence.rpt for more details." >> errors.rpt
+			echo "ISPD23 -- Equivalence issues: $issues" >> checks_summary.rpt
 
 			error=1
 		else
-			echo "Equivalence issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- Equivalence issues: 0" >> checks_summary.rpt
 		fi
 
 		#
@@ -748,10 +748,10 @@ check_submission() {
 		issues=$(tail -n 2 check_equivalence.rpt.unmapped | grep "Unreachable" 2> /dev/null | awk '{print $NF}')
 		if [[ $issues != "" ]]; then
 
-			echo "WARNING: LEC design checks failure -- $issues unreachable points issues; see check_equivalence.rpt for more details." >> warnings.rpt
-			echo "Unreachable points issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unreachable points issues; see check_equivalence.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- Unreachable points issues: $issues" >> checks_summary.rpt
 		else
-			echo "Unreachable points issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- Unreachable points issues: 0" >> checks_summary.rpt
 		fi
 
 		#
@@ -770,10 +770,10 @@ check_submission() {
 		issues=${issues%*)}
 		if [[ $issues != "" ]]; then
 
-			echo "WARNING: LEC design checks failure -- $issues undriven pins issues" >> warnings.rpt
-			echo "Undriven pins issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues undriven pins issues" >> warnings.rpt
+			echo "ISPD23 -- Undriven pins issues: $issues" >> checks_summary.rpt
 		else
-			echo "Undriven pins issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- Undriven pins issues: 0" >> checks_summary.rpt
 		fi
 
 # Example:
@@ -787,10 +787,10 @@ check_submission() {
 		issues=${issues%*)}
 		if [[ $issues != "" ]]; then
 
-			echo "WARNING: LEC design checks failure -- $issues open output ports issues" >> warnings.rpt
-			echo "Open output ports issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues open output ports issues" >> warnings.rpt
+			echo "ISPD23 -- Open output ports issues: $issues" >> checks_summary.rpt
 		else
-			echo "Open output ports issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- Open output ports issues: 0" >> checks_summary.rpt
 		fi
 
 # Example:
@@ -804,19 +804,19 @@ check_submission() {
 		issues=${issues%*)}
 		if [[ $issues != "" ]]; then
 
-			echo "WARNING: LEC design checks failure -- $issues net output floating issues" >> warnings.rpt
-			echo "Net output floating issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues net output floating issues" >> warnings.rpt
+			echo "ISPD23 -- Net output floating issues: $issues" >> checks_summary.rpt
 		else
-			echo "Net output floating issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- Net output floating issues: 0" >> checks_summary.rpt
 		fi
 
 		if [[ $error == 1 ]]; then
 
-			echo "4)  $id:   Some critical LEC design check(s) failed."
+			echo "ISPD23 -- 4)  $id:   Some critical LEC design check(s) failed."
 			exit 1
 		fi
 
-		echo "4)  $id:   LEC design checks done."
+		echo "ISPD23 -- 4)  $id:   LEC design checks done."
 
 		exit 0
 	) &
@@ -827,7 +827,7 @@ check_submission() {
 	##
 
 	(
-		echo "4)  $id:   Basic design checks ..."
+		echo "ISPD23 -- 4)  $id:   Basic design checks ..."
 
 		sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null 2>&1' &
 
@@ -839,7 +839,7 @@ check_submission() {
 
 			if [[ -e DONE.check ]]; then
 
-#				echo "|"
+#				echo "ISPD23 -- |"
 
 				break
 			else
@@ -848,11 +848,11 @@ check_submission() {
 				errors=$(grep -E "$innovus_errors_for_checking" check.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
 				if [[ $errors != "" ]]; then
 
-#					echo "|"
+#					echo "ISPD23 -- |"
 
-					echo "4)  $id:    Some error occurred for Innovus run for basic checks. Killing process ..."
+					echo "ISPD23 -- 4)  $id:    Some error occurred for Innovus run for basic checks. Killing process ..."
 
-					echo "ERROR: process failed for basic design checks -- $errors" >> errors.rpt
+					echo "ISPD23 -- ERROR: process failed for basic design checks -- $errors" >> errors.rpt
 
 					cat PID.check | xargs kill 2> /dev/null
 
@@ -876,10 +876,10 @@ check_submission() {
 
 		if [[ $issues != "" ]]; then
 
-			echo "WARNING: Basic design checks failure -- $issues routing issues; see *.conn.rpt for more details." >> warnings.rpt
-			echo "Basic routing issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues routing issues; see *.conn.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- Basic routing issues: $issues" >> checks_summary.rpt
 		else
-			echo "Basic routing issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- Basic routing issues: 0" >> checks_summary.rpt
 		fi
 
 		# IO pins; check *.checkPin.rpt for illegal and unplaced pins from summary
@@ -896,10 +896,10 @@ check_submission() {
 		issues=$(grep "TOTAL" *.checkPin.rpt 2> /dev/null | awk '{ sum = $9 + $13 + $17 + $21; print sum }')
 		if [[ $issues != '0' ]]; then
 
-			echo "WARNING: Basic design checks failure -- $issues pin issues; see *.checkPin.rpt for more details." >> warnings.rpt
-			echo "Module pin issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues pin issues; see *.checkPin.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- Module pin issues: $issues" >> checks_summary.rpt
 		else
-			echo "Module pin issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- Module pin issues: 0" >> checks_summary.rpt
 		fi
 
 		# placement and routing; check check_route.rpt file for unplaced components as well as for summary
@@ -908,20 +908,20 @@ check_submission() {
 		issues=$(grep "*info: Unplaced =" check_route.rpt 2> /dev/null | awk '{print $4}')
 		if [[ $issues != '0' ]]; then
 
-			echo "WARNING: Basic design checks failure -- $issues unplaced component(s) issues; see check_route.rpt for more details." >> warnings.rpt
-			echo "Unplaced components issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues unplaced component(s) issues; see check_route.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- Unplaced components issues: $issues" >> checks_summary.rpt
 		else
-			echo "Unplaced components issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- Unplaced components issues: 0" >> checks_summary.rpt
 		fi
 # Example:
 #	*** Message Summary: 1 warning(s), 0 error(s) 
 		issues=$(grep "*** Message Summary:" check_route.rpt 2> /dev/null | awk '{ sum = $4 + $6; print sum }')
 		if [[ $issues != '0' ]]; then
 
-			echo "WARNING: Basic design checks failure -- $issues placement and/or routing issues; see check_route.rpt for more details." >> warnings.rpt
-			echo "Placement and/or routing issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues placement and/or routing issues; see check_route.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- Placement and/or routing issues: $issues" >> checks_summary.rpt
 		else
-			echo "Placement and/or routing issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- Placement and/or routing issues: 0" >> checks_summary.rpt
 		fi
 
 		# DRC routing issues; check *.geom.rpt for "Total Violations"
@@ -931,13 +931,13 @@ check_submission() {
 		issues=$(grep "Total Violations :" *.geom.rpt 2> /dev/null | awk '{print $4}')
 		if [[ $issues != "" ]]; then
 
-			echo "WARNING: Basic design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> warnings.rpt
-			echo "DRC issues: $issues" >> checks_summary.rpt
+			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- DRC issues: $issues" >> checks_summary.rpt
 		else
-			echo "DRC issues: 0" >> checks_summary.rpt
+			echo "ISPD23 -- DRC issues: 0" >> checks_summary.rpt
 		fi
 
-		echo "4)  $id:   Basic design checks done."
+		echo "ISPD23 -- 4)  $id:   Basic design checks done."
 
 		exit 0
 	) &
@@ -949,7 +949,7 @@ check_submission() {
 	wait $pid_LEC_checks || status=$?
 	wait $pid_basic_checks || status=$?
 
-	echo "4)  $id:  All checks done"
+	echo "ISPD23 -- 4)  $id:  All checks done"
 
 	return $status
 }
@@ -966,7 +966,7 @@ link_work_dir() {
 	def_files=$(ls *.def 2> /dev/null | wc -l)
 	if [[ $def_files != '1' ]]; then
 
-		echo "ERROR: there are $def_files DEF files in the submission download's work directory, which shouldn't happen." >> errors.rpt
+		echo "ISPD23 -- ERROR: there are $def_files DEF files in the submission download's work directory, which shouldn't happen." >> errors.rpt
 		error=1
 	fi
 	## NOTE don't force here, to avoid circular links from design.def to design.def itself, in case the submitted file's name is already the same; also remain silent
@@ -976,12 +976,12 @@ link_work_dir() {
 	netlist_files=$(ls *.v 2> /dev/null | wc -l)
 	if [[ $netlist_files > '1' ]]; then
 
-		echo "ERROR: there are $netlist_files netlist files in the submission download's work directory, which shouldn't happen." >> errors.rpt
+		echo "ISPD23 -- ERROR: there are $netlist_files netlist files in the submission download's work directory, which shouldn't happen." >> errors.rpt
 		error=1
 
 	elif [[ $netlist_files == '0' ]]; then
 
-		echo "WARNING: there is no netlist files found in the submission download's work directory. Continuing with original baseline netlist. If the circuitry in your DEF deviates from this netlist, you'd want to re-upload the DEF along with the netlist." >> warnings.rpt
+		echo "ISPD23 -- WARNING: there is no netlist files found in the submission download's work directory. Continuing with original baseline netlist. If the circuitry in your DEF deviates from this netlist, you'd want to re-upload the DEF along with the netlist." >> warnings.rpt
 		ln -sf $baselines_root_folder/$benchmark/design_original.v design.v
 
 	#elif [[ $netlist_files -eq 1 ]]; then
@@ -1045,7 +1045,7 @@ start_eval() {
 					continue
 				fi
 
-				echo "4)  $id: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
+				echo "ISPD23 -- 4)  $id: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
 
 				## 1) count parallel runs (i.e., runs started within the same cycle)
 				((count_parallel_runs = count_parallel_runs + 1))
@@ -1054,7 +1054,7 @@ start_eval() {
 			(
 				## 1) send out email notification of start 
 				#
-				echo "4)  $id:  Send out email about processing start ..."
+				echo "ISPD23 -- 4)  $id:  Send out email about processing start ..."
 
 				text="The evaluation for your latest $round round submission, benchmark $benchmark, has started. You will receive another email once results are available.\n\nMD5 and name of files processed in this run:\n"
 				# NOTE cd to the directory such that paths are not revealed, only filenames
@@ -1070,7 +1070,7 @@ start_eval() {
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 
 				# 2) init folder
-				echo "4)  $id:  Init work folder ..."
+				echo "ISPD23 -- 4)  $id:  Init work folder ..."
 				
 				## copy downloaded folder in full to work folder
 				cp -rf $downloads_folder/$folder $work_folder/
@@ -1095,7 +1095,7 @@ start_eval() {
 
 				if [[ $? != 0 ]]; then
 
-					echo "4)  $id:   Error occurred during file init."
+					echo "ISPD23 -- 4)  $id:   Error occurred during file init."
 
 					# also mark as done in case of an error, to allow check_eval to clear and prepare to upload this run
 					date > DONE.exploit_eval
@@ -1114,13 +1114,13 @@ start_eval() {
 				fi
 
 				# 3) check submission
-				echo "4)  $id:  Check submission files ..."
+				echo "ISPD23 -- 4)  $id:  Check submission files ..."
 
 				check_submission
 
 				if [[ $? != 0 ]]; then
 
-					echo "4)  $id:   Submission is not valid/legal."
+					echo "ISPD23 -- 4)  $id:   Submission is not valid/legal."
 
 					# also mark as done in case of an error, to allow check_eval to clear and prepare to upload this run
 					date > DONE.exploit_eval
@@ -1154,19 +1154,19 @@ start_eval() {
 					# prepare scripts
 					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
 
-						echo "4)  $id:  Exploitable regions: start background run for script version considering 10 metal layers..."
+						echo "ISPD23 -- 4)  $id:  Exploitable regions: start background run for script version considering 10 metal layers..."
 
 						# cleanup scripts not needed
 						rm exploit_regions_metal1--metal6.tcl
 
 					elif [[ "$benchmarks_6_metal_layers" == *"$benchmark"* ]]; then
 
-						echo "4)  $id:  Exploitable regions: start background run for script version considering 6 metal layers..."
+						echo "ISPD23 -- 4)  $id:  Exploitable regions: start background run for script version considering 6 metal layers..."
 
 						rm exploit_regions.tcl
 						ln -s exploit_regions_metal1--metal6.tcl exploit_regions.tcl
 					else
-						echo "ERROR: benchmark cannot be matched to some exploit-regions script version, which shouldn't happen." >> errors.rpt
+						echo "ISPD23 -- ERROR: benchmark cannot be matched to some exploit-regions script version, which shouldn't happen." >> errors.rpt
 
 						# also mark as done in case of an error, to allow check_eval to clear and prepare to upload this run
 						date > DONE.exploit_eval
@@ -1186,7 +1186,7 @@ start_eval() {
 				(
 					cd $work_folder/$folder
 
-					echo "4)  $id:  Probing: start background run ..."
+					echo "ISPD23 -- 4)  $id:  Probing: start background run ..."
 
 					./probing.sh $innovus_bin $benchmark > /dev/null 2>&1
 				) &

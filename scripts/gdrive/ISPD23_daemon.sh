@@ -28,7 +28,6 @@ baselines_root_folder="$local_root_folder/benchmarks/__release/__$round"
 ## benchmarks
 ##
 #TODO to be updated to new alpha benchmarks
-#TODO integrate procedure to init related folders on Gdrive for participants folders
 benchmarks="AES_1 AES_2 AES_3 Camellia CAST MISTY openMSP430_1 PRESENT SEED TDEA"
 ## (TODO) use this for testing
 #benchmarks="PRESENT"
@@ -76,71 +75,71 @@ declare -A google_benchmark_folders
 # key: $team
 declare -A google_share_emails
 
-echo "0) Initialize work on round \"$round\" ..."
+echo "ISPD23 -- 0) Initialize work on round \"$round\" ..."
 initialize
-echo "0)"
-echo "0) Done"
-echo ""
+echo "ISPD23 -- 0)"
+echo "ISPD23 -- 0) Done"
+echo "ISPD23 -- "
 
 ## continuous loop: file downloads, script runs, file uploads
 #
 #(TODO) for early errors like file init or so, short-cut and directly upload
 while true; do
 
-	echo "1) Check status of ongoing evaluation processing, if any ..."
-	echo "1)  Time: $(date)"
-	echo "1)  Time stamp: $(date +%s)"
+	echo "ISPD23 -- 1) Check status of ongoing evaluation processing, if any ..."
+	echo "ISPD23 -- 1)  Time: $(date)"
+	echo "ISPD23 -- 1)  Time stamp: $(date +%s)"
 	check_eval
 #(TODO) log how many still running, how many done
-	echo "1)"
-	echo "1) Done"
-	echo ""
+	echo "ISPD23 -- 1)"
+	echo "ISPD23 -- 1) Done"
+	echo "ISPD23 -- "
 
-	echo "2) Upload new results, if any ..."
-	echo "2)  Time: $(date)"
-	echo "2)  Time stamp: $(date +%s)"
-	echo "2)"
+	echo "ISPD23 -- 2) Upload new results, if any ..."
+	echo "ISPD23 -- 2)  Time: $(date)"
+	echo "ISPD23 -- 2)  Time stamp: $(date +%s)"
+	echo "ISPD23 -- 2)"
 	google_uploads
 #(TODO) log how many uploads, how many failed
-	echo "2) Done"
-	echo ""
+	echo "ISPD23 -- 2) Done"
+	echo "ISPD23 -- "
 
 ##NOTE use for deadline mode
 #	#https://epoch.vercel.app
 #	#2022-03-30 21:00:00 GST (UTC+4)
 #	if [[ $(date +%s) < 1648659600 ]]; then
 
-		echo "3) Download new submissions, if any ..."
-		echo "3)  Time: $(date)"
-		echo "3)  Time stamp: $(date +%s)"
-		echo "3)"
+		echo "ISPD23 -- 3) Download new submissions, if any ..."
+		echo "ISPD23 -- 3)  Time: $(date)"
+		echo "ISPD23 -- 3)  Time stamp: $(date +%s)"
+		echo "ISPD23 -- 3)"
 		google_downloads
 #(TODO) log how many downloaded, how many failed
-		echo "3)"
-		echo "3) Done"
-		echo ""
+		echo "ISPD23 -- 3)"
+		echo "ISPD23 -- 3) Done"
+		echo "ISPD23 -- "
 
-		echo "4) Start evaluation processing of newly downloaded submission files, if any ..."
-		echo "4)  Time: $(date)"
-		echo "4)  Time stamp: $(date +%s)"
-		echo "4)"
+		echo "ISPD23 -- 4) Start evaluation processing of newly downloaded submission files, if any ..."
+		echo "ISPD23 -- 4)  Time: $(date)"
+		echo "ISPD23 -- 4)  Time stamp: $(date +%s)"
+		echo "ISPD23 -- 4)"
 		start_eval
 #(TODO) log how many started, how many based checks
-		echo "4) Done"
-		echo ""
+		echo "ISPD23 -- 4) Done"
+		echo "ISPD23 -- "
 
 #	else
-#		echo "3, 4) Deadline passed -- no more downloads and start of evaluation ..."
-#		echo "3, 4)"
-#		echo ""
+#		echo "ISPD23 -- 3, 4) Deadline passed -- no more downloads and start of evaluation ..."
+#		echo "ISPD23 -- 3, 4)"
+#		echo "ISPD23 -- "
 #	fi
 
-	echo "5) Sleep/wait for $check_interval s ..."
-	echo "5)  Time: $(date)"
-	echo "5)  Time stamp: $(date +%s)"
-	echo "5)"
-	echo "5) Sleeping ..."
+	echo "ISPD23 -- 5) Sleep/wait for $check_interval s ..."
+	echo "ISPD23 -- 5)  Time: $(date)"
+	echo "ISPD23 -- 5)  Time stamp: $(date +%s)"
+	echo "ISPD23 -- 5)"
+	echo "ISPD23 -- 5) Sleeping ..."
 	sleeping $check_interval
-	echo "5) Done"
-	echo ""
+	echo "ISPD23 -- 5) Done"
+	echo "ISPD23 -- "
 done
