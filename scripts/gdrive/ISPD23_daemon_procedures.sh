@@ -1,5 +1,77 @@
 #!/bin/bash
 
+initialize() {
+	
+	## query drive for root folder, extract columns 1 and 2 from response
+	## store into associative array; key is google file/folder ID, value is actual file/folder name
+	
+	echo "0)  Checking Google root folder \"$google_root_folder\" ..."
+
+	while read -r a b; do
+		google_team_folders[$a]=$b
+	# (TODO) use this to work on __test folder only
+	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '__test'" | awk '{print $1" "$2}')
+	## (TODO) use this for actual runs
+	#done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
+	
+	echo "0)   Found ${#google_team_folders[@]} folders, one for each team"
+	
+	# init local array for folder references, helpful for faster gdrive access later on throughout all other procedures
+	#
+	echo "0)   Obtain all Google folder IDs/references ..."
+	
+	## iterate over keys / google IDs
+	for google_team_folder in "${!google_team_folders[@]}"; do
+	
+		team="${google_team_folders[$google_team_folder]}"
+	
+		google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
+	
+		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
+		google_share_emails[$team]=$(./gdrive share list $google_round_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
+	
+		for benchmark in $benchmarks; do
+	
+			id="$team:$benchmark"
+
+			# obtain drive references per benchmark
+			google_benchmark_folders[$id]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
+
+			# in case the related benchmark folder is missing, create it on the drive
+			if [[ ${google_benchmark_folders[$id]} == "" ]]; then
+
+				echo "0)    Init missing Google folder for round \"$round\", team \"$team\", benchmark \"$benchmark\" ..."
+
+				# work with empty dummy folders in tmp dir
+				mkdir -p $tmp_root_folder/$benchmark
+				./gdrive upload -p $google_round_folder -r $tmp_root_folder/$benchmark
+				rmdir $tmp_root_folder/$benchmark
+
+				# update the reference for the just created folder
+				google_benchmark_folders[$id]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
+			fi
+		done
+	done
+	
+	# Check corresponding local folders
+	#
+	echo "0)   Check corresponding local folders in $teams_root_folder/ ..."
+	
+	## iterate over values / actual names
+	for team in "${google_team_folders[@]}"; do
+
+		# generate folders in case they're missing, otherwise no action (no overwrite)
+		for benchmark in $benchmarks; do
+			mkdir -p $teams_root_folder/$team/$benchmark/downloads
+			mkdir -p $teams_root_folder/$team/$benchmark/work
+			mkdir -p $teams_root_folder/$team/$benchmark/backup_work
+			mkdir -p $teams_root_folder/$team/$benchmark/uploads
+	
+			touch $teams_root_folder/$team/$benchmark/downloads/dl_history
+		done
+	done
+}
+
 send_email() {
 	local text=$1
 	local subject=$2

@@ -27,6 +27,3 @@ while true; do
 	# exclude lines w/ carriage return, i.e., those for progress_bar()
 	./ISPD23_daemon.sh |& tee >(awk '!/\r/' > ISPD23.log)
 done
-
-#TODO current fail for __test for google_downloads probably due to PRESENT subfolder missing --> integrate init
-# procedure for subfolders into ISPD23_daemon_procedures.sh as well, currently that's in some separate script

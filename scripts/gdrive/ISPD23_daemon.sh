@@ -19,6 +19,7 @@ max_parallel_uploads="10"
 ##
 google_root_folder="1G1EENqSquzCQbxI1Ij-4vbD8C3yrC_FF"
 local_root_folder="$HOME/nyu_projects/ISPD23"
+tmp_root_folder="$local_root_folder/data/tmp/"
 teams_root_folder="$local_root_folder/data/$round"
 scripts_folder="$local_root_folder/scripts/eval"
 #NOTE this currently points to the ISPD22 benchmarks, via sym link
@@ -62,69 +63,21 @@ scripts_eval="check.tcl lec.do init_eval.tcl design_cost.sh scores.sh check_pins
 scripts="$scripts_regions $scripts_probing $scripts_eval"
 ##################
 
-# 1st, get all Google folders from the google root folder
-echo "0) Working on round \"$round\" ..."
-echo "0)  Checking Google root folder \"$google_root_folder\" ..."
+# initializing
 
-## query drive for root folder, extract columns 1 and 2 from response
-## store into associative array; key is google file/folder ID, value is actual file/folder name
-#
+## main data structures
+
+# key: google IDs; value: team names
 declare -A google_team_folders
-while read -r a b; do
-	google_team_folders[$a]=$b
-# (TODO) use this to work on __test folder only
-done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '__test'" | awk '{print $1" "$2}')
-## (TODO) use this to work on other folders only
-#done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = 'NTUsplace'" | awk '{print $1" "$2}')
-## (TODO) use this for actual runs
-#done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
 
-echo "0)   Found ${#google_team_folders[@]} folders, one for each team"
-
-# init arrays for constant folders, helpful for faster gdrive accesses
-#
-echo "0)   Init all Google folder IDs/references locally ..."
-
-## key syntax: "$team:$benchmark"
+# syntax for key: "$team:$benchmark"
 declare -A google_benchmark_folders
-## key syntax: "$team"
+
+# key: $team
 declare -A google_share_emails
 
-## iterate over keys / google IDs
-for google_team_folder in "${!google_team_folders[@]}"; do
-
-	team="${google_team_folders[$google_team_folder]}"
-
-	google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
-
-	# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
-	google_share_emails[$team]=$(./gdrive share list $google_round_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
-
-	for benchmark in $benchmarks; do
-
-		id="$team:$benchmark"
-
-		google_benchmark_folders[$id]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
-	done
-done
-
-# init corresponding local folders, using the value (actual name)
-#
-echo "0)   Init corresponding local folders in $teams_root_folder/ ..."
-
-## iterate over values / actual names
-for team in "${google_team_folders[@]}"; do
-
-	for benchmark in $benchmarks; do
-		mkdir -p $teams_root_folder/$team/$benchmark/downloads
-		mkdir -p $teams_root_folder/$team/$benchmark/work
-		mkdir -p $teams_root_folder/$team/$benchmark/backup_work
-		mkdir -p $teams_root_folder/$team/$benchmark/uploads
-
-		touch $teams_root_folder/$team/$benchmark/downloads/dl_history
-	done
-done
-
+echo "0) Initialize work on round \"$round\" ..."
+initialize
 echo "0)"
 echo "0) Done"
 echo ""
