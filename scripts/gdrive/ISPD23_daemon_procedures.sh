@@ -229,8 +229,7 @@ google_downloads() {
 				if [[ $(file $downloads_folder_/$actual_file_name_ | awk '{print $2}') == 'Zip' ]]; then
 
 					echo "ISPD23 -- 3)   Unpacking zip file \"$actual_file_name_\" into dedicated folder \"$downloads_folder_\" ..."
-					#NOTE only mute regular stdout, but keep stderr
-					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ > /dev/null #2>&1
+					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ #> /dev/null #2>&1
 					rm $downloads_folder_/$actual_file_name_ #> /dev/null 2>&1
 				fi
 
@@ -444,9 +443,9 @@ check_eval() {
 				#NOTE only mute regular stdout, which is put into log file already, but keep stderr
 				./scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
-				## cp all rpt files to uploads folder
+				## zip all rpt files to uploads folder
 				echo "ISPD23 -- 1)   Copying report files to uploads folder \"$uploads_folder\" ..."
-				cp *.rpt $uploads_folder/
+				zip $uploads_folder/reports.zip *.rpt > /dev/null
 
 				## re-include processed files to uploads folder
 				echo "ISPD23 -- 1)   Including backup of processed files to uploads folder \"$uploads_folder\" ..."
