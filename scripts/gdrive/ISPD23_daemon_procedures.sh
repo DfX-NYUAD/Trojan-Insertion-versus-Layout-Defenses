@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#TODO w/ errors logged again, bring them back to all the procedures, don't redirect to /dev/null
-
 initialize() {
 	
 	## query drive for root folder, extract columns 1 and 2 from response
@@ -231,14 +229,13 @@ google_downloads() {
 				if [[ $(file $downloads_folder_/$actual_file_name_ | awk '{print $2}') == 'Zip' ]]; then
 
 					echo "ISPD23 -- 3)   Unpacking zip file \"$actual_file_name_\" into dedicated folder \"$downloads_folder_\" ..."
-					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ #> /dev/null 2>&1
+					#NOTE only mute regular stdout, but keep stderr
+					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ > /dev/null #2>&1
 					rm $downloads_folder_/$actual_file_name_ #> /dev/null 2>&1
-
-				## else, if these are regular files, chances are good that processing is too fast,
-				## resulting in clashes for timestamp in folders, hence slow down on purpose here
-				else
-					sleep 1s
 				fi
+
+				# chances are that processing is too fast, resulting in clashes for timestamp in folders, hence slow down on purpose here
+				sleep 1s
 			done
 		) &
 
@@ -339,8 +336,8 @@ check_eval() {
 				echo "ISPD23 -- 1)  Checking work folder \"$work_folder/$folder\""
 				# (related uploads folder: \"$uploads_folder\") ..."
 
-				## enter work folder
-				cd $work_folder/$folder #> /dev/null
+				## enter work folder silently
+				cd $work_folder/$folder > /dev/null
 
 				## check status of processes
 				#
@@ -431,8 +428,8 @@ check_eval() {
 				## if no error, and not done yet, then just continue
 				elif ! [[ ${status[exploit_eval]} == 1 && ${status[probing]} == 1 ]]; then
 					
-					# first return to previous main dir
-					cd - #> /dev/null
+					# first return to previous main dir silently
+					cd - > /dev/null
 
 					continue
 				fi
@@ -459,28 +456,31 @@ check_eval() {
 				echo "ISPD23 -- 1)   Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
 				mv $work_folder/$folder $backup_work_folder/
 
-				# return to previous main dir
-				cd - #> /dev/null
+				# return to previous main dir silently
+				cd - > /dev/null
 
-				# also compress backup
-				cd $backup_work_folder
+				## compress backup
 
-				## for interrupts, delete the probably excessively large log files before zipping
+				cd $backup_work_folder > /dev/null
+
+				# for interrupts, delete the probably excessively large log files before zipping
 				if [[ $errors_interrupt == 0 ]]; then
 					rm $folder/exploit_eval.log*
 					rm $folder/summarize_assets.log*
 				fi
 
-				zip -y -r $folder'.zip' $folder/ #> /dev/null 2>&1
+				#NOTE only mute regular stdout, but keep stderr
+				zip -y -r $folder'.zip' $folder/ > /dev/null #2>&1
 
 				rm -r $folder/
 
 				# unzip rpt, log files again, as these should remain readily accessible for debugging
-				unzip $folder'.zip' $folder/*.rpt* #> /dev/null 2>&1
-				unzip $folder'.zip' $folder/*.log #> /dev/null 2>&1
-				#unzip $folder'.zip' $folder/*.sh #> /dev/null 2>&1
+				#NOTE only mute regular stdout, but keep stderr
+				unzip $folder'.zip' $folder/*.rpt* > /dev/null #2>&1
+				unzip $folder'.zip' $folder/*.log > /dev/null #2>&1
+				#unzip $folder'.zip' $folder/*.sh > /dev/null #2>&1
 
-				cd - #> /dev/null
+				cd - > /dev/null
 			done
 		done
 	done
@@ -609,6 +609,9 @@ check_submission() {
 		##sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null 2>&1' &
 		sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null' &
 
+		# sleep a little to avoid immediate but useless errors concering log file not found
+		sleep 1s
+
 #		echo -n "|"
 
 		while true; do
@@ -680,8 +683,11 @@ check_submission() {
 		echo "ISPD23 -- 4)  $id:   LEC design checks ..."
 
 		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		##sh -c 'echo $$ > PID.lec; exec /opt/cadence/installs/CONFRML181/bin/lec_64 -nogui -xl -dofile lec.do > lec.log 2>&1' &
-		sh -c 'echo $$ > PID.lec; exec /opt/cadence/installs/CONFRML181/bin/lec_64 -nogui -xl -dofile lec.do > lec.log' &
+		##sh -c 'echo $$ > PID.lec; exec '$(echo $lec_bin)' -nogui -xl -dofile lec.do > lec.log 2>&1' &
+		sh -c 'echo $$ > PID.lec; exec '$(echo $lec_bin)' -nogui -xl -dofile lec.do > lec.log' &
+
+		# sleep a little to avoid immediate but useless errors concering log file not found
+		sleep 1s
 
 #		echo -n "|"
 
@@ -860,6 +866,9 @@ check_submission() {
 		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
 		##sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null 2>&1' &
 		sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null' &
+
+		# sleep a little to avoid immediate but useless errors concering log file not found
+		sleep 1s
 
 #		echo -n "|"
 
@@ -1116,7 +1125,7 @@ start_eval() {
 
 				### switch to work folder
 				### 
-				cd $work_folder/$folder
+				cd $work_folder/$folder > /dev/null
 
 				## track files processed; should be useful to share along w/ results to the participants, to allow them double-checking the processed files
 				for file in $(ls); do
@@ -1126,7 +1135,8 @@ start_eval() {
 					md5sum $file >> processed_files_MD5.rpt
 
 					# also backup into a zip file
-					zip processed_files.zip $file #> /dev/null
+					#NOTE only mute regular stdout, but keep stderr
+					zip processed_files.zip $file > /dev/null
 				done
 
 				## link scripts and design files needed for evaluation
@@ -1141,7 +1151,7 @@ start_eval() {
 					date > DONE.probing
 
 					# also return to previous main dir
-					cd - #> /dev/null
+					cd - > /dev/null
 
 					# cleanup downloads dir, to avoid processing again; do so even considering it failed,
 					# because it would likely fail again then anyway unless we are fixing things
@@ -1166,7 +1176,7 @@ start_eval() {
 					date > DONE.probing
 
 					# also return to previous main dir
-					cd - #> /dev/null
+					cd - > /dev/null
 
 					# cleanup downloads dir, to avoid processing again; do so even considering it failed,
 					# because it would likely fail again then anyway unless we are fixing things
@@ -1179,7 +1189,7 @@ start_eval() {
 
 				### done w/ init files within work folder, switch back to previous dir
 				###
-				cd - #> /dev/null
+				cd - > /dev/null
 
 				# 4) actual processing
 			
@@ -1188,7 +1198,7 @@ start_eval() {
 				## start frame of code to be run in parallel
 				## https://unix.stackexchange.com/a/103921
 				(
-					cd $work_folder/$folder
+					cd $work_folder/$folder > /dev/null
 
 					# prepare scripts
 					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
@@ -1224,7 +1234,7 @@ start_eval() {
 				## probing
 				##
 				(
-					cd $work_folder/$folder
+					cd $work_folder/$folder > /dev/null
 
 					echo "ISPD23 -- 4)  $id:  Probing: start background run ..."
 

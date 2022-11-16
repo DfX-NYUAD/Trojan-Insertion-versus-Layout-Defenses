@@ -38,7 +38,7 @@ benchmarks="AES_1 AES_2 AES_3 Camellia CAST MISTY openMSP430_1 PRESENT SEED TDEA
 ## NOTE at least one email must be given (otherwise grep -Ev used below will exclude all)
 emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 
-## innovus
+## Innovus
 ##
 innovus_bin="innovus"
 # NOTE as above, use pipe as separate and provide at least one term
@@ -49,6 +49,10 @@ innovus_bin="innovus"
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT"
 # NOTE as above, use pipe as separate and provide at least one term
 innovus_errors_for_checking="ERROR|StackTrace"
+
+## LEC
+##
+lec_bin="lec_64"
 
 ## benchmarks and file handlers
 ##
