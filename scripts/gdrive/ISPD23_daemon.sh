@@ -29,7 +29,7 @@ baselines_root_folder="$local_root_folder/benchmarks/__release/__$round"
 ##
 #TODO to be updated to new alpha benchmarks
 benchmarks="AES_1 AES_2 AES_3 Camellia CAST MISTY openMSP430_1 PRESENT SEED TDEA"
-## (TODO) use this for testing
+## NOTE use this for testing
 #benchmarks="PRESENT"
 
 ## emails
@@ -76,7 +76,11 @@ declare -A google_benchmark_folders
 declare -A google_share_emails
 
 echo "ISPD23 -- 0) Initialize work on round \"$round\" ..."
+
+# NOTE this expects the team folder in the Google root drive and, to begin with, an empty subfolder for the current
+# round. The related benchmark sub-subfolders will be initialized by this scrip
 initialize
+
 echo "ISPD23 -- 0)"
 echo "ISPD23 -- 0) Done"
 echo "ISPD23 -- "
@@ -89,20 +93,28 @@ while true; do
 	echo "ISPD23 -- 1) Check status of ongoing evaluation processing, if any ..."
 	echo "ISPD23 -- 1)  Time: $(date)"
 	echo "ISPD23 -- 1)  Time stamp: $(date +%s)"
+
 	check_eval
-#(TODO) log how many still running, how many done
+
+	#(TODO) log how many still running, how many done
+
 	echo "ISPD23 -- 1)"
 	echo "ISPD23 -- 1) Done"
 	echo "ISPD23 -- "
+
 
 	echo "ISPD23 -- 2) Upload new results, if any ..."
 	echo "ISPD23 -- 2)  Time: $(date)"
 	echo "ISPD23 -- 2)  Time stamp: $(date +%s)"
 	echo "ISPD23 -- 2)"
+
 	google_uploads
-#(TODO) log how many uploads, how many failed
+
+	#(TODO) log how many uploads, how many failed
+
 	echo "ISPD23 -- 2) Done"
 	echo "ISPD23 -- "
+
 
 ##NOTE use for deadline mode
 #	#https://epoch.vercel.app
@@ -113,18 +125,26 @@ while true; do
 		echo "ISPD23 -- 3)  Time: $(date)"
 		echo "ISPD23 -- 3)  Time stamp: $(date +%s)"
 		echo "ISPD23 -- 3)"
+
 		google_downloads
-#(TODO) log how many downloaded, how many failed
+
+		#(TODO) log how many downloaded, how many failed
+
 		echo "ISPD23 -- 3)"
 		echo "ISPD23 -- 3) Done"
 		echo "ISPD23 -- "
+
+
 
 		echo "ISPD23 -- 4) Start evaluation processing of newly downloaded submission files, if any ..."
 		echo "ISPD23 -- 4)  Time: $(date)"
 		echo "ISPD23 -- 4)  Time stamp: $(date +%s)"
 		echo "ISPD23 -- 4)"
+
 		start_eval
-#(TODO) log how many started, how many based checks
+
+		#(TODO) log how many started, how many passed checks, how many running detailed eval
+
 		echo "ISPD23 -- 4) Done"
 		echo "ISPD23 -- "
 
@@ -134,12 +154,15 @@ while true; do
 #		echo "ISPD23 -- "
 #	fi
 
+
 	echo "ISPD23 -- 5) Sleep/wait for $check_interval s ..."
 	echo "ISPD23 -- 5)  Time: $(date)"
 	echo "ISPD23 -- 5)  Time stamp: $(date +%s)"
 	echo "ISPD23 -- 5)"
 	echo "ISPD23 -- 5) Sleeping ..."
+
 	sleeping $check_interval
+
 	echo "ISPD23 -- 5) Done"
 	echo "ISPD23 -- "
 done
