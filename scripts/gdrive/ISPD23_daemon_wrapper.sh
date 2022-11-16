@@ -22,7 +22,7 @@ while true; do
 #	# https://stackoverflow.com/a/692407
 #	./ISPD23_daemon.sh > >(tee ISPD23.log) 2> >(tee ISPD23.err >&2)
 
-#TODO w/ errors logged again, bring them back to all the procedures, don't redirect to /dev/null
+
 	# https://stackoverflow.com/a/34593886
 	# exclude lines w/ carriage return, i.e., those for progress_bar()
 	./ISPD23_daemon.sh |& tee >(awk '!/\r/' > ISPD23.log)
