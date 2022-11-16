@@ -329,7 +329,9 @@ check_eval() {
 
 				## create related upload folder, w/ same timestamp as work and download folder
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
-				mkdir $uploads_folder #> /dev/null 2>&1
+
+				#NOTE suppress warnings for folder already exists, but keep others
+				mkdir $uploads_folder 2>&1 | grep -v "exists"
 
 				echo "ISPD23 -- 1)"
 				echo "ISPD23 -- 1)  Checking work folder \"$work_folder/$folder\""
