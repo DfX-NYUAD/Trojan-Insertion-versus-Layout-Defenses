@@ -383,40 +383,8 @@ check_eval() {
 					status[exploit_eval]=2
 				fi
 			
-				## probing
-				#
-				if [[ -e DONE.probing ]]; then
-					echo "ISPD23 -- 1)   Probing: done"
-					status[probing]=1
-				else
-					echo "ISPD23 -- 1)   Probing: still working ..."
-					status[probing]=0
-				fi
-				## for dbg only (e.g., manual re-upload of work folders just moved from backup_up to work again)
-				#status[probing]=1
-				# 
-				##errors=$(grep -E "$innovus_errors_for_checking" summarize_assets.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
-				errors=$(grep -E "$innovus_errors_for_checking" summarize_assets.log | grep -Ev "$innovus_errors_excluded_for_checking")
-				if [[ $errors != "" ]]; then
-
-					echo "ISPD23 -- 1)    Probing: some error occurred for Innovus run ..."
-					echo "ISPD23 -- ERROR: process failed for evaluation of probing -- $errors" >> errors.rpt
-
-					status[probing]=2
-				fi
-				#
-				##errors_interrupt=$(grep -q "INTERRUPT" summarize_assets.log* 2> /dev/null; echo $?)
-				errors_interrupt=$(grep -q "INTERRUPT" summarize_assets.log*; echo $?)
-				if [[ $errors_interrupt == 0 ]]; then
-
-					echo "ISPD23 -- 1)    Probing: Innovus run got interrupted ..."
-					echo "ISPD23 -- ERROR: process failed for evaluation of probing -- INTERRUPT" >> errors.rpt
-
-					status[probing]=2
-				fi
-
 				## if there's any error, kill all the processes; only runs w/o any errors should be kept going
-				if [[ ${status[exploit_eval]} == 2 || ${status[probing]} == 2 ]]; then
+				if [[ ${status[exploit_eval]} == 2 ]]; then
 
 					echo "ISPD23 -- 1)    Kill all processes, as some error occurred, and move on ..."
 
@@ -427,7 +395,7 @@ check_eval() {
 					cat PID.summarize_assets | xargs kill #2> /dev/null
 
 				## if no error, and not done yet, then just continue
-				elif ! [[ ${status[exploit_eval]} == 1 && ${status[probing]} == 1 ]]; then
+				elif ! [[ ${status[exploit_eval]} == 1 ]]; then
 					
 					# first return to previous main dir silently
 					cd - > /dev/null
@@ -495,7 +463,7 @@ check_submission() {
 
 	## NOTE trivial checks for matching of names, could be easily cheated on (e.g,., by swapping names w/ some less complex assets, or even just putting the asset names in some comment).
 	## However, given that participants may revise the implementation of assets and other logic, doing better is not easy. The subsequent LEC run checks at least for equivalence of DFFs,
-	## but not other logic. Further, the probing and exploit regions scripts would also fail if the assets are missing, so this here is really only an initial quick check to short-cut further efforts if possible.
+	## but not other logic. Further, the scripts would also fail if the assets are missing, so this here is really only an initial quick check to short-cut further efforts if possible.
 
 	echo "ISPD23 -- 4)  $id:   Check whether assets are maintained ..."
 
@@ -1149,7 +1117,6 @@ start_eval() {
 
 					# also mark as done in case of an error, to allow check_eval to clear and prepare to upload this run
 					date > DONE.exploit_eval
-					date > DONE.probing
 
 					# also return to previous main dir
 					cd - > /dev/null
@@ -1174,7 +1141,6 @@ start_eval() {
 
 					# also mark as done in case of an error, to allow check_eval to clear and prepare to upload this run
 					date > DONE.exploit_eval
-					date > DONE.probing
 
 					# also return to previous main dir
 					cd - > /dev/null
@@ -1229,18 +1195,6 @@ start_eval() {
 					./exploit_eval.sh $innovus_bin > /dev/null #2>&1
 
 				## end frame of code to be run in parallel
-				) &
-
-
-				## probing
-				##
-				(
-					cd $work_folder/$folder > /dev/null
-
-					echo "ISPD23 -- 4)  $id:  Probing: start background run ..."
-
-					#NOTE only mute regular stdout, which is put into log file already, but keep stderr
-					./probing.sh $innovus_bin $benchmark > /dev/null #2>&1
 				) &
 
 				# 5) cleanup downloads dir, to avoid processing again

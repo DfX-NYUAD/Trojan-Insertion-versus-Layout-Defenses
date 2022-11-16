@@ -61,9 +61,8 @@ lec_bin="lec_64"
 benchmarks_10_metal_layers="AES_1 AES_2 AES_3"
 benchmarks_6_metal_layers="Camellia CAST CEP MISTY openMSP430_1 openMSP430_2 PRESENT SEED SPARX TDEA"
 scripts_regions="exploit_eval.tcl exploit_eval.sh exploit_regions.tcl exploit_regions_metal1--metal6.tcl post_process_exploit_regions.sh"
-scripts_probing="probing_CUHK.tcl probing.sh probing_eval summarize_assets.tcl"
-scripts_eval="check.tcl lec.do init_eval.tcl design_cost.sh scores.sh check_pins.sh check_pg.sh pg.tcl pg_procedures.tcl"
-scripts="$scripts_regions $scripts_probing $scripts_eval"
+scripts_eval="check.tcl lec.do init_eval.tcl design_cost.sh scores.sh check_pins.sh check_pg.sh pg.tcl pg_procedures.tcl summarize_assets.tcl"
+scripts="$scripts_regions $scripts_eval"
 ##################
 
 # initializing
