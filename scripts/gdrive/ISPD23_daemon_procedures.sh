@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#TODO w/ errors logged again, bring them back to all the procedures, don't redirect to /dev/null
+
 initialize() {
 	
 	## query drive for root folder, extract columns 1 and 2 from response
@@ -14,7 +16,11 @@ initialize() {
 	# (TODO) use this for actual runs
 	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
 	
-	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} folders, one for each team"
+	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} team folders:"
+	for team in "${google_team_folders[@]}"; do
+		echo "ISPD23 -- 0)    $team"
+	done
+	echo "ISPD23 -- 0)"
 	
 	# init local array for folder references, helpful for faster gdrive access later on throughout all other procedures
 	#
@@ -84,7 +90,7 @@ send_email() {
 	done
 
 #TODO setup on new dfx server for new account; ~/.mailrc and ~/.certs
-#	ssh dfx "echo '$text' | mailx -A gmail -s '$subject' $emails_string" > /dev/null 2>&1
+#	ssh dfx "echo '$text' | mailx -A gmail -s '$subject' $emails_string" #> /dev/null 2>&1
 }
 
 # https://unix.stackexchange.com/a/415450
@@ -130,7 +136,7 @@ google_downloads() {
 		(
 			id="$team:$benchmark"
 
-			# NOTE relatively verbose; turned off for now
+			# NOTE relatively verbose; could be turned off
 			echo "ISPD23 -- 3)   Checking benchmark \"$benchmark\" ..."
 
 			downloads_folder="$team_folder/$benchmark/downloads"
@@ -145,6 +151,7 @@ google_downloads() {
 			while read -r a b c; do
 				google_folder_files[$a]=$b
 				google_folder_files_type[$a]=$c
+			#(TODO) error handling for the gdrive call itself; must jump in before awk and array assignment
 			done < <(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
 
 			## pre-processing: list files within (sub)folders, if any
@@ -158,6 +165,7 @@ google_downloads() {
 				while read -r a b c; do
 					google_folder_files[$a]=$b
 					google_folder_files_type[$a]=$c
+				#(TODO) error handling for the gdrive call itself; must jump in before awk and array assignment
 				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
 			done
 
@@ -191,8 +199,8 @@ google_downloads() {
 					# actual init of download folder w/ timestamp;
 					downloads_folder_="$downloads_folder/downloads_$(date +%s)"
 
-					## NOTE not silent on purpose, to see about name clashes from too fast processing
 					mkdir $downloads_folder_
+					## NOTE not silent on purpose, to see about name clashes from too fast processing
 					#mkdir $downloads_folder_ 2> /dev/null
 
 					## DBG
@@ -209,7 +217,7 @@ google_downloads() {
 				fi
 
 				echo "ISPD23 -- 3)   Download new submission file \"$actual_file_name\" (Google file ID \"$file\") into dedicated folder \"$downloads_folder_\" ..."
-				./gdrive download -f --path $downloads_folder_ $file > /dev/null 2>&1
+				./gdrive download -f --path $downloads_folder_ $file #> /dev/null 2>&1
 
 				# memorize to not download again, but only if the download succeeded
 				if [[ $? == 0 ]]; then
@@ -223,8 +231,8 @@ google_downloads() {
 				if [[ $(file $downloads_folder_/$actual_file_name_ | awk '{print $2}') == 'Zip' ]]; then
 
 					echo "ISPD23 -- 3)   Unpacking zip file \"$actual_file_name_\" into dedicated folder \"$downloads_folder_\" ..."
-					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ > /dev/null 2>&1
-					rm $downloads_folder_/$actual_file_name_ > /dev/null 2>&1
+					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ #> /dev/null 2>&1
+					rm $downloads_folder_/$actual_file_name_ #> /dev/null 2>&1
 
 				## else, if these are regular files, chances are good that processing is too fast,
 				## resulting in clashes for timestamp in folders, hence slow down on purpose here
