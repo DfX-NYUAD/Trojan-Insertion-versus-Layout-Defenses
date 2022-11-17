@@ -95,71 +95,69 @@ echo "ISPD23 -- "
 
 ## continuous loop: file downloads, script runs, file uploads
 #
-#(TODO) for early errors like file init or so, short-cut and directly upload
 while true; do
-
-	echo "ISPD23 -- 1) Check status of ongoing evaluation processing, if any ..."
-	echo "ISPD23 -- 1)  Time: $(date)"
-	echo "ISPD23 -- 1)  Time stamp: $(date +%s)"
-
-	check_eval
-
-	#(TODO) log how many still running, how many done
-
-	echo "ISPD23 -- 1)"
-	echo "ISPD23 -- 1) Done"
-	echo "ISPD23 -- "
-
-
-	echo "ISPD23 -- 2) Upload new results, if any ..."
-	echo "ISPD23 -- 2)  Time: $(date)"
-	echo "ISPD23 -- 2)  Time stamp: $(date +%s)"
-	echo "ISPD23 -- 2)"
-
-	google_uploads
-
-	#(TODO) log how many uploads, how many failed
-
-	echo "ISPD23 -- 2) Done"
-	echo "ISPD23 -- "
-
 
 ##NOTE use for deadline mode
 #	#https://epoch.vercel.app
 #	#2022-03-30 21:00:00 GST (UTC+4)
 #	if [[ $(date +%s) < 1648659600 ]]; then
 
-		echo "ISPD23 -- 3) Download new submissions, if any ..."
-		echo "ISPD23 -- 3)  Time: $(date)"
-		echo "ISPD23 -- 3)  Time stamp: $(date +%s)"
-		echo "ISPD23 -- 3)"
+		echo "ISPD23 -- 1) Download new submissions, if any ..."
+		echo "ISPD23 -- 1)  Time: $(date)"
+		echo "ISPD23 -- 1)  Time stamp: $(date +%s)"
+		echo "ISPD23 -- 1)"
 
 		google_downloads
 
 		#(TODO) log how many downloaded, how many failed
 
-		echo "ISPD23 -- 3)"
-		echo "ISPD23 -- 3) Done"
+		echo "ISPD23 -- 1)"
+		echo "ISPD23 -- 1) Done"
 		echo "ISPD23 -- "
 
 
-		echo "ISPD23 -- 4) Start evaluation processing of newly downloaded submission files, if any ..."
-		echo "ISPD23 -- 4)  Time: $(date)"
-		echo "ISPD23 -- 4)  Time stamp: $(date +%s)"
-		echo "ISPD23 -- 4)"
+		echo "ISPD23 -- 2) Start evaluation processing of newly downloaded submission files, if any ..."
+		echo "ISPD23 -- 2)  Time: $(date)"
+		echo "ISPD23 -- 2)  Time stamp: $(date +%s)"
+		echo "ISPD23 -- 2)"
 
 		start_eval
 
 		#(TODO) log how many started, how many passed checks, how many running detailed eval
 
-		echo "ISPD23 -- 4) Done"
+		echo "ISPD23 -- 2) Done"
 		echo "ISPD23 -- "
 
 #	else
-#		echo "ISPD23 -- 3, 4) Deadline passed -- no more downloads and start of evaluation ..."
-#		echo "ISPD23 -- 3, 4)"
+#		echo "ISPD23 -- 1, 2) Deadline passed -- no more downloads and start of evaluation ..."
+#		echo "ISPD23 -- 1, 2)"
 #		echo "ISPD23 -- "
 #	fi
+
+	echo "ISPD23 -- 3) Check status of ongoing evaluation processing, if any ..."
+	echo "ISPD23 -- 3)  Time: $(date)"
+	echo "ISPD23 -- 3)  Time stamp: $(date +%s)"
+
+	check_eval
+
+	#(TODO) log how many still running, how many done
+
+	echo "ISPD23 -- 3)"
+	echo "ISPD23 -- 3) Done"
+	echo "ISPD23 -- "
+
+
+	echo "ISPD23 -- 4) Upload new results, if any ..."
+	echo "ISPD23 -- 4)  Time: $(date)"
+	echo "ISPD23 -- 4)  Time stamp: $(date +%s)"
+	echo "ISPD23 -- 4)"
+
+	google_uploads
+
+	#(TODO) log how many uploads, how many failed
+
+	echo "ISPD23 -- 4) Done"
+	echo "ISPD23 -- "
 
 
 	echo "ISPD23 -- 5) Sleep/wait for $check_interval s ..."
