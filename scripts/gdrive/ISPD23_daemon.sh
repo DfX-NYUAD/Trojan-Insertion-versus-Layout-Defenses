@@ -83,6 +83,7 @@ declare -A google_benchmark_folders
 # key: $team
 declare -A google_share_emails
 
+echo "ISPD23 -- 0)"
 echo "ISPD23 -- 0) Initialize work on round \"$round\" ..."
 
 # NOTE this expects the team folder in the Google root drive and, to begin with, an empty subfolder for the current

@@ -116,7 +116,7 @@ sleeping() {
 	done
 
 	# final newline to finish progress bar
-	echo "ISPD23 -- "
+	echo ""
 }
 
 google_downloads() {
