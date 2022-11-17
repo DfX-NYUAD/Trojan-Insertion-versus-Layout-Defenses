@@ -25,6 +25,11 @@ scripts_folder="$local_root_folder/scripts/eval"
 #NOTE this currently points to the ISPD22 benchmarks, via sym link
 baselines_root_folder="$local_root_folder/benchmarks/__release/__$round"
 
+## library
+##
+lib_file="NangateOpenCellLibrary.lib"
+lef_file="NangateOpenCellLibrary.lef"
+
 ## benchmarks
 ##
 #TODO to be updated to new alpha benchmarks

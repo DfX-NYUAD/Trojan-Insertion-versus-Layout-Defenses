@@ -1014,8 +1014,8 @@ link_work_dir() {
 	## link runtime files related to benchmark into work dir
 	ln -sf $baselines_root_folder/$benchmark/mmmc.tcl .
 	ln -sf $baselines_root_folder/$benchmark/design.sdc .
-	ln -sf $baselines_root_folder/$benchmark/NangateOpenCellLibrary.lib .
-	ln -sf $baselines_root_folder/$benchmark/NangateOpenCellLibrary.lef .
+	ln -sf $baselines_root_folder/$benchmark/$lib_file .
+	ln -sf $baselines_root_folder/$benchmark/$lef_file .
 	ln -sf $baselines_root_folder/$benchmark/cells.assets .
 	ln -sf $baselines_root_folder/$benchmark/nets.assets .
 	# NOTE note the '_' prefix which is used to differentiate this true original file with any submission also named design_original
