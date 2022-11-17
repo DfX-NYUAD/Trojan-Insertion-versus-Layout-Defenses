@@ -330,8 +330,8 @@ check_eval() {
 				## create related upload folder, w/ same timestamp as work and download folder
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
 
-				#NOTE suppress warnings for folder already exists, but keep others
-				mkdir $uploads_folder 2>&1 | grep -v "exists"
+				#NOTE suppress warnings for folder already existing, but keep any others
+				mkdir $uploads_folder 2>&1 | grep -v "File exists"
 
 				echo "ISPD23 -- 3)"
 				echo "ISPD23 -- 3)  Checking work folder \"$work_folder/$folder\""
@@ -360,8 +360,9 @@ check_eval() {
 				# also check for any errors; if found, mark to kill and proceed
 				# note the * for the log files, to make sure to check all log files for iterative runs w/ threshold adapted
 				#
+				#NOTE suppress warnings for file not existing yet, but keep any others
 				##errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
-				errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* | grep -Ev "$innovus_errors_excluded_for_checking")
+				errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -v "No such file or directory" | grep -Ev "$innovus_errors_excluded_for_checking")
 				if [[ $errors != "" ]]; then
 
 					echo "ISPD23 -- 3)    Exploitable regions: some error occurred for Innovus run ..."
@@ -373,8 +374,10 @@ check_eval() {
 				# NOTE interrupt errors will be triggered in massive numbers, resulting in string allocation errors here after some time -- handle manually
 				# NOTE handling here is to keep only single error message
 				# NOTE memorize status in var as to skip log files for zip archive later on
+				#
+				#NOTE suppress warnings for file not existing yet, but keep any others
 				##errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2> /dev/null; echo $?)
-				errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log*; echo $?)
+				errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1 | grep -v "No such file or directory"; echo $?)
 				if [[ $errors_interrupt == 0 ]]; then
 
 					echo "ISPD23 -- 3)    Exploitable regions: Innovus run got interrupted ..."
@@ -413,11 +416,11 @@ check_eval() {
 				#NOTE only mute regular stdout, which is put into log file already, but keep stderr
 				./scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
-				## zip all rpt files to uploads folder
+				## zip all rpt files into uploads folder
 				echo "ISPD23 -- 3)   Copying report files to uploads folder \"$uploads_folder\" ..."
 				zip $uploads_folder/reports.zip *.rpt > /dev/null
 
-				## re-include processed files to uploads folder
+				## put processed files into uploads folder
 				echo "ISPD23 -- 3)   Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 				mv processed_files.zip $uploads_folder/ #2> /dev/null
 
@@ -429,7 +432,6 @@ check_eval() {
 				cd - > /dev/null
 
 				## compress backup
-
 				cd $backup_work_folder > /dev/null
 
 				# for interrupts, delete the probably excessively large log files before zipping
@@ -1169,6 +1171,7 @@ start_eval() {
 				(
 					cd $work_folder/$folder > /dev/null
 
+#TODO streamline into one; fix code
 					# prepare scripts
 					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
 
