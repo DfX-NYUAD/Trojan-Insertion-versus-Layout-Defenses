@@ -44,7 +44,7 @@ innovus_bin="innovus"
 # NOTE as above, use pipe as separate and provide at least one term
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill.
-	#TODO Are there other errors for IMPEXT?
+	#(TODO) Are there other errors for IMPEXT?
 	#TODO kill for DRCs this year, or handle via eval script?
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT"
 # NOTE as above, use pipe as separate and provide at least one term
@@ -136,7 +136,6 @@ while true; do
 		echo "ISPD23 -- 3)"
 		echo "ISPD23 -- 3) Done"
 		echo "ISPD23 -- "
-
 
 
 		echo "ISPD23 -- 4) Start evaluation processing of newly downloaded submission files, if any ..."

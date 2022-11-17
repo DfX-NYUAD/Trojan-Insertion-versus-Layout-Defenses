@@ -9,9 +9,9 @@ initialize() {
 
 	while read -r a b; do
 		google_team_folders[$a]=$b
-#	# (TODO) use this for testing, to work on __test folder only
+#	# NOTE use this for testing, to work on __test folder only
 #	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '__test'" | awk '{print $1" "$2}')
-	# (TODO) use this for actual runs
+	# NOTE use this for actual runs
 	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
 	
 	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} team folders:"
@@ -149,7 +149,7 @@ google_downloads() {
 			while read -r a b c; do
 				google_folder_files[$a]=$b
 				google_folder_files_type[$a]=$c
-			#(TODO) error handling for the gdrive call itself; must jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
+			# NOTE no error handling for the gdrive call itself; must jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
 			## ISPD23 -- 3)   Download new submission file "to" (Google file ID "Failed") into dedicated folder
 			## Failed to get file: googleapi: Error 404: File not found: Failed., notFound
 			done < <(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
@@ -165,7 +165,7 @@ google_downloads() {
 				while read -r a b c; do
 					google_folder_files[$a]=$b
 					google_folder_files_type[$a]=$c
-				#(TODO) error handling for the gdrive call itself; must jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines; see note above
+				# NOTE no error handling for the gdrive call itself; must jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines; see note above
 				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
 			done
 
