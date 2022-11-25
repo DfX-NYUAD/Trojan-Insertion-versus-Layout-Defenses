@@ -149,7 +149,7 @@ google_downloads() {
 			while read -r a b c; do
 				google_folder_files[$a]=$b
 				google_folder_files_type[$a]=$c
-			# NOTE no error handling for the gdrive call itself; must jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
+			# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
 			## ISPD23 -- 1)   Download new submission file "to" (Google file ID "Failed") into dedicated folder
 			## Failed to get file: googleapi: Error 404: File not found: Failed., notFound
 			done < <(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
@@ -165,7 +165,7 @@ google_downloads() {
 				while read -r a b c; do
 					google_folder_files[$a]=$b
 					google_folder_files_type[$a]=$c
-				# NOTE no error handling for the gdrive call itself; must jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines; see note above
+				# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines; see note above
 				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
 			done
 
@@ -272,7 +272,7 @@ google_uploads() {
 
 					continue
 
-					# NOTE dont delete here any empty upload folders; should still be under processing
+					# NOTE don't delete here any empty upload folders; should still be under processing
 				fi
 
 				## 1) count parallel uploads (i.e., uploads started within the same cycle)
@@ -287,8 +287,7 @@ google_uploads() {
 
 				## cleanup locally, but only if upload succeeded
 				if [[ $? -ne 0 ]]; then
-					# NOTE replace continue w/ exit, as we are at the main level in a subshell here now
-					##continue
+					# NOTE use exit, not contine, as we are at the main level in a subshell here now
 					exit
 				fi
 
@@ -463,30 +462,27 @@ check_submission() {
 	## check for assets maintained in DEF
 	##
 
-	## NOTE trivial checks for matching of names, could be easily cheated on (e.g,., by swapping names w/ some less complex assets, or even just putting the asset names in some comment).
-	## However, given that participants may revise the implementation of assets and other logic, doing better is not easy. The subsequent LEC run checks at least for equivalence of DFFs,
-	## but not other logic. Further, the scripts would also fail if the assets are missing, so this here is really only an initial quick check to short-cut further efforts if possible.
+	## NOTE trivial checks for matching of names -- could be easily cheated on, e.g,., by swapping names w/ some less complex assets, or even just putting the asset names in some comment.
+	## However, subsequent LEC run does check for equivalence of all FF assets.
+	## Further, the evaluation scripts would fail if the assets are missing.
+	## So, this here is really only an initial quick check to short-cut further efforts if needed.
 
-	echo "ISPD23 -- 2)  $id:   Check whether assets are maintained ..."
+	echo "ISPD23 -- 2)  $id:   Quick check whether assets are maintained ..."
 
 	# create versions of assets fiels w/ extended escape of special chars, so that grep later on can match
 	# https://unix.stackexchange.com/a/211838
-	#(TODO) would be sufficient to do this only once, e..g, during init phase for daemon.sh, but shouldn't be much effort/RT so we can just keep doing it again in this procedure
+	# NOTE would be sufficient to do this only once, e..g, during init phase for daemon.sh, but shouldn't be much effort/RT so we can just keep doing it again in this procedure
 	sed -e 's/\\/\\\\/g' -e 's/\[/\\[/g' -e 's/\]/\\]/g' cells.assets > cells.assets.escaped
-	sed -e 's/\\/\\\\/g' -e 's/\[/\\[/g' -e 's/\]/\\]/g' nets.assets > nets.assets.escaped
 
-	#TODO drop net assets
 	readarray -t cells_assets < cells.assets
-	readarray -t nets_assets < nets.assets
 	readarray -t escaped_cells_assets < cells.assets.escaped
-	readarray -t escaped_nets_assets < nets.assets.escaped
 
 	status=0
 
 	(
 		error=0
 
-		echo "ISPD23 -- 2)  $id:    Check cell assets ..."
+#		echo "ISPD23 -- 2)  $id:    Check cell assets ..."
 		for ((i=0; i<${#cells_assets[@]}; i++)); do
 			asset=${cells_assets[$i]}
 			escaped_asset=${escaped_cells_assets[$i]}
@@ -505,31 +501,11 @@ check_submission() {
 	) &
 	pid_cell_assets=$!
 
-	(
-		error=0
-
-		echo "ISPD23 -- 2)  $id:    Check net assets ..."
-		for ((i=0; i<${#nets_assets[@]}; i++)); do
-			asset=${nets_assets[$i]}
-			escaped_asset=${escaped_nets_assets[$i]}
-
-			# for DEF format, each token/word is separated, so we can use -w here
-			grep -q -w $escaped_asset design.def
-
-			if [[ $? == 1 ]]; then
-				error=1
-				echo "ISPD23 -- ERROR: the net asset \"$asset\" is not maintained in the DEF." >> errors.rpt
-			fi
-		done
-#		echo "ISPD23 -- 2)  $id:    Check net assets done."
-
-		exit $error
-	) &
-	pid_net_assets=$!
-
 	# wait for subshells and memorize their exit code in case it's non-zero
+	## NOTE subshells currently not really needed, as there's only one check conducted here. We used to check also
+	## for net assets in the prior contest.
+	## If any other, early checks should be conducted before designs checkes, they should be added here.
 	wait $pid_cell_assets || status=$?
-	wait $pid_net_assets || status=$?
 
 	if [[ $status != 0 ]]; then
 
@@ -537,115 +513,117 @@ check_submission() {
 
 		return 1
 	else
-		echo "ISPD23 -- 2)  $id:   Check whether assets are maintained passed."
+		echo "ISPD23 -- 2)  $id:   Check passed."
 	fi
 
 	# reset status (not needed really as non-zero status would render this code skipped)
 	status=0
 
-	##
-	## pins checks
-	##
+# TODO revise checks; currently off: pins, PDN
 
-	(
-		echo "ISPD23 -- 2)  $id:   Pins design checks ..."
-
-		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		./check_pins.sh > /dev/null
-
-		# parse rpt for FAIL
-		##errors=$(grep -q "FAIL" check_pins.rpt 2> /dev/null; echo $?)
-		errors=$(grep -q "FAIL" check_pins.rpt; echo $?)
-		if [[ $errors == 0 ]]; then
-
-			echo "ISPD23 -- ERROR: For pins design check -- see check_pins.rpt for more details." >> errors.rpt
-			echo "ISPD23 -- 2)  $id:    Some pins design check(s) failed."
-
-			exit 1
-		fi
-
-		echo "ISPD23 -- 2)  $id:   Pins design checks passed."
-
-		exit 0
-	) &
-	pid_pins_checks=$!
-
-	##
-	## PDN checks
-	##
-
-	(
-		echo "ISPD23 -- 2)  $id:   PDN checks ..."
-
-		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		##sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null 2>&1' &
-		sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null' &
-
-		# sleep a little to avoid immediate but useless errors concering log file not found
-		sleep 1s
-
-#		echo -n "|"
-
-		while true; do
-
-#			echo -n "."
-
-			if [[ -e DONE.pg ]]; then
-
-#				echo "ISPD23 -- |"
-
-				break
-			else
-				# also check for any errors; if found, kill and return
-				#
-				##errors=$(grep -E "$innovus_errors_for_checking" pg.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
-				errors=$(grep -E "$innovus_errors_for_checking" pg.log | grep -Ev "$innovus_errors_excluded_for_checking")
-				if [[ $errors != "" ]]; then
-
-#					echo "ISPD23 -- |"
-
-					echo "ISPD23 -- 2)  $id:    Some error occurred for PDN checks. Killing process ..."
-
-					echo "ISPD23 -- ERROR: process failed for PDN design checks -- $errors" >> errors.rpt
-
-					cat PID.pg | xargs kill #2> /dev/null
-
-					exit 1
-				fi
-			fi
-
-			sleep 1s
-		done
-
-		# post-process reports
-		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		./check_pg.sh $baselines_root_folder/$benchmark/reports > /dev/null
-
-		# parse errors.rpt for "ERROR: For PG check"
-		##errors=$(grep -q "ERROR: For PG check" errors.rpt 2> /dev/null; echo $?)
-		errors=$(grep -q "ERROR: For PG check" errors.rpt; echo $?)
-		if [[ $errors == 0 ]]; then
-
-			echo "ISPD23 -- 2)  $id:    Some failure occurred during PDN design checks."
-
-			exit 1
-		fi
-		# also parse rpt for FAIL 
-		##errors=$(grep -q "FAIL" pg_metals_eval.rpt 2> /dev/null; echo $?)
-		errors=$(grep -q "FAIL" pg_metals_eval.rpt; echo $?)
-		if [[ $errors == 0 ]]; then
-
-			echo "ISPD23 -- ERROR: For PG check -- see pg_metals_eval.rpt for more details." >> errors.rpt
-			echo "ISPD23 -- 2)  $id:    Some PDN design check(s) failed."
-
-			exit 1
-		fi
-
-		echo "ISPD23 -- 2)  $id:   PDN checks passed."
-
-		exit 0
-	) &
-	pid_PDN_checks=$!
+#	##
+#	## pins checks
+#	##
+#
+#	(
+#		echo "ISPD23 -- 2)  $id:   Pins design checks ..."
+#
+#		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#		./check_pins.sh > /dev/null
+#
+#		# parse rpt for FAIL
+#		##errors=$(grep -q "FAIL" check_pins.rpt 2> /dev/null; echo $?)
+#		errors=$(grep -q "FAIL" check_pins.rpt; echo $?)
+#		if [[ $errors == 0 ]]; then
+#
+#			echo "ISPD23 -- ERROR: For pins design check -- see check_pins.rpt for more details." >> errors.rpt
+#			echo "ISPD23 -- 2)  $id:    Some pins design check(s) failed."
+#
+#			exit 1
+#		fi
+#
+#		echo "ISPD23 -- 2)  $id:   Pins design checks passed."
+#
+#		exit 0
+#	) &
+#	pid_pins_checks=$!
+#
+#	##
+#	## PDN checks
+#	##
+#
+#	(
+#		echo "ISPD23 -- 2)  $id:   PDN checks ..."
+#
+#		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#		##sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null 2>&1' &
+#		sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null' &
+#
+#		# sleep a little to avoid immediate but useless errors concerning log file not found
+#		sleep 1s
+#
+##		echo -n "|"
+#
+#		while true; do
+#
+##			echo -n "."
+#
+#			if [[ -e DONE.pg ]]; then
+#
+##				echo "ISPD23 -- |"
+#
+#				break
+#			else
+#				# also check for any errors; if found, kill and return
+#				#
+#				##errors=$(grep -E "$innovus_errors_for_checking" pg.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
+#				errors=$(grep -E "$innovus_errors_for_checking" pg.log | grep -Ev "$innovus_errors_excluded_for_checking")
+#				if [[ $errors != "" ]]; then
+#
+##					echo "ISPD23 -- |"
+#
+#					echo "ISPD23 -- 2)  $id:   Some error occurred for PDN checks. Killing process ..."
+#
+#					echo "ISPD23 -- ERROR: process failed for PDN design checks -- $errors" >> errors.rpt
+#
+#					cat PID.pg | xargs kill #2> /dev/null
+#
+#					exit 1
+#				fi
+#			fi
+#
+#			sleep 1s
+#		done
+#
+#		# post-process reports
+#		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#		./check_pg.sh $baselines_root_folder/$benchmark/reports > /dev/null
+#
+#		# parse errors.rpt for "ERROR: For PG check"
+#		##errors=$(grep -q "ERROR: For PG check" errors.rpt 2> /dev/null; echo $?)
+#		errors=$(grep -q "ERROR: For PG check" errors.rpt; echo $?)
+#		if [[ $errors == 0 ]]; then
+#
+#			echo "ISPD23 -- 2)  $id:    Some failure occurred during PDN design checks."
+#
+#			exit 1
+#		fi
+#		# also parse rpt for FAIL 
+#		##errors=$(grep -q "FAIL" pg_metals_eval.rpt 2> /dev/null; echo $?)
+#		errors=$(grep -q "FAIL" pg_metals_eval.rpt; echo $?)
+#		if [[ $errors == 0 ]]; then
+#
+#			echo "ISPD23 -- ERROR: For PG check -- see pg_metals_eval.rpt for more details." >> errors.rpt
+#			echo "ISPD23 -- 2)  $id:    Some PDN design check(s) failed."
+#
+#			exit 1
+#		fi
+#
+#		echo "ISPD23 -- 2)  $id:   PDN checks passed."
+#
+#		exit 0
+#	) &
+#	pid_PDN_checks=$!
 
 	##
 	## LEC checks
@@ -658,7 +636,7 @@ check_submission() {
 		##sh -c 'echo $$ > PID.lec; exec '$(echo $lec_bin)' -nogui -xl -dofile lec.do > lec.log 2>&1' &
 		sh -c 'echo $$ > PID.lec; exec '$(echo $lec_bin)' -nogui -xl -dofile lec.do > lec.log' &
 
-		# sleep a little to avoid immediate but useless errors concering log file not found
+		# sleep a little to avoid immediate but useless errors concerning log file not found
 		sleep 1s
 
 #		echo -n "|"
@@ -681,7 +659,7 @@ check_submission() {
 
 #					echo "ISPD23 -- |"
 
-					echo "ISPD23 -- 2)  $id:    Some error occurred for LEC run. Killing process ..."
+					echo "ISPD23 -- 2)  $id:   Some error occurred for LEC run. Killing process ..."
 
 					echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> errors.rpt
 
@@ -839,7 +817,7 @@ check_submission() {
 		##sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null 2>&1' &
 		sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null' &
 
-		# sleep a little to avoid immediate but useless errors concering log file not found
+		# sleep a little to avoid immediate but useless errors concerning log file not found
 		sleep 1s
 
 #		echo -n "|"
@@ -862,7 +840,7 @@ check_submission() {
 
 #					echo "ISPD23 -- |"
 
-					echo "ISPD23 -- 2)  $id:    Some error occurred for Innovus run for basic checks. Killing process ..."
+					echo "ISPD23 -- 2)  $id:   Some error occurred for Innovus run for basic checks. Killing process ..."
 
 					echo "ISPD23 -- ERROR: process failed for basic design checks -- $errors" >> errors.rpt
 
@@ -961,8 +939,8 @@ check_submission() {
 	pid_basic_checks=$!
 
 	# wait for subshells and memorize their exit code in case it's non-zero
-	wait $pid_pins_checks || status=$?
-	wait $pid_PDN_checks || status=$?
+#	wait $pid_pins_checks || status=$?
+#	wait $pid_PDN_checks || status=$?
 	wait $pid_LEC_checks || status=$?
 	wait $pid_basic_checks || status=$?
 
@@ -1017,10 +995,13 @@ link_work_dir() {
 	## link runtime files related to benchmark into work dir
 	ln -sf $baselines_root_folder/$benchmark/mmmc.tcl .
 	ln -sf $baselines_root_folder/$benchmark/design.sdc .
-	ln -sf $baselines_root_folder/$benchmark/$lib_file .
-	ln -sf $baselines_root_folder/$benchmark/$lef_file .
+	for file in $lib_files; do
+		ln -sf $baselines_root_folder/$benchmark/$file .
+	done
+	for file in $lef_files; do
+		ln -sf $baselines_root_folder/$benchmark/$file .
+	done
 	ln -sf $baselines_root_folder/$benchmark/cells.assets .
-	ln -sf $baselines_root_folder/$benchmark/nets.assets .
 	# NOTE note the '_' prefix which is used to differentiate this true original file with any submission also named design_original
 	ln -sf $baselines_root_folder/$benchmark/design_original.v _design_original.v
 	ln -sf $baselines_root_folder/$benchmark/design_original.def _design_original.def
@@ -1119,7 +1100,7 @@ start_eval() {
 					echo "ISPD23 -- 2)  $id:   Error occurred during file init."
 
 					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# (TODO) add other files here as needed for other evaluation steps
+					# NOTE add other files here as needed for other evaluation steps
 					date > DONE.exploit_eval
 
 					# also return to previous main dir
@@ -1143,7 +1124,7 @@ start_eval() {
 					echo "ISPD23 -- 2)  $id:   Submission is not valid/legal."
 
 					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# (TODO) add other files here as needed for other evaluation steps
+					# NOTE add other files here as needed for other evaluation steps
 					date > DONE.exploit_eval
 
 					# also return to previous main dir

@@ -27,8 +27,9 @@ baselines_root_folder="$local_root_folder/benchmarks/__release/__$round"
 
 ## library
 ##
-lib_file="NangateOpenCellLibrary.lib"
-lef_file="NangateOpenCellLibrary.lef"
+#TODO check for multiple files, separated by space
+lib_files="NangateOpenCellLibrary.lib"
+lef_files="NangateOpenCellLibrary.lef"
 
 ## benchmarks
 ##
