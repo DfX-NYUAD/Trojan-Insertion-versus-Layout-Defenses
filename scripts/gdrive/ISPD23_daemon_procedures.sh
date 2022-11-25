@@ -629,6 +629,7 @@ check_submission() {
 	## LEC checks
 	##
 
+## TODO revisit all examples, log formats
 	(
 		echo "ISPD23 -- 2)  $id:   LEC design checks ..."
 
@@ -810,6 +811,7 @@ check_submission() {
 	## basic design checks
 	##
 
+## TODO revisit all examples, log formats
 	(
 		echo "ISPD23 -- 2)  $id:   Basic design checks ..."
 
@@ -896,20 +898,8 @@ check_submission() {
 
 		# placement and routing; check check_route.rpt file for unplaced components as well as for summary
 # Example:
-#	*info: Unplaced = 0           
-		##issues=$(grep "*info: Unplaced =" check_route.rpt 2> /dev/null | awk '{print $4}')
-		issues=$(grep "*info: Unplaced =" check_route.rpt | awk '{print $4}')
-		if [[ $issues != '0' ]]; then
-
-			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues unplaced component(s) issues; see check_route.rpt for more details." >> warnings.rpt
-			echo "ISPD23 -- Unplaced components issues: $issues" >> checks_summary.rpt
-		else
-			echo "ISPD23 -- Unplaced components issues: 0" >> checks_summary.rpt
-		fi
-# Example:
-#	*** Message Summary: 1 warning(s), 0 error(s) 
-		##issues=$(grep "*** Message Summary:" check_route.rpt 2> /dev/null | awk '{ sum = $4 + $6; print sum }')
-		issues=$(grep "*** Message Summary:" check_route.rpt | awk '{ sum = $4 + $6; print sum }')
+#	**INFO: Identified 0 error(s) and 1 warning(s) during 'check_design -type {route}'.
+		issues=$(grep "**INFO: Identified" check_route.rpt | awk '{ sum = $3 + $6; print sum }')
 		if [[ $issues != '0' ]]; then
 
 			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues placement and/or routing issues; see check_route.rpt for more details." >> warnings.rpt
