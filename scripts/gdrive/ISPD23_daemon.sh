@@ -52,7 +52,7 @@ innovus_bin="innovus"
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill.
 	#(TODO) Are there other errors for IMPEXT?
 	#TODO kill for DRCs this year, or handle via eval script?
-innovus_errors_excluded_for_checking="IMPOAX|IMPEXT"
+innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|@file"
 # NOTE as above, use pipe as separate and provide at least one term
 innovus_errors_for_checking="ERROR|StackTrace"
 
