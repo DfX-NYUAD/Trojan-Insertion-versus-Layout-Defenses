@@ -5,8 +5,9 @@
 // setup
 set parallel option -threads 4
 
-read library -both -liberty NangateOpenCellLibrary.lib
-read lef file NangateOpenCellLibrary.lef
+// just load all available lib and lef files
+read library -both -liberty *.lib 
+read lef file *.lef
 
 read design -golden _design_original.v
 read design -revised design.v
@@ -43,10 +44,10 @@ map key points
 //  key_reg_reg[0][0] -- notation accepted by LEC
 // Conclusion: need to interpret strings to get rid of escaping special chars
 //
-// Take-away: not done for now, but might be good to just add (most likely again/redundantly, but we cannot be sure)
-//  all DFF assets as points -- only DFFs, other gates will error out -- as well as net assets as points, via batch
-//  mode, and via additional map files generated from assets files by bash taking care of i) interpretation of strings
-//  to rid escaping special chars and ii) for cell assets, adding only DFFs.
+// Take-away: not done for now, but might be good to just add (most likely redundantly, but not sure) all DFF assets
+//  as points -- only DFFs, other gates will error out -- as well as net assets as points, via batch mode, and via
+//  additional map files generated from assets files by bash taking care of i) interpretation of strings to rid
+//  escaping special chars and ii) for cell assets, adding only DFFs.
 
 // Analyzes the netlists and sets up the flattened design for accurate comparison
 analyze setup
@@ -54,7 +55,7 @@ analyze setup
 // To specify datapath analysis, requires Conformal XL license
 analyze datapath -merge
 
-// To run key point comparison
+// To run comparison
 add compare point -all
 compare
 
