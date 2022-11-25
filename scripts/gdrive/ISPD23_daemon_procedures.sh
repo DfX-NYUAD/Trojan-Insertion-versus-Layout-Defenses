@@ -653,8 +653,8 @@ check_submission() {
 			else
 				# also check for any errors; if found, kill and return
 				#
-				##errors=$(grep -E "Error|StackTrace|License check failed!" lec.log 2> /dev/null)
-				errors=$(grep -E "Error|StackTrace|License check failed!" lec.log)
+				##errors=$(grep -E "$lec_errors_for_checking" lec.log 2> /dev/null)
+				errors=$(grep -E "$lec_errors_for_checking" lec.log)
 				if [[ $errors != "" ]]; then
 
 #					echo "ISPD23 -- |"

@@ -50,6 +50,7 @@ innovus_bin="innovus"
 # NOTE as above, use pipe as separate and provide at least one term
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill.
+# NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain keywords like ERROR etc
 	#(TODO) Are there other errors for IMPEXT?
 	#TODO kill for DRCs this year, or handle via eval script?
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|@file"
@@ -59,6 +60,8 @@ innovus_errors_for_checking="ERROR|StackTrace"
 ## LEC
 ##
 lec_bin="lec_64"
+# NOTE as above, use pipe as separate and provide at least one term
+lec_errors_for_checking="Error|StackTrace|License check failed!"
 
 ## benchmarks and file handlers
 ##
