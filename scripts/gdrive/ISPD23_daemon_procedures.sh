@@ -966,7 +966,8 @@ link_work_dir() {
 		error=1
 	fi
 	## NOTE don't force here, to avoid circular links from design.def to design.def itself, in case the submitted file's name is already the same
-	ln -s *.def design.def #2> /dev/null
+	## NOTE suppress stderr for 'File exists' -- happens when submission uses same name already -- but keep all others
+	ln -s *.def design.def 2>&1 | grep -v "File exists"
 	
 	## netlist, including sanity checks
 	##netlist_files=$(ls *.v 2> /dev/null | wc -l)
@@ -984,7 +985,8 @@ link_work_dir() {
 	#elif [[ $netlist_files -eq 1 ]]; then
 	else
 		## NOTE don't force here, to avoid circular links from design.v to itself, in case the submitted file's name is already the same
-		ln -s *.v design.v #2> /dev/null
+		## NOTE suppress stderr for 'File exists' -- happens when submission uses same name already -- but keep all others
+		ln -s *.v design.v 2>&1 | grep -v "File exists"
 	fi
 
 	## link scripts into work dir
