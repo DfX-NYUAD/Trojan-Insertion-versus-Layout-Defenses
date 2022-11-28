@@ -957,7 +957,7 @@ link_work_dir() {
 	def_files=$(ls *.def 2> /dev/null | wc -l)
 	if [[ $def_files != '1' ]]; then
 
-		echo "ISPD23 -- ERROR: there are $def_files DEF files in the submission download's work directory, which shouldn't happen." >> errors.rpt
+		echo "ISPD23 -- ERROR: there are $def_files DEF files in the submission's work directory, which shouldn't happen." >> errors.rpt
 		error=1
 	fi
 	## NOTE don't force here, to avoid circular links from design.def to design.def itself, in case the submitted file's name is already the same
@@ -969,12 +969,12 @@ link_work_dir() {
 	netlist_files=$(ls *.v | wc -l)
 	if [[ $netlist_files > '1' ]]; then
 
-		echo "ISPD23 -- ERROR: there are $netlist_files netlist files in the submission download's work directory, which shouldn't happen." >> errors.rpt
+		echo "ISPD23 -- ERROR: there are $netlist_files netlist files in the submission's work directory, which shouldn't happen." >> errors.rpt
 		error=1
 
 	elif [[ $netlist_files == '0' ]]; then
 
-		echo "ISPD23 -- WARNING: there is no netlist files found in the submission download's work directory. Continuing with original baseline netlist. If the circuitry in your DEF deviates from this netlist, you'd want to re-upload the DEF along with the netlist." >> warnings.rpt
+		echo "ISPD23 -- WARNING: there is no dedicated netlist found in the submission's work directory; continuing with original baseline netlist for now. Most likely your DEF deviates from the original netlist, so you'd want to re-upload the DEF along with its netlist." >> warnings.rpt
 		ln -sf $baselines_root_folder/$benchmark/design_original.v design.v
 
 	#elif [[ $netlist_files -eq 1 ]]; then
