@@ -469,10 +469,12 @@ check_submission() {
 
 	echo "ISPD23 -- 2)  $id:   Quick check whether assets are maintained ..."
 
-	# create versions of assets fiels w/ extended escape of special chars, so that grep later on can match
-	# https://unix.stackexchange.com/a/211838
-	# NOTE would be sufficient to do this only once, e..g, during init phase for daemon.sh, but shouldn't be much effort/RT so we can just keep doing it again in this procedure
-	sed -e 's/\\/\\\\/g' -e 's/\[/\\[/g' -e 's/\]/\\]/g' cells.assets > cells.assets.escaped
+	# NOTE outsourced to benchmarks/_release/scripts/4_mod_files
+	#
+	## create versions of assets fiels w/ extended escape of special chars, so that grep later on can match
+	## https://unix.stackexchange.com/a/211838
+	## NOTE would be sufficient to do this only once, e..g, during init phase for daemon.sh, but shouldn't be much effort/RT so we can just keep doing it again in this procedure
+	#sed -e 's/\\/\\\\/g' -e 's/\[/\\[/g' -e 's/\]/\\]/g' cells.assets > cells.assets.escaped
 
 	readarray -t cells_assets < cells.assets
 	readarray -t escaped_cells_assets < cells.assets.escaped
@@ -1007,7 +1009,7 @@ link_work_dir() {
 #		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
 #	done
 
-	ln -sf $baselines_root_folder/$benchmark/cells.assets .
+	ln -sf $baselines_root_folder/$benchmark/cells.assets* .
 
 	# NOTE note the '_' prefix which is used to differentiate this true original file with any submission also named design_original
 	ln -sf $baselines_root_folder/$benchmark/design_original.v _design_original.v
