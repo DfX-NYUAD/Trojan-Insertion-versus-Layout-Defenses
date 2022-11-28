@@ -992,12 +992,13 @@ link_work_dir() {
 	## link runtime files related to benchmark and library into work dir
 
 	ln -sf $baselines_root_folder/$benchmark/mmmc.tcl .
-	ln -sf $baselines_root_folder/$benchmark/design.sdc .
+	ln -sf $baselines_root_folder/$benchmark/*.sdc . 
 
 	for file in `ls $baselines_root_folder/$benchmark/ASAP7`; do
 		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
 	done
-#
+
+## NOTE deprecated; handling of files separately and explicitly
 #	ln -sf $baselines_root_folder/$benchmark/ASAP7/$qrc_file .
 #	for file in $lib_files; do
 #		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
