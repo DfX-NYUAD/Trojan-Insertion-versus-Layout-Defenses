@@ -2,10 +2,9 @@
 # settings
 ####
 set_multi_cpu_usage -local_cpu 8
-#TODO update to 7, also set both process and node
-set_db design_process_node 45
+set_db design_process_node 7
 
-set lef_path NangateOpenCellLibrary.lef
+set lef_path *.lef
 set def_path design.def
 set netlist_path design.v
 

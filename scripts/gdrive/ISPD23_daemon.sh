@@ -22,19 +22,19 @@ local_root_folder="$HOME/nyu_projects/ISPD23"
 tmp_root_folder="$local_root_folder/data/tmp/"
 teams_root_folder="$local_root_folder/data/$round"
 scripts_folder="$local_root_folder/scripts/eval"
-#NOTE this currently points to the ISPD22 benchmarks, via sym link
-baselines_root_folder="$local_root_folder/benchmarks/__release/__$round"
+baselines_root_folder="$local_root_folder/benchmarks/_release/_$round"
 
-## library
+## library files
 ##
-#TODO check for multiple files, separated by space
-lib_files="NangateOpenCellLibrary.lib"
-lef_files="NangateOpenCellLibrary.lef"
+## NOTE no need to specificy separately; all files in $bench/ASAP7 folder are considered automatically
+#lib_files="asap7sc7p5t_AO_LVT_TT_nldm_211120.lib asap7sc7p5t_AO_SLVT_TT_nldm_211120.lib asap7sc7p5t_INVBUF_LVT_TT_nldm_220122.lib asap7sc7p5t_INVBUF_SLVT_TT_nldm_220122.lib asap7sc7p5t_OA_LVT_TT_nldm_211120.lib asap7sc7p5t_OA_SLVT_TT_nldm_211120.lib asap7sc7p5t_SEQ_LVT_TT_nldm_220123.lib asap7sc7p5t_SEQ_SLVT_TT_nldm_220123.lib asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120.lib asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120.lib"
+#lef_files="asap7_tech_4x_201209.lef asap7sc7p5t_28_L_4x_220121a.lef asap7sc7p5t_28_R_4x_220121a.lef asap7sc7p5t_28_SL_4x_220121a.lef"
+#qrc_file="qrcTechFile_typ03_scaled4xV06"
 
 ## benchmarks
 ##
-#TODO to be updated to new alpha benchmarks
-benchmarks="AES_1 AES_2 AES_3 Camellia CAST MISTY openMSP430_1 PRESENT SEED TDEA"
+#TODO add sha256
+benchmarks="aes camellia cast misty seed"
 ## NOTE use this for testing
 #benchmarks="PRESENT"
 
@@ -91,7 +91,7 @@ echo "ISPD23 -- 0)"
 echo "ISPD23 -- 0) Initialize work on round \"$round\" ..."
 
 # NOTE this expects the team folder in the Google root drive and, to begin with, an empty subfolder for the current
-# round. The related benchmark sub-subfolders will be initialized by this scrip
+# round. The related benchmark sub-subfolders will be initialized by this script
 initialize
 
 echo "ISPD23 -- 0)"

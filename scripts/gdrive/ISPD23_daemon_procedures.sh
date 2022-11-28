@@ -9,8 +9,8 @@ initialize() {
 
 	while read -r a b; do
 		google_team_folders[$a]=$b
-#	# NOTE use this for testing, to work on __test folder only
-#	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '__test'" | awk '{print $1" "$2}')
+#	# NOTE use this for testing, to work on _test folder only
+#	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '_test'" | awk '{print $1" "$2}')
 	# NOTE use this for actual runs
 	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
 	
@@ -989,16 +989,25 @@ link_work_dir() {
 		ln -sf $scripts_folder/$script .
 	done
 
-	## link runtime files related to benchmark into work dir
+	## link runtime files related to benchmark and library into work dir
+
 	ln -sf $baselines_root_folder/$benchmark/mmmc.tcl .
 	ln -sf $baselines_root_folder/$benchmark/design.sdc .
-	for file in $lib_files; do
-		ln -sf $baselines_root_folder/$benchmark/$file .
+
+	for file in `ls $baselines_root_folder/$benchmark/ASAP7`; do
+		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
 	done
-	for file in $lef_files; do
-		ln -sf $baselines_root_folder/$benchmark/$file .
-	done
+#
+#	ln -sf $baselines_root_folder/$benchmark/ASAP7/$qrc_file .
+#	for file in $lib_files; do
+#		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
+#	done
+#	for file in $lef_files; do
+#		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
+#	done
+
 	ln -sf $baselines_root_folder/$benchmark/cells.assets .
+
 	# NOTE note the '_' prefix which is used to differentiate this true original file with any submission also named design_original
 	ln -sf $baselines_root_folder/$benchmark/design_original.v _design_original.v
 	ln -sf $baselines_root_folder/$benchmark/design_original.def _design_original.def
