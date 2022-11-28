@@ -3,8 +3,9 @@
 ####
 set_multi_cpu_usage -local_cpu 8
 set_db design_process_node 7
+set_db design_tech_node N7
 
-set lef_path *.lef
+set lef_path "asap7_tech_4x_201209.lef asap7sc7p5t_28_L_4x_220121a.lef asap7sc7p5t_28_R_4x_220121a.lef asap7sc7p5t_28_SL_4x_220121a.lef"
 set def_path design.def
 set netlist_path design.v
 
@@ -37,7 +38,6 @@ check_drc
 check_design -type route > check_route.rpt
 
 ## NOTE errors out; probably not needed anyway as long as other checks here and later on check_DRC is done
-## TODO check again for ASAP7
 #check_tracks > check_tracks.rpt
 
 ####
