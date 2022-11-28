@@ -2,6 +2,7 @@
 # settings
 ####
 set_multi_cpu_usage -local_cpu 8
+#TODO update to 7, also set both process and node
 set_db design_process_node 45
 
 set lef_path NangateOpenCellLibrary.lef
@@ -26,17 +27,18 @@ check_connectivity
 # NOTE covers IO pins; check *.checkPin.rpt for "ERROR" as well as for "Illegal*", "Unplaced"
 check_pin_assignment
 # NOTE covers DRC for routing; check *.geom.rpt for "Total Violations"
-# (TODO) check for limit parameter; not used during contest, also because standard limit of 1,000 violations detected was good enough to properly penalize such layouts
-check_drc -limit 99999
+check_drc
+# NOTE standard limit of 1,000 violations is good enough to flag invalid layouts
+#check_drc -limit 99999
 
 ####
 # checks w/o rpt files auto-generated
 ####
-# NOTE covers placement and routing; check rpt file for "Unplaced = X" w/ X !=0 as well as for "ERROR" and "WARNING"
-##*info: Unplaced = 0           
+# NOTE covers placement and routing issues
 check_design -type route > check_route.rpt
 
 ## NOTE errors out; probably not needed anyway as long as other checks here and later on check_DRC is done
+## TODO check again for ASAP7
 #check_tracks > check_tracks.rpt
 
 ####

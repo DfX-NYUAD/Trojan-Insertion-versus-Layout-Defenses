@@ -811,7 +811,6 @@ check_submission() {
 	## basic design checks
 	##
 
-## TODO revisit all examples, log formats
 	(
 		echo "ISPD23 -- 2)  $id:   Basic design checks ..."
 
@@ -908,6 +907,9 @@ check_submission() {
 			echo "ISPD23 -- Placement and/or routing issues: 0" >> checks_summary.rpt
 		fi
 
+#TODO handle as errors!
+# NOTE see error handling for LEC checks above
+
 		# DRC routing issues; check *.geom.rpt for "Total Violations"
 # Example:
 #  Total Violations : 2 Viols.
@@ -921,6 +923,9 @@ check_submission() {
 		else
 			echo "ISPD23 -- DRC issues: 0" >> checks_summary.rpt
 		fi
+
+# TODO bring in timing checks here; start w/ stuff from init_eval.tcl, move to check.tcl as well
+# TODO bring in PG checks here; start w/ stuff from pg.tcl, move to check.tcl as well
 
 		echo "ISPD23 -- 2)  $id:   Basic design checks done."
 
@@ -1135,45 +1140,45 @@ start_eval() {
 				###
 				cd - > /dev/null
 
-				# 4) actual processing
-			
-				## exploit_eval
-				##
-				## start frame of code to be run in parallel
-				## https://unix.stackexchange.com/a/103921
-				(
-					cd $work_folder/$folder > /dev/null
-
-#TODO streamline into one; fix code
-					# prepare scripts
-					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
-
-						echo "ISPD23 -- 2)  $id:  Exploitable regions: start background run for script version considering 10 metal layers..."
-
-						# cleanup scripts not needed
-						rm exploit_regions_metal1--metal6.tcl
-
-					elif [[ "$benchmarks_6_metal_layers" == *"$benchmark"* ]]; then
-
-						echo "ISPD23 -- 2)  $id:  Exploitable regions: start background run for script version considering 6 metal layers..."
-
-						rm exploit_regions.tcl
-						ln -s exploit_regions_metal1--metal6.tcl exploit_regions.tcl
-					else
-						echo "ISPD23 -- ERROR: benchmark cannot be matched to some exploit-regions script version, which shouldn't happen." >> errors.rpt
-
-						# also mark as done in case of an error, to allow check_eval to clear and prepare to upload this run
-						date > DONE.exploit_eval
-
-						return
-					fi
-
-					# runs scripts wrapper
-					#NOTE only mute regular stdout, which is put into log file already, but keep stderr
-					./exploit_eval.sh $innovus_bin > /dev/null #2>&1
-
-				## end frame of code to be run in parallel
-				) &
+#				# 4) actual processing
+#			
+#				## exploit_eval
+#				##
+#				## start frame of code to be run in parallel
+#				## https://unix.stackexchange.com/a/103921
+#				(
+#					cd $work_folder/$folder > /dev/null
+#
+##TODO streamline into one; fix code
+#					# prepare scripts
+#					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
+#
+#						echo "ISPD23 -- 2)  $id:  Exploitable regions: start background run for script version considering 10 metal layers..."
+#
+#						# cleanup scripts not needed
+#						rm exploit_regions_metal1--metal6.tcl
+#
+#					elif [[ "$benchmarks_6_metal_layers" == *"$benchmark"* ]]; then
+#
+#						echo "ISPD23 -- 2)  $id:  Exploitable regions: start background run for script version considering 6 metal layers..."
+#
+#						rm exploit_regions.tcl
+#						ln -s exploit_regions_metal1--metal6.tcl exploit_regions.tcl
+#					else
+#						echo "ISPD23 -- ERROR: benchmark cannot be matched to some exploit-regions script version, which shouldn't happen." >> errors.rpt
+#
+#						# also mark as done in case of an error, to allow check_eval to clear and prepare to upload this run
+#						date > DONE.exploit_eval
+#
+#						return
+#					fi
+#
+#					# runs scripts wrapper
+#					#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#					./exploit_eval.sh $innovus_bin > /dev/null #2>&1
+#
+#				## end frame of code to be run in parallel
+#				) &
 
 				# 5) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null

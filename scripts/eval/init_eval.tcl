@@ -2,6 +2,7 @@
 # settings
 ####
 set_multi_cpu_usage -local_cpu 2
+#TODO update to 7, also set both process and node
 set_db design_process_node 45
 
 set mmmc_path mmmc.tcl
