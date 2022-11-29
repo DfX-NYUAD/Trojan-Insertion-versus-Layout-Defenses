@@ -422,9 +422,10 @@ check_eval() {
 				echo "ISPD23 -- 3)   Copying report files to uploads folder \"$uploads_folder\" ..."
 				zip $uploads_folder/reports.zip *.rpt > /dev/null
 
-				## put processed files into uploads folder
-				echo "ISPD23 -- 3)   Including backup of processed files to uploads folder \"$uploads_folder\" ..."
-				mv processed_files.zip $uploads_folder/ #2> /dev/null
+#				# NOTE deprecated
+#				## put processed files into uploads folder
+#				echo "ISPD23 -- 3)   Including backup of processed files to uploads folder \"$uploads_folder\" ..."
+#				mv processed_files.zip $uploads_folder/ #2> /dev/null
 
 				## backup work dir
 				echo "ISPD23 -- 3)   Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
@@ -436,12 +437,12 @@ check_eval() {
 				## compress backup
 				cd $backup_work_folder > /dev/null
 
-				## NOTE deprecated; better to keep the log file, but only in zip, do not unpack again
-				## for interrupts, delete the probably excessively large log files before zipping
-				#if [[ $errors_interrupt == 0 ]]; then
-				#       rm $folder/exploit_eval.log*
-				#       rm $folder/summarize_assets.log*
-				#fi
+#				# NOTE deprecated; better to keep the log file, but only in zip, do not unpack again
+#				# for interrupts, delete the probably excessively large log files before zipping
+#				if [[ $errors_interrupt == 0 ]]; then
+#				       rm $folder/exploit_eval.log*
+#				       rm $folder/summarize_assets.log*
+#				fi
 
 				# NOTE only mute regular stdout, but keep stderr
 				zip -y -r $folder'.zip' $folder/ > /dev/null #2>&1
@@ -1107,16 +1108,15 @@ start_eval() {
 				### 
 				cd $work_folder/$folder > /dev/null
 
-				## record and backup files processed; should be useful to share along w/ results to the participants, to allow them double-checking the processed files
+				## record files processed; should be useful to share along w/ results to participants, to allow them double-checking the processed files
 				for file in $(ls); do
 
 					# log MD5
-					##md5sum $file 2> /dev/null >> processed_files_MD5.rpt
 					md5sum $file >> processed_files_MD5.rpt
 
-# TODO comment out
-					# NOTE only mute regular stdout, but keep stderr
-					zip processed_files.zip $file > /dev/null
+#					# NOTE deprecated
+#					# NOTE only mute regular stdout, but keep stderr
+#					zip processed_files.zip $file > /dev/null
 				done
 
 				## link scripts and design files needed for evaluation
