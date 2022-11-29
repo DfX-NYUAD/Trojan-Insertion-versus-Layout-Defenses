@@ -673,6 +673,12 @@ check_submission() {
 
 					echo ""
 
+					# NOTE also check again for DONE flag file, to avoid race condition where
+					# process just finished but DONE did not write out yet
+					if [[ -e DONE.lec ]]; then
+						break
+					fi
+
 					echo "ISPD23 -- 2)  $id:   LEC run got interrupted. Abort processing ..."
 					echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> errors.rpt
 
@@ -863,6 +869,12 @@ check_submission() {
 				if [[ $errors_interrupt != 0 ]]; then
 
 					echo ""
+
+					# NOTE also check again for DONE flag file, to avoid race condition where
+					# process just finished but DONE did not write out yet
+					if [[ -e DONE.check ]]; then
+						break
+					fi
 
 					echo "ISPD23 -- 2)  $id:   Innovus run got interrupted. Abort processing ..."
 					echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- INTERRUPT" >> errors.rpt
