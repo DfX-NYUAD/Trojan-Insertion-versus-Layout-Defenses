@@ -11,7 +11,7 @@ round="alpha"
 ## wait b/w cycles [s]
 check_interval="60"
 ## max runs allowed to be started in parallel per team
-max_parallel_runs="3"
+max_parallel_runs="6"
 ## max uploads allowed to be started in parallel
 max_parallel_uploads="10"
 
@@ -22,19 +22,19 @@ local_root_folder="$HOME/nyu_projects/ISPD23"
 tmp_root_folder="$local_root_folder/data/tmp/"
 teams_root_folder="$local_root_folder/data/$round"
 scripts_folder="$local_root_folder/scripts/eval"
-#NOTE this currently points to the ISPD22 benchmarks, via sym link
-baselines_root_folder="$local_root_folder/benchmarks/__release/__$round"
+baselines_root_folder="$local_root_folder/benchmarks/_release/_$round"
 
-## library
+## library files
 ##
-#TODO check for multiple files, separated by space
-lib_files="NangateOpenCellLibrary.lib"
-lef_files="NangateOpenCellLibrary.lef"
+## NOTE no need to specificy separately; all files in $bench/ASAP7 folder are considered automatically
+#lib_files="asap7sc7p5t_AO_LVT_TT_nldm_211120.lib asap7sc7p5t_AO_SLVT_TT_nldm_211120.lib asap7sc7p5t_INVBUF_LVT_TT_nldm_220122.lib asap7sc7p5t_INVBUF_SLVT_TT_nldm_220122.lib asap7sc7p5t_OA_LVT_TT_nldm_211120.lib asap7sc7p5t_OA_SLVT_TT_nldm_211120.lib asap7sc7p5t_SEQ_LVT_TT_nldm_220123.lib asap7sc7p5t_SEQ_SLVT_TT_nldm_220123.lib asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120.lib asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120.lib"
+#lef_files="asap7_tech_4x_201209.lef asap7sc7p5t_28_L_4x_220121a.lef asap7sc7p5t_28_R_4x_220121a.lef asap7sc7p5t_28_SL_4x_220121a.lef"
+#qrc_file="qrcTechFile_typ03_scaled4xV06"
 
 ## benchmarks
 ##
-#TODO to be updated to new alpha benchmarks
-benchmarks="AES_1 AES_2 AES_3 Camellia CAST MISTY openMSP430_1 PRESENT SEED TDEA"
+#TODO add sha256
+benchmarks="aes camellia cast misty seed"
 ## NOTE use this for testing
 #benchmarks="PRESENT"
 
@@ -49,10 +49,9 @@ emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 innovus_bin="innovus"
 # NOTE as above, use pipe as separate and provide at least one term
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
-# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill.
+# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as
+# error though for basic checks
 # NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain keywords like ERROR etc
-	#(TODO) Are there other errors for IMPEXT?
-	#TODO kill for DRCs this year, or handle via eval script?
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|@file"
 # NOTE as above, use pipe as separate and provide at least one term
 innovus_errors_for_checking="ERROR|StackTrace"
@@ -66,12 +65,10 @@ lec_errors_for_checking="Error|StackTrace|License check failed!"
 ## benchmarks and file handlers
 ##
 ## NOTE only to be changed if you know what you're doing
-#TODO revise into one script, lef, etc. for ASAP7
-benchmarks_10_metal_layers="AES_1 AES_2 AES_3"
-benchmarks_6_metal_layers="Camellia CAST CEP MISTY openMSP430_1 openMSP430_2 PRESENT SEED SPARX TDEA"
-scripts_regions="exploit_eval.tcl exploit_eval.sh exploit_regions.tcl exploit_regions_metal1--metal6.tcl post_process_exploit_regions.sh"
-scripts_eval="check.tcl lec.do init_eval.tcl design_cost.sh scores.sh check_pins.sh check_pg.sh pg.tcl pg_procedures.tcl summarize_assets.tcl"
-scripts="$scripts_regions $scripts_eval"
+#TODO fix exploit regions
+scripts_sec_first_order="exploit_eval.tcl exploit_eval.sh exploit_regions.tcl exploit_regions_metal1--metal6.tcl post_process_exploit_regions.sh"
+scripts_des="check.tcl lec.do design_cost.sh scores.sh check_pins.sh check_pg.sh pg.tcl pg_procedures.tcl summarize_assets.tcl"
+scripts="$scripts_sec_first_order $scripts_des"
 ##################
 
 # initializing
@@ -91,7 +88,7 @@ echo "ISPD23 -- 0)"
 echo "ISPD23 -- 0) Initialize work on round \"$round\" ..."
 
 # NOTE this expects the team folder in the Google root drive and, to begin with, an empty subfolder for the current
-# round. The related benchmark sub-subfolders will be initialized by this scrip
+# round. The related benchmark sub-subfolders will be initialized by this script
 initialize
 
 echo "ISPD23 -- 0)"

@@ -3,7 +3,7 @@
 //// template derived from "Sample Dofile" from "Conformal Equivalence Checking User Guide"
 
 // setup
-set parallel option -threads 4
+set parallel option -threads 16
 
 // just load all available lib and lef files
 read library -both -liberty *.lib 

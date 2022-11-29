@@ -1,12 +1,12 @@
 ####
 # settings
 ####
-set_multi_cpu_usage -local_cpu 2
-#TODO update to 7, also set both process and node
-set_db design_process_node 45
+set_multi_cpu_usage -local_cpu 16
+set_db design_process_node 7
+set_db design_tech_node N7
 
 set mmmc_path mmmc.tcl
-set lef_path NangateOpenCellLibrary.lef
+set lef_path "asap7_tech_4x_201209.lef asap7sc7p5t_28_L_4x_220121a.lef asap7sc7p5t_28_R_4x_220121a.lef asap7sc7p5t_28_SL_4x_220121a.lef"
 set def_path design.def
 set netlist_path design.v
 
