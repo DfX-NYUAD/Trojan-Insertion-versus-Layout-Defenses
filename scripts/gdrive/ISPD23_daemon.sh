@@ -11,7 +11,7 @@ round="alpha"
 ## wait b/w cycles [s]
 check_interval="60"
 ## max runs allowed to be started in parallel per team
-max_parallel_runs="3"
+max_parallel_runs="6"
 ## max uploads allowed to be started in parallel
 max_parallel_uploads="10"
 
@@ -49,10 +49,9 @@ emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 innovus_bin="innovus"
 # NOTE as above, use pipe as separate and provide at least one term
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
-# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill.
+# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as
+# error though for basic checks
 # NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain keywords like ERROR etc
-	#(TODO) Are there other errors for IMPEXT?
-	#TODO kill for DRCs this year, or handle via eval script?
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|@file"
 # NOTE as above, use pipe as separate and provide at least one term
 innovus_errors_for_checking="ERROR|StackTrace"
@@ -66,12 +65,10 @@ lec_errors_for_checking="Error|StackTrace|License check failed!"
 ## benchmarks and file handlers
 ##
 ## NOTE only to be changed if you know what you're doing
-#TODO revise into one script, lef, etc. for ASAP7
-benchmarks_10_metal_layers="AES_1 AES_2 AES_3"
-benchmarks_6_metal_layers="Camellia CAST CEP MISTY openMSP430_1 openMSP430_2 PRESENT SEED SPARX TDEA"
-scripts_regions="exploit_eval.tcl exploit_eval.sh exploit_regions.tcl exploit_regions_metal1--metal6.tcl post_process_exploit_regions.sh"
-scripts_eval="check.tcl lec.do init_eval.tcl design_cost.sh scores.sh check_pins.sh check_pg.sh pg.tcl pg_procedures.tcl summarize_assets.tcl"
-scripts="$scripts_regions $scripts_eval"
+#TODO fix exploit regions
+scripts_sec_first_order="exploit_eval.tcl exploit_eval.sh exploit_regions.tcl exploit_regions_metal1--metal6.tcl post_process_exploit_regions.sh"
+scripts_des="check.tcl lec.do design_cost.sh scores.sh check_pins.sh check_pg.sh pg.tcl pg_procedures.tcl summarize_assets.tcl"
+scripts="$scripts_sec_first_order $scripts_des"
 ##################
 
 # initializing

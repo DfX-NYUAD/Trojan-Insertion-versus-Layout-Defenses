@@ -405,6 +405,8 @@ check_eval() {
 					continue
 				fi
 
+# TODO ./design_cost.sh -- here, or in basic checks
+
 				## compute scores
 				if ! [[ -e errors.rpt ]]; then
 					echo "ISPD23 -- 3)   Computing scores ..."
@@ -579,6 +581,7 @@ check_submission() {
 #				# also check for any errors; if found, kill and return
 #				#
 #				##errors=$(grep -E "$innovus_errors_for_checking" pg.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
+		# TODO add checking for INTERRUPT
 #				errors=$(grep -E "$innovus_errors_for_checking" pg.log | grep -Ev "$innovus_errors_excluded_for_checking")
 #				if [[ $errors != "" ]]; then
 #
@@ -838,6 +841,7 @@ check_submission() {
 				# also check for any errors; if found, kill and return
 				#
 				##errors=$(grep -E "$innovus_errors_for_checking" check.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
+		# TODO add checking for INTERRUPT
 				errors=$(grep -E "$innovus_errors_for_checking" check.log | grep -Ev "$innovus_errors_excluded_for_checking")
 				if [[ $errors != "" ]]; then
 
@@ -1152,16 +1156,17 @@ start_eval() {
 				###
 				cd - > /dev/null
 
-#				# 4) actual processing
-#			
-#				## exploit_eval
-#				##
-#				## start frame of code to be run in parallel
-#				## https://unix.stackexchange.com/a/103921
-#				(
-#					cd $work_folder/$folder > /dev/null
-#
-##TODO streamline into one; fix code
+				# 4) actual processing
+			
+				## exploit_eval
+				##
+				## start frame of code to be run in parallel
+				## https://unix.stackexchange.com/a/103921
+				(
+					cd $work_folder/$folder > /dev/null
+date > DONE.exploit_eval
+
+#TODO streamline into one; fix code
 #					# prepare scripts
 #					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
 #
@@ -1190,7 +1195,7 @@ start_eval() {
 #					./exploit_eval.sh $innovus_bin > /dev/null #2>&1
 #
 #				## end frame of code to be run in parallel
-#				) &
+				) &
 
 				# 5) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null
