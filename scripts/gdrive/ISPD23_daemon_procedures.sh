@@ -664,8 +664,19 @@ check_submission() {
 
 					exit 1
 				fi
+			
+				# also check for interrupts; if triggered, abort processing
+				#
+				errors_interrupt=$(ps --pid $(cat PID.lec) > /dev/null; echo $?)
+				if [[ $errors_interrupt != 0 ]]; then
 
-				# TODO add checking for INTERRUPT, as in basic checks
+					echo ""
+
+					echo "ISPD23 -- 2)  $id:   LEC run got interrupted. Abort processing ..."
+					echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> errors.rpt
+
+					exit 1
+				fi
 			fi
 
 			sleep 1s
@@ -810,7 +821,7 @@ check_submission() {
 	##
 
 	(
-		echo "ISPD23 -- 2)  $id:   Basic design checks -- progress symbol: ':' ..."
+		echo "ISPD23 -- 2)  $id:   Innovus design checks -- progress symbol: ':' ..."
 
 		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
 		##sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null 2>&1' &
@@ -836,9 +847,9 @@ check_submission() {
 
 					echo ""
 
-					echo "ISPD23 -- 2)  $id:   Some error occurred for Innovus run for basic checks. Killing process ..."
+					echo "ISPD23 -- 2)  $id:   Some error occurred for Innovus run. Killing process ..."
 
-					echo "ISPD23 -- ERROR: process failed for basic design checks -- $errors" >> errors.rpt
+					echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- $errors" >> errors.rpt
 
 					cat PID.check | xargs kill #2> /dev/null
 
@@ -847,13 +858,13 @@ check_submission() {
 			
 				# also check for interrupts; if triggered, abort processing
 				#
-				errors_interrupt=$(ps --pid `cat PID.check` > /dev/null; echo $?)
+				errors_interrupt=$(ps --pid $(cat PID.check) > /dev/null; echo $?)
 				if [[ $errors_interrupt != 0 ]]; then
 
 					echo ""
 
-					echo "ISPD23 -- 2)  $id:   Innovus run for basic checks got interrupted silently. Abort processing ..."
-					echo "ISPD23 -- ERROR: process failed for basic design checks -- INTERRUPT" >> errors.rpt
+					echo "ISPD23 -- 2)  $id:   Innovus run got interrupted. Abort processing ..."
+					echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- INTERRUPT" >> errors.rpt
 
 					exit 1
 				fi
@@ -876,7 +887,7 @@ check_submission() {
 
 		if [[ $issues != "" ]]; then
 
-			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues routing issues; see *.conn.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues routing issues; see *.conn.rpt for more details." >> warnings.rpt
 			echo "ISPD23 -- Basic routing issues: $issues" >> checks_summary.rpt
 		else
 			echo "ISPD23 -- Basic routing issues: 0" >> checks_summary.rpt
@@ -897,7 +908,7 @@ check_submission() {
 		issues=$(grep "TOTAL" *.checkPin.rpt | awk '{ sum = $9 + $13 + $17 + $21; print sum }')
 		if [[ $issues != '0' ]]; then
 
-			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues pin issues; see *.checkPin.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues pin issues; see *.checkPin.rpt for more details." >> warnings.rpt
 			echo "ISPD23 -- Module pin issues: $issues" >> checks_summary.rpt
 		else
 			echo "ISPD23 -- Module pin issues: 0" >> checks_summary.rpt
@@ -909,7 +920,7 @@ check_submission() {
 		issues=$(grep "**INFO: Identified" check_route.rpt | awk '{ sum = $3 + $6; print sum }')
 		if [[ $issues != '0' ]]; then
 
-			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues placement and/or routing issues; see check_route.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues placement and/or routing issues; see check_route.rpt for more details." >> warnings.rpt
 			echo "ISPD23 -- Placement and/or routing issues: $issues" >> checks_summary.rpt
 		else
 			echo "ISPD23 -- Placement and/or routing issues: 0" >> checks_summary.rpt
@@ -926,7 +937,7 @@ check_submission() {
 		issues=$(grep "Total Violations :" *.geom.rpt | awk '{print $4}')
 		if [[ $issues != "" ]]; then
 
-			echo "ISPD23 -- WARNING: Basic design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> warnings.rpt
 			echo "ISPD23 -- DRC issues: $issues" >> checks_summary.rpt
 		else
 			echo "ISPD23 -- DRC issues: 0" >> checks_summary.rpt
@@ -935,7 +946,7 @@ check_submission() {
 # TODO bring in timing checks here; start w/ stuff from init_eval.tcl, move to check.tcl as well
 # TODO bring in PG checks here; start w/ stuff from pg.tcl, move to check.tcl as well
 
-		echo "ISPD23 -- 2)  $id:   Basic design checks done."
+		echo "ISPD23 -- 2)  $id:   Innovus design checks done."
 
 		exit 0
 	) &
@@ -1002,7 +1013,7 @@ link_work_dir() {
 	ln -sf $baselines_root_folder/$benchmark/mmmc.tcl .
 	ln -sf $baselines_root_folder/$benchmark/*.sdc . 
 
-	for file in `ls $baselines_root_folder/$benchmark/ASAP7`; do
+	for file in $(ls $baselines_root_folder/$benchmark/ASAP7); do
 		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
 	done
 
