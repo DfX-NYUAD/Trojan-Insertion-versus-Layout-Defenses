@@ -36,7 +36,7 @@ baselines_root_folder="$local_root_folder/benchmarks/_release/_$round"
 #TODO add sha256
 benchmarks="aes camellia cast misty seed"
 ## NOTE use this for testing
-#benchmarks="PRESENT"
+benchmarks="aes"
 
 ## emails
 ##

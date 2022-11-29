@@ -87,7 +87,7 @@ send_email() {
 		emails_string="$emails_string $email"
 	done
 
-#TODO setup on new dfx server for new account; ~/.mailrc and ~/.certs
+# TODO setup on new dfx server for new account; ~/.mailrc and ~/.certs
 #	ssh dfx "echo '$text' | mailx -A gmail -s '$subject' $emails_string" #> /dev/null 2>&1
 }
 
@@ -329,7 +329,7 @@ check_eval() {
 				## create related upload folder, w/ same timestamp as work and download folder
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
 
-				#NOTE suppress warnings for folder already existing, but keep any others
+				# NOTE suppress warnings for folder already existing, but keep any others
 				mkdir $uploads_folder 2>&1 | grep -v "File exists"
 
 				echo "ISPD23 -- 3)"
@@ -358,7 +358,7 @@ check_eval() {
 #				#
 #				# also check for any errors; if found, mark to kill and proceed
 #				# note the * for the log files, to make sure to check all log files for iterative runs w/ threshold adapted
-###NOTE suppress warnings for file not existing yet, but keep any others
+### NOTE suppress warnings for file not existing yet, but keep any others
 ##errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -v "No such file or directory" | grep -Ev "$innovus_errors_excluded_for_checking")
 #				errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -Ev "$innovus_errors_excluded_for_checking")
 #				if [[ $errors != "" ]]; then
@@ -374,7 +374,7 @@ check_eval() {
 #				# NOTE handling here is to keep only single error message
 #				# NOTE memorize status in var as to skip log files for zip archive later on
 #				#
-###NOTE suppress warnings for file not existing yet, but keep any others
+### NOTE suppress warnings for file not existing yet, but keep any others
 ##errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1 | grep -v "No such file or directory"; echo $?)
 #				# NOTE check for 0 as successful return code for grep for the INTERRUPT keyword
 #				errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1; echo $?)
@@ -415,7 +415,7 @@ check_eval() {
 					# NOTE not really skipping the script itself; scores.sh is called in any case to track the related errors, if any, in errors.rpt as well
 					echo "ISPD23 -- 3)   Skipping scores, as there were some errors ..."
 				fi
-				#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 				./scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
 				## zip all rpt files into uploads folder
@@ -443,13 +443,13 @@ check_eval() {
 				#       rm $folder/summarize_assets.log*
 				#fi
 
-				#NOTE only mute regular stdout, but keep stderr
+				# NOTE only mute regular stdout, but keep stderr
 				zip -y -r $folder'.zip' $folder/ > /dev/null #2>&1
 
 				rm -r $folder/
 
 				# unzip rpt files again, as these should be readily accessible for debugging
-				#NOTE only mute regular stdout, but keep stderr
+				# NOTE only mute regular stdout, but keep stderr
 				unzip $folder'.zip' $folder/*.rpt* > /dev/null #2>&1
 				#unzip $folder'.zip' $folder/*.log > /dev/null #2>&1
 				#unzip $folder'.zip' $folder/*.sh > /dev/null #2>&1
@@ -532,7 +532,7 @@ check_submission() {
 #	(
 #		echo "ISPD23 -- 2)  $id:   Pins design checks ..."
 #
-#		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 #		./check_pins.sh > /dev/null
 #
 #		# parse rpt for FAIL
@@ -560,7 +560,7 @@ check_submission() {
 # 		# TODO update w/ progress symbol
 #		echo "ISPD23 -- 2)  $id:   PDN checks ..."
 #
-#		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 #		##sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null 2>&1' &
 #		sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null' &
 #
@@ -594,7 +594,7 @@ check_submission() {
 #		done
 #
 #		# post-process reports
-#		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 #		./check_pg.sh $baselines_root_folder/$benchmark/reports > /dev/null
 #
 #		# parse errors.rpt for "ERROR: For PG check"
@@ -631,7 +631,7 @@ check_submission() {
 	(
 		echo "ISPD23 -- 2)  $id:   LEC design checks -- progress symbol: '.' ..."
 
-		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 		##sh -c 'echo $$ > PID.lec; exec '$(echo $lec_bin)' -nogui -xl -dofile lec.do > lec.log 2>&1' &
 		sh -c 'echo $$ > PID.lec; exec '$(echo $lec_bin)' -nogui -xl -dofile lec.do > lec.log' &
 
@@ -823,7 +823,7 @@ check_submission() {
 	(
 		echo "ISPD23 -- 2)  $id:   Innovus design checks -- progress symbol: ':' ..."
 
-		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 		##sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null 2>&1' &
 		sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null' &
 
@@ -926,7 +926,7 @@ check_submission() {
 			echo "ISPD23 -- Placement and/or routing issues: 0" >> checks_summary.rpt
 		fi
 
-#TODO handle as errors!
+# TODO handle as errors!
 # NOTE see error handling for LEC checks above
 
 		# DRC routing issues; check *.geom.rpt for "Total Violations"
@@ -1115,7 +1115,7 @@ start_eval() {
 					md5sum $file >> processed_files_MD5.rpt
 
 # TODO comment out
-					#NOTE only mute regular stdout, but keep stderr
+					# NOTE only mute regular stdout, but keep stderr
 					zip processed_files.zip $file > /dev/null
 				done
 
@@ -1180,7 +1180,7 @@ start_eval() {
 					cd $work_folder/$folder > /dev/null
 date > DONE.exploit_eval
 
-#TODO streamline into one; fix code
+# TODO streamline into one; fix code
 #					# prepare scripts
 #					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
 #
@@ -1205,7 +1205,7 @@ date > DONE.exploit_eval
 #					fi
 #
 #					# runs scripts wrapper
-#					#NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 #					./exploit_eval.sh $innovus_bin > /dev/null #2>&1
 #
 #				## end frame of code to be run in parallel
