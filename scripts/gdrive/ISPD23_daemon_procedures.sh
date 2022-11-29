@@ -353,37 +353,38 @@ check_eval() {
 					echo "ISPD23 -- 3)   Exploitable regions: still working ..."
 					status[exploit_eval]=0
 				fi
-				## for dbg only (e.g., manual re-upload of work folders just moved from backup_up to work again)
-				#status[exploit_eval]=1
-				#
-				# also check for any errors; if found, mark to kill and proceed
-				# note the * for the log files, to make sure to check all log files for iterative runs w/ threshold adapted
-				#
-				#NOTE suppress warnings for file not existing yet, but keep any others
-				##errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
-				errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -v "No such file or directory" | grep -Ev "$innovus_errors_excluded_for_checking")
-				if [[ $errors != "" ]]; then
-
-					echo "ISPD23 -- 3)    Exploitable regions: some error occurred for Innovus run ..."
-					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- $errors" >> errors.rpt
-
-					status[exploit_eval]=2
-				fi
-				#
-				# NOTE interrupt errors will be triggered in massive numbers, resulting in string allocation errors here after some time -- handle manually
-				# NOTE handling here is to keep only single error message
-				# NOTE memorize status in var as to skip log files for zip archive later on
-				#
-				#NOTE suppress warnings for file not existing yet, but keep any others
-				##errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2> /dev/null; echo $?)
-				errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1 | grep -v "No such file or directory"; echo $?)
-				if [[ $errors_interrupt == 0 ]]; then
-
-					echo "ISPD23 -- 3)    Exploitable regions: Innovus run got interrupted ..."
-					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- INTERRUPT" >> errors.rpt
-
-					status[exploit_eval]=2
-				fi
+#				## for dbg only (e.g., manual re-upload of work folders just moved from backup_up to work again)
+#				#status[exploit_eval]=1
+#				#
+#				# also check for any errors; if found, mark to kill and proceed
+#				# note the * for the log files, to make sure to check all log files for iterative runs w/ threshold adapted
+###NOTE suppress warnings for file not existing yet, but keep any others
+##errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -v "No such file or directory" | grep -Ev "$innovus_errors_excluded_for_checking")
+#				errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -Ev "$innovus_errors_excluded_for_checking")
+#				if [[ $errors != "" ]]; then
+#
+#					echo "ISPD23 -- 3)    Exploitable regions: some error occurred for Innovus run ..."
+#					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- $errors" >> errors.rpt
+#
+#					status[exploit_eval]=2
+#				fi
+#				#
+# TODO streamline w/ interrupt handling from basic checks
+#				# NOTE interrupt errors will be triggered in massive numbers, resulting in string allocation errors here after some time -- handle manually
+#				# NOTE handling here is to keep only single error message
+#				# NOTE memorize status in var as to skip log files for zip archive later on
+#				#
+###NOTE suppress warnings for file not existing yet, but keep any others
+##errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1 | grep -v "No such file or directory"; echo $?)
+#				# NOTE check for 0 as successful return code for grep for the INTERRUPT keyword
+#				errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1; echo $?)
+#				if [[ $errors_interrupt == 0 ]]; then
+#
+#					echo "ISPD23 -- 3)    Exploitable regions: Innovus run got interrupted ..."
+#					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- INTERRUPT" >> errors.rpt
+#
+#					status[exploit_eval]=2
+#				fi
 			
 				## if there's any error, kill all the processes; only runs w/o any errors should be kept going
 				if [[ ${status[exploit_eval]} == 2 ]]; then
@@ -435,6 +436,7 @@ check_eval() {
 				## compress backup
 				cd $backup_work_folder > /dev/null
 
+# TODO just don't unzip log files
 				# for interrupts, delete the probably excessively large log files before zipping
 				if [[ $errors_interrupt == 0 ]]; then
 					rm $folder/exploit_eval.log*
@@ -486,7 +488,6 @@ check_submission() {
 	(
 		error=0
 
-#		echo "ISPD23 -- 2)  $id:    Check cell assets ..."
 		for ((i=0; i<${#cells_assets[@]}; i++)); do
 			asset=${cells_assets[$i]}
 			escaped_asset=${escaped_cells_assets[$i]}
@@ -499,7 +500,6 @@ check_submission() {
 				echo "ISPD23 -- ERROR: the cell asset \"$asset\" is not maintained in the DEF." >> errors.rpt
 			fi
 		done
-#		echo "ISPD23 -- 2)  $id:    Check cell assets done."
 
 		exit $error
 	) &
@@ -557,6 +557,7 @@ check_submission() {
 #	##
 #
 #	(
+# 		# TODO update w/ progress symbol
 #		echo "ISPD23 -- 2)  $id:   PDN checks ..."
 #
 #		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
@@ -566,26 +567,16 @@ check_submission() {
 #		# sleep a little to avoid immediate but useless errors concerning log file not found
 #		sleep 1s
 #
-##		echo -n "|"
-#
 #		while true; do
-#
-##			echo -n "."
 #
 #			if [[ -e DONE.pg ]]; then
 #
-##				echo "ISPD23 -- |"
-#
 #				break
 #			else
-#				# also check for any errors; if found, kill and return
+#				# check for any errors; if found, try to kill and return
 #				#
-#				##errors=$(grep -E "$innovus_errors_for_checking" pg.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
-		# TODO add checking for INTERRUPT
-#				errors=$(grep -E "$innovus_errors_for_checking" pg.log | grep -Ev "$innovus_errors_excluded_for_checking")
+#				errors=$(grep -E "$innovus_errors_for_checking" pg.log* | grep -Ev "$innovus_errors_excluded_for_checking")
 #				if [[ $errors != "" ]]; then
-#
-##					echo "ISPD23 -- |"
 #
 #					echo "ISPD23 -- 2)  $id:   Some error occurred for PDN checks. Killing process ..."
 #
@@ -595,6 +586,8 @@ check_submission() {
 #
 #					exit 1
 #				fi
+#
+#				# TODO add checking for INTERRUPT, as in basic checks
 #			fi
 #
 #			sleep 1s
@@ -636,7 +629,7 @@ check_submission() {
 
 ## TODO revisit all examples, log formats
 	(
-		echo "ISPD23 -- 2)  $id:   LEC design checks ..."
+		echo "ISPD23 -- 2)  $id:   LEC design checks -- progress symbol: '.' ..."
 
 		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
 		##sh -c 'echo $$ > PID.lec; exec '$(echo $lec_bin)' -nogui -xl -dofile lec.do > lec.log 2>&1' &
@@ -645,25 +638,23 @@ check_submission() {
 		# sleep a little to avoid immediate but useless errors concerning log file not found
 		sleep 1s
 
-#		echo -n "|"
-
 		while true; do
 
-#			echo -n "."
+			echo -n "."
 
 			if [[ -e DONE.lec ]]; then
 
-#				echo "ISPD23 -- |"
+				echo ""
 
 				break
 			else
-				# also check for any errors; if found, kill and return
+				# check for any errors; if found, try to kill and return
 				#
 				##errors=$(grep -E "$lec_errors_for_checking" lec.log 2> /dev/null)
 				errors=$(grep -E "$lec_errors_for_checking" lec.log)
 				if [[ $errors != "" ]]; then
 
-#					echo "ISPD23 -- |"
+					echo ""
 
 					echo "ISPD23 -- 2)  $id:   Some error occurred for LEC run. Killing process ..."
 
@@ -673,6 +664,8 @@ check_submission() {
 
 					exit 1
 				fi
+
+				# TODO add checking for INTERRUPT, as in basic checks
 			fi
 
 			sleep 1s
@@ -817,7 +810,7 @@ check_submission() {
 	##
 
 	(
-		echo "ISPD23 -- 2)  $id:   Basic design checks ..."
+		echo "ISPD23 -- 2)  $id:   Basic design checks -- progress symbol: ':' ..."
 
 		#NOTE only mute regular stdout, which is put into log file already, but keep stderr
 		##sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null 2>&1' &
@@ -826,32 +819,41 @@ check_submission() {
 		# sleep a little to avoid immediate but useless errors concerning log file not found
 		sleep 1s
 
-#		echo -n "|"
-
 		while true; do
 
-#			echo -n "."
+			echo -n ":"
 
 			if [[ -e DONE.check ]]; then
 
-#				echo "ISPD23 -- |"
+				echo ""
 
 				break
 			else
-				# also check for any errors; if found, kill and return
+				# check for any errors; if found, try to kill and return
 				#
-				##errors=$(grep -E "$innovus_errors_for_checking" check.log 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
-		# TODO add checking for INTERRUPT
-				errors=$(grep -E "$innovus_errors_for_checking" check.log | grep -Ev "$innovus_errors_excluded_for_checking")
+				errors=$(grep -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
 				if [[ $errors != "" ]]; then
 
-#					echo "ISPD23 -- |"
+					echo ""
 
 					echo "ISPD23 -- 2)  $id:   Some error occurred for Innovus run for basic checks. Killing process ..."
 
 					echo "ISPD23 -- ERROR: process failed for basic design checks -- $errors" >> errors.rpt
 
 					cat PID.check | xargs kill #2> /dev/null
+
+					exit 1
+				fi
+			
+				# also check for interrupts; if triggered, abort processing
+				#
+				errors_interrupt=$(ps --pid `cat PID.check` > /dev/null; echo $?)
+				if [[ $errors_interrupt != 0 ]]; then
+
+					echo ""
+
+					echo "ISPD23 -- 2)  $id:   Innovus run for basic checks got interrupted silently. Abort processing ..."
+					echo "ISPD23 -- ERROR: process failed for basic design checks -- INTERRUPT" >> errors.rpt
 
 					exit 1
 				fi
@@ -1101,6 +1103,7 @@ start_eval() {
 					##md5sum $file 2> /dev/null >> processed_files_MD5.rpt
 					md5sum $file >> processed_files_MD5.rpt
 
+# TODO comment out
 					#NOTE only mute regular stdout, but keep stderr
 					zip processed_files.zip $file > /dev/null
 				done
