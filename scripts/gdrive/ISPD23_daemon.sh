@@ -36,7 +36,7 @@ baselines_root_folder="$local_root_folder/benchmarks/_release/_$round"
 #TODO add sha256
 benchmarks="aes camellia cast misty seed"
 ## NOTE use this for testing
-benchmarks="aes"
+#benchmarks="aes"
 
 ## emails
 ##
@@ -46,7 +46,6 @@ emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 
 ## Innovus
 ##
-innovus_bin="innovus"
 # NOTE as above, use pipe as separate and provide at least one term
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as
@@ -58,7 +57,6 @@ innovus_errors_for_checking="ERROR|StackTrace"
 
 ## LEC
 ##
-lec_bin="lec_64"
 # NOTE as above, use pipe as separate and provide at least one term
 lec_errors_for_checking="Error|StackTrace|License check failed!"
 

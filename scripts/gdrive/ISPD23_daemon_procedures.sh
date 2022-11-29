@@ -562,8 +562,8 @@ check_submission() {
 #		echo "ISPD23 -- 2)  $id:   PDN checks ..."
 #
 #		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#		##sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null 2>&1' &
-#		sh -c 'echo $$ > PID.pg; exec '$(echo $innovus_bin)' -files pg.tcl -log pg > /dev/null' &
+#		##sh -c 'echo $$ > PID.pg; exec innovus -nowin -files pg.tcl -log pg > /dev/null 2>&1' &
+#		sh -c 'echo $$ > PID.pg; exec innovus -nowin -files pg.tcl -log pg > /dev/null' &
 #
 #		# sleep a little to avoid immediate but useless errors concerning log file not found
 #		sleep 1s
@@ -633,8 +633,8 @@ check_submission() {
 		echo "ISPD23 -- 2)  $id:   LEC design checks -- progress symbol: '.' ..."
 
 		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		##sh -c 'echo $$ > PID.lec; exec '$(echo $lec_bin)' -nogui -xl -dofile lec.do > lec.log 2>&1' &
-		sh -c 'echo $$ > PID.lec; exec '$(echo $lec_bin)' -nogui -xl -dofile lec.do > lec.log' &
+		##sh -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile lec.do > lec.log 2>&1' &
+		sh -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile lec.do > lec.log' &
 
 		# sleep a little to avoid immediate but useless errors concerning log file not found
 		sleep 1s
@@ -825,8 +825,8 @@ check_submission() {
 		echo "ISPD23 -- 2)  $id:   Innovus design checks -- progress symbol: ':' ..."
 
 		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		##sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null 2>&1' &
-		sh -c 'echo $$ > PID.check; exec '$(echo $innovus_bin)' -stylus -files check.tcl -log check > /dev/null' &
+		##sh -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files check.tcl -log check > /dev/null 2>&1' &
+		sh -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files check.tcl -log check > /dev/null' &
 
 		# sleep a little to avoid immediate but useless errors concerning log file not found
 		sleep 1s
@@ -1206,7 +1206,7 @@ date > DONE.exploit_eval
 #
 #					# runs scripts wrapper
 #					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#					./exploit_eval.sh $innovus_bin > /dev/null #2>&1
+#					./exploit_eval.sh > /dev/null #2>&1
 #
 #				## end frame of code to be run in parallel
 				) &

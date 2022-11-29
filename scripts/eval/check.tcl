@@ -25,6 +25,8 @@ init_design
 ####
 # checks w/ rpt files auto-generated
 ####
+#
+# TODO use extended limits for check_* other than DRC? depends on whether issues will be considered for score or not
 
 # NOTE covers routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt for "IMPVFC", "Net"
 # NOTE does NOT flag cells not connected or routed at all -- those are caught by LEC, flagged as "Unreachable" points
