@@ -436,22 +436,22 @@ check_eval() {
 				## compress backup
 				cd $backup_work_folder > /dev/null
 
-# TODO just don't unzip log files
-				# for interrupts, delete the probably excessively large log files before zipping
-				if [[ $errors_interrupt == 0 ]]; then
-					rm $folder/exploit_eval.log*
-					rm $folder/summarize_assets.log*
-				fi
+				## NOTE deprecated; better to keep the log file, but only in zip, do not unpack again
+				## for interrupts, delete the probably excessively large log files before zipping
+				#if [[ $errors_interrupt == 0 ]]; then
+				#       rm $folder/exploit_eval.log*
+				#       rm $folder/summarize_assets.log*
+				#fi
 
 				#NOTE only mute regular stdout, but keep stderr
 				zip -y -r $folder'.zip' $folder/ > /dev/null #2>&1
 
 				rm -r $folder/
 
-				# unzip rpt, log files again, as these should remain readily accessible for debugging
+				# unzip rpt files again, as these should be readily accessible for debugging
 				#NOTE only mute regular stdout, but keep stderr
 				unzip $folder'.zip' $folder/*.rpt* > /dev/null #2>&1
-				unzip $folder'.zip' $folder/*.log > /dev/null #2>&1
+				#unzip $folder'.zip' $folder/*.log > /dev/null #2>&1
 				#unzip $folder'.zip' $folder/*.sh > /dev/null #2>&1
 
 				cd - > /dev/null
