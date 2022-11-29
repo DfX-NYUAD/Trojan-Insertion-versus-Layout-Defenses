@@ -37,6 +37,9 @@ baselines_root_folder="$local_root_folder/benchmarks/_release/_$round"
 benchmarks="aes camellia cast misty seed"
 ## NOTE use this for testing
 #benchmarks="aes"
+## NOTE will be set automatically via initialize()
+benchmarks_string_max_length="0"
+teams_string_max_length="0"
 
 ## emails
 ##

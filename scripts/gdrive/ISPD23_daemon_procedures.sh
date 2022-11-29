@@ -74,6 +74,24 @@ initialize() {
 			touch $teams_root_folder/$team/$benchmark/downloads/dl_history
 		done
 	done
+
+	## init string vars
+	benchmarks_string_max_length=""
+	teams_string_max_length=""
+
+	for team in "${google_team_folders[@]}"; do
+
+		if [[ ${#team} -gt $teams_string_max_length ]]; then
+			teams_string_max_length=${#team}
+		fi
+	done
+
+	for benchmark in $benchmarks; do
+
+		if [[ ${#benchmark} -gt $benchmarks_string_max_length ]]; then
+			benchmarks_string_max_length=${#benchmark}
+		fi
+	done
 }
 
 send_email() {
@@ -518,7 +536,7 @@ check_submission() {
 
 		return 1
 	else
-		echo "ISPD23 -- 2)  $id:   Check passed."
+		echo "ISPD23 -- 2)  $id:   Assets check passed."
 	fi
 
 	# reset status (not needed really as non-zero status would render this code skipped)
@@ -1065,7 +1083,10 @@ start_eval() {
 			# handle all downloads folders
 			for folder in $(ls $downloads_folder); do
 
-				id="[ $team -- $benchmark -- ${folder##*_} ]"
+				# TODO use id also for other eval processes, like exploit_regions etc
+				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
+				team_=$(printf "%-"$teams_string_max_length"s" $team)
+				id="[ $team_ -- $benchmark_ -- ${folder##*_} ]"
 
 				# TODO not started per iteration/call to start_eval but in total; just requires to keep track of current ongoing runs, which would also be great to log within the main loop
 
