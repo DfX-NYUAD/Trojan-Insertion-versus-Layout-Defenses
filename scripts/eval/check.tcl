@@ -35,7 +35,7 @@ check_pin_assignment
 
 # NOTE covers DRC for routing; check *.geom.rpt for "Total Violations"
 check_drc
-## NOTE standard limit of 1,000 violations is good enough to flag invalid layouts
+## NOTE no need for extended limit; standard limit of 1,000 violations is good enough to flag any violations 
 #check_drc -limit 99999
 
 ####
@@ -64,26 +64,31 @@ check_design -type route > check_route.rpt
 # timing
 ####
 
+#set_global timing_enable_simultaneous_setup_hold_mode true
 set_db timing_analysis_type ocv
 set_db timing_analysis_cppr both
 time_design -post_route
 
+## NOTE provides setup, DRV, clock checks; but, throws error on simultaneous late and early eval
+#report_timing_summary > timing.rpt
+#
+report_timing_summary -checks setup > timing.rpt
+report_timing_summary -checks hold >> timing.rpt
+report_timing_summary -checks drv >> timing.rpt
+
 ####
-# basic eval
+# die area
 ####
 
 set fl [open area.rpt w]
 puts $fl [get_db current_design .bbox.area]
 close $fl
 
-report_power > power.rpt
+####
+# power
+####
 
-report_timing_summary > timing.rpt
-## NOTE already comprised in above, along w/ clock checks
-#report_timing_summary -checks setup >> timing.rpt
-#report_timing_summary -checks drv >> timing.rpt
-## NOTE only hold has to be evaluated separately explicitly
-report_timing_summary -checks hold >> timing.rpt
+report_power > power.rpt
 
 ####
 # mark done; exit
