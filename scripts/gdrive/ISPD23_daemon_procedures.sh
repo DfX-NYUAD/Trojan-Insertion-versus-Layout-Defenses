@@ -1059,7 +1059,72 @@ check_submission() {
 			echo "ISPD23 -- DRC issues: 0" >> checks_summary.rpt
 		fi
 
-# TODO bring in timing checks here; results in timing.rpt
+		# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold, DRV checks
+		#
+		## NOTE failure on those considered as error/constraint violation
+		#
+
+		# setup 
+# Example:
+## SETUP                  WNS    TNS   FEP   
+##------------------------------------------
+# View : ALL           16.703  0.000     0  
+#    Group : in2out       N/A    N/A     0  
+#    Group : reg2out   16.703  0.000     0  
+#    Group : in2reg   151.422    0.0     0  
+#    Group : reg2reg  149.277    0.0     0  
+		issues=$(grep "View : ALL" timing.rpt | awk '{print $6}' | awk 'NR==1')
+		if [[ $issues != "" ]]; then
+
+			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for setup; see timing.rpt for more details." >> errors.rpt
+			echo "ISPD23 -- Timing issues for setup: $issues" >> checks_summary.rpt
+
+			errors=1
+		else
+			echo "ISPD23 -- Timing issues for setup: 0" >> checks_summary.rpt
+		fi
+
+		# hold 
+# Example:
+## HOLD                   WNS    TNS   FEP   
+##------------------------------------------
+# View : ALL           17.732  0.000     0  
+#    Group : in2out       N/A    N/A     0  
+#    Group : reg2out  305.300  0.000     0  
+#    Group : in2reg    17.732    0.0     0  
+#    Group : reg2reg  188.440    0.0     0  
+		issues=$(grep "View : ALL" timing.rpt | awk '{print $6}' | awk 'NR==2')
+		if [[ $issues != "" ]]; then
+
+			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for hold; see timing.rpt for more details." >> errors.rpt
+			echo "ISPD23 -- Timing issues for hold: $issues" >> checks_summary.rpt
+
+			errors=1
+		else
+			echo "ISPD23 -- Timing issues for hold: 0" >> checks_summary.rpt
+		fi
+
+		# DRV 
+# Example:
+## DRV                         WNS   TNS   FEP   
+##----------------------------------------------
+# View : ALL                                    
+#    Check : max_transition    N/A   N/A     0  
+#    Check : min_transition    N/A   N/A     0  
+#    Check : max_capacitance   N/A   N/A     0  
+#    Check : min_capacitance   N/A   N/A     0  
+#    Check : max_fanout        N/A   N/A     0  
+#    Check : min_fanout        N/A   N/A     0  
+		issues=$(grep "View : ALL" timing.rpt | awk '{print $6}' | awk 'NR==3')
+		if [[ $issues != "" ]]; then
+
+			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DRV timing issues; see timing.rpt for more details." >> errors.rpt
+			echo "ISPD23 -- DRV timing issues: $issues" >> checks_summary.rpt
+
+			errors=1
+		else
+			echo "ISPD23 -- DRV timing issues: 0" >> checks_summary.rpt
+		fi
 
 # TODO bring in PG checks here:
 #		start w/ stuff from pg.tcl, refactor into check.tcl as well
@@ -1081,6 +1146,7 @@ check_submission() {
 	pid_basic_checks=$!
 
 	# wait for subshells and memorize their exit code in case it's non-zero
+# TODO revise checks; currently off: pins, PDN
 #	wait $pid_pins_checks || status=$?
 #	wait $pid_PDN_checks || status=$?
 	wait $pid_LEC_checks || status=$?
