@@ -867,7 +867,7 @@ check_submission() {
 		fi
 
 # Example:
-// Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module (occurrence:674)
+#// Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module (occurrence:674)
 #
 # NOTE such line is only present if errors/issues found at all
 # NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
@@ -883,7 +883,7 @@ check_submission() {
 		fi
 
 # Example:
-// Warning: (HRC3.16) A wire is declared, but not used in the module (occurrence:1)
+#// Warning: (HRC3.16) A wire is declared, but not used in the module (occurrence:1)
 #
 # NOTE such line is only present if errors/issues found at all
 # NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
