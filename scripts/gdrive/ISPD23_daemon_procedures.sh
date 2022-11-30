@@ -450,9 +450,11 @@ check_eval() {
 
 				## pack and results files into uploads folder
 				echo "ISPD23 -- 3)  $id_run:  Copying results files to uploads folder \"$uploads_folder\" ..."
-				zip $uploads_folder/reports.zip *.rpt
+				# NOTE only mute regular stdout, but keep stderr
+				zip $uploads_folder/reports.zip *.rpt > /dev/null
 				# NOTE only for dev tree, we should also upload log files
-				zip $uploads_folder/logs.zip *.log*
+				# NOTE only mute regular stdout, but keep stderr
+				zip $uploads_folder/logs.zip *.log* > /dev/null
 
 #				# NOTE deprecated
 #				## put processed files into uploads folder
