@@ -36,13 +36,13 @@ initialize() {
 	
 		for benchmark in $benchmarks; do
 	
-			id="$team:$benchmark"
+			id_internal="$team:$benchmark"
 
 			# obtain drive references per benchmark
-			google_benchmark_folders[$id]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
+			google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
 
 			# in case the related benchmark folder is missing, create it on the drive
-			if [[ ${google_benchmark_folders[$id]} == "" ]]; then
+			if [[ ${google_benchmark_folders[$id_internal]} == "" ]]; then
 
 				echo "ISPD23 -- 0)    Init missing Google folder for round \"$round\", team \"$team\", benchmark \"$benchmark\" ..."
 
@@ -52,7 +52,7 @@ initialize() {
 				rmdir $tmp_root_folder/$benchmark
 
 				# update the reference for the just created folder
-				google_benchmark_folders[$id]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
+				google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
 			fi
 		done
 	done
@@ -150,10 +150,11 @@ google_downloads() {
 		for benchmark in $benchmarks; do
 
 		(
-			id="$team:$benchmark"
+			id_internal="$team:$benchmark"
+			google_benchmark_folder=${google_benchmark_folders[$id_internal]}
 
 			# NOTE relatively verbose; could be turned off
-			echo "ISPD23 -- 1)   Checking benchmark \"$benchmark\" ..."
+			echo "ISPD23 -- 1)   Checking benchmark \"$benchmark\" (Google benchmark folder ID \"$google_benchmark_folder\") ..."
 
 			downloads_folder="$team_folder/$benchmark/downloads"
 			declare -A basename_folders=()
@@ -163,7 +164,6 @@ google_downloads() {
 			# array of [google_ID]=file_type
 			declare -A google_folder_files_type=()
 
-			google_benchmark_folder=${google_benchmark_folders[$id]}
 			while read -r a b c; do
 				google_folder_files[$a]=$b
 				google_folder_files_type[$a]=$c
@@ -273,7 +273,7 @@ google_uploads() {
 
 			team=${google_team_folders[$google_team_folder]}
 
-			id="$team:$benchmark"
+			id_internal="$team:$benchmark"
 
 			uploads_folder="$teams_root_folder/$team/$benchmark/uploads"
 
@@ -297,10 +297,16 @@ google_uploads() {
 				((count_parallel_uploads = count_parallel_uploads + 1))
 
 			# begin parallel processing
-			(
-				google_benchmark_folder=${google_benchmark_folders[$id]}
 
-				echo "ISPD23 -- 4)  Upload results folder \"$uploads_folder/$folder\", benchmark \"$benchmark\", team folder \"$team\" (Google team folder ID \"$google_team_folder\", benchmark folder ID \"$google_benchmark_folder\") ..."
+				# NOTE init vars once, before parallel runs start
+
+				google_benchmark_folder=${google_benchmark_folders[$id_internal]}
+
+				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
+				team_=$(printf "%-"$teams_string_max_length"s" $team)
+				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
+			(
+				echo "ISPD23 -- 4)  $id_run: Upload results folder \"$uploads_folder/$folder\" (Google team folder ID \"$google_team_folder\", Google benchmark folder ID \"$google_benchmark_folder\") ..."
 				./gdrive upload -p $google_benchmark_folder -r $uploads_folder/$folder #> /dev/null 2>&1
 
 				## cleanup locally, but only if upload succeeded
@@ -313,10 +319,11 @@ google_uploads() {
 
 				## also send out email notification of successful upload
 				#
-				echo "ISPD23 -- 4)  Send out email about uploaded results folder \"$uploads_folder/$folder\", benchmark \"$benchmark\", team \"$team\" ..."
+				echo "ISPD23 -- 4)  $id_run: Send out email about uploaded results folder ..."
 				# NOTE errors could be suppressed here, but they can also just be sent out. In case it fails, these might be helpful and can be checked from the sent mailbox
 				#google_uploaded_folder=$(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and name = '$folder'" 2> /dev/null | awk '{print $1}')
 				google_uploaded_folder=$(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and name = '$folder'" | awk '{print $1}')
+#TODO use $id_run for email subject and text
 				text="The evaluation results for your latest $round round submission, benchmark $benchmark, are available in your corresponding Google Drive folder, within subfolder \"$folder\".\n\nDirect link: https://drive.google.com/drive/folders/$google_uploaded_folder"
 				subject="[ISPD23] Results ready for $round round, benchmark $benchmark, run $folder"
 
@@ -344,15 +351,19 @@ check_eval() {
 			## NOTE only folders are in here, all folders are non-empty, and all folders are named downloads_TIMESTAMP
 			for folder in $(ls $work_folder); do
 
+				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
+				team_=$(printf "%-"$teams_string_max_length"s" $team)
+				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
+
+				echo "ISPD23 -- 3)"
+				echo "ISPD23 -- 3)  $id_run: Checking work folder \"$work_folder/$folder\""
+				# (related uploads folder: \"$uploads_folder\") ..."
+
 				## create related upload folder, w/ same timestamp as work and download folder
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
 
 				# NOTE suppress warnings for folder already existing, but keep any others
 				mkdir $uploads_folder 2>&1 | grep -v "File exists"
-
-				echo "ISPD23 -- 3)"
-				echo "ISPD23 -- 3)  Checking work folder \"$work_folder/$folder\""
-				# (related uploads folder: \"$uploads_folder\") ..."
 
 				## enter work folder silently
 				cd $work_folder/$folder > /dev/null
@@ -365,10 +376,10 @@ check_eval() {
 				## exploit eval
 				#
 				if [[ -e DONE.exploit_eval ]]; then
-					echo "ISPD23 -- 3)   Exploitable regions: done"
+					echo "ISPD23 -- 3)  $id_run:  Exploitable regions: done"
 					status[exploit_eval]=1
 				else
-					echo "ISPD23 -- 3)   Exploitable regions: still working ..."
+					echo "ISPD23 -- 3)  $id_run:  Exploitable regions: still working ..."
 					status[exploit_eval]=0
 				fi
 #				## for dbg only (e.g., manual re-upload of work folders just moved from backup_up to work again)
@@ -381,7 +392,7 @@ check_eval() {
 #				errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -Ev "$innovus_errors_excluded_for_checking")
 #				if [[ $errors != "" ]]; then
 #
-#					echo "ISPD23 -- 3)    Exploitable regions: some error occurred for Innovus run ..."
+#					echo "ISPD23 -- 3)  $id_run:   Exploitable regions: some error occurred for Innovus run ..."
 #					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- $errors" >> errors.rpt
 #
 #					status[exploit_eval]=2
@@ -398,7 +409,7 @@ check_eval() {
 #				errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1; echo $?)
 #				if [[ $errors_interrupt == 0 ]]; then
 #
-#					echo "ISPD23 -- 3)    Exploitable regions: Innovus run got interrupted ..."
+#					echo "ISPD23 -- 3)  $id_run:   Exploitable regions: Innovus run got interrupted ..."
 #					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- INTERRUPT" >> errors.rpt
 #
 #					status[exploit_eval]=2
@@ -407,7 +418,7 @@ check_eval() {
 				## if there's any error, kill all the processes; only runs w/o any errors should be kept going
 				if [[ ${status[exploit_eval]} == 2 ]]; then
 
-					echo "ISPD23 -- 3)    Kill all processes, as some error occurred, and move on ..."
+					echo "ISPD23 -- 3)  $id_run:   Kill all processes, as some error occurred, and move on ..."
 
 					cat PID.exploit_eval | xargs kill #2> /dev/null 
 					# also memorize that the exploit eval process was killed; required to break exploit_eval.sh inner loop
@@ -428,25 +439,25 @@ check_eval() {
 
 				## compute scores
 				if ! [[ -e errors.rpt ]]; then
-					echo "ISPD23 -- 3)   Computing scores ..."
+					echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
 				else
 					# NOTE not really skipping the script itself; scores.sh is called in any case to track the related errors, if any, in errors.rpt as well
-					echo "ISPD23 -- 3)   Skipping scores, as there were some errors ..."
+					echo "ISPD23 -- 3)  $id_run:  Skipping scores, as there were some errors ..."
 				fi
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 				./scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
 				## zip all rpt files into uploads folder
-				echo "ISPD23 -- 3)   Copying report files to uploads folder \"$uploads_folder\" ..."
+				echo "ISPD23 -- 3)  $id_run:  Copying report files to uploads folder \"$uploads_folder\" ..."
 				zip $uploads_folder/reports.zip *.rpt > /dev/null
 
 #				# NOTE deprecated
 #				## put processed files into uploads folder
-#				echo "ISPD23 -- 3)   Including backup of processed files to uploads folder \"$uploads_folder\" ..."
+#				echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 #				mv processed_files.zip $uploads_folder/ #2> /dev/null
 
 				## backup work dir
-				echo "ISPD23 -- 3)   Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
+				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
 				mv $work_folder/$folder $backup_work_folder/
 
 				# return to previous main dir silently
@@ -490,7 +501,8 @@ check_submission() {
 	## Further, the evaluation scripts would fail if the assets are missing.
 	## So, this here is really only an initial quick check to short-cut further efforts if needed.
 
-	echo "ISPD23 -- 2)  $id:   Quick check whether assets are maintained ..."
+	# NOTE id_run is passed through from calling function, start_eval()
+	echo "ISPD23 -- 2)  $id_run:   Quick check whether assets are maintained ..."
 
 	# NOTE outsourced to benchmarks/_release/scripts/4_mod_files
 	#
@@ -532,11 +544,11 @@ check_submission() {
 
 	if [[ $status != 0 ]]; then
 
-		echo "ISPD23 -- 2)  $id:   Some asset(s) is/are missing. Skipping other checks ..."
+		echo "ISPD23 -- 2)  $id_run:   Some asset(s) is/are missing. Skipping other checks ..."
 
 		return 1
 	else
-		echo "ISPD23 -- 2)  $id:   Assets check passed."
+		echo "ISPD23 -- 2)  $id_run:   Assets check passed."
 	fi
 
 	# reset status (not needed really as non-zero status would render this code skipped)
@@ -549,7 +561,7 @@ check_submission() {
 #	##
 #
 #	(
-#		echo "ISPD23 -- 2)  $id:   Pins design checks ..."
+#		echo "ISPD23 -- 2)  $id_run:   Pins design checks ..."
 #
 #		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 #		./check_pins.sh > /dev/null
@@ -560,12 +572,12 @@ check_submission() {
 #		if [[ $errors == 0 ]]; then
 #
 #			echo "ISPD23 -- ERROR: For pins design check -- see check_pins.rpt for more details." >> errors.rpt
-#			echo "ISPD23 -- 2)  $id:    Some pins design check(s) failed."
+#			echo "ISPD23 -- 2)  $id_run:    Some pins design check(s) failed."
 #
 #			exit 1
 #		fi
 #
-#		echo "ISPD23 -- 2)  $id:   Pins design checks passed."
+#		echo "ISPD23 -- 2)  $id_run:   Pins design checks passed."
 #
 #		exit 0
 #	) &
@@ -577,7 +589,7 @@ check_submission() {
 #
 #	(
 # 		# TODO update w/ progress symbol
-#		echo "ISPD23 -- 2)  $id:   PDN checks ..."
+#		echo "ISPD23 -- 2)  $id_run:   PDN checks ..."
 #
 #		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 #		##sh -c 'echo $$ > PID.pg; exec innovus -nowin -files pg.tcl -log pg > /dev/null 2>&1' &
@@ -597,7 +609,7 @@ check_submission() {
 #				errors=$(grep -E "$innovus_errors_for_checking" pg.log* | grep -Ev "$innovus_errors_excluded_for_checking")
 #				if [[ $errors != "" ]]; then
 #
-#					echo "ISPD23 -- 2)  $id:   Some error occurred for PDN checks. Killing process ..."
+#					echo "ISPD23 -- 2)  $id_run:   Some error occurred for PDN checks. Killing process ..."
 #
 #					echo "ISPD23 -- ERROR: process failed for PDN design checks -- $errors" >> errors.rpt
 #
@@ -621,7 +633,7 @@ check_submission() {
 #		errors=$(grep -q "ERROR: For PG check" errors.rpt; echo $?)
 #		if [[ $errors == 0 ]]; then
 #
-#			echo "ISPD23 -- 2)  $id:    Some failure occurred during PDN design checks."
+#			echo "ISPD23 -- 2)  $id_run:    Some failure occurred during PDN design checks."
 #
 #			exit 1
 #		fi
@@ -631,12 +643,12 @@ check_submission() {
 #		if [[ $errors == 0 ]]; then
 #
 #			echo "ISPD23 -- ERROR: For PG check -- see pg_metals_eval.rpt for more details." >> errors.rpt
-#			echo "ISPD23 -- 2)  $id:    Some PDN design check(s) failed."
+#			echo "ISPD23 -- 2)  $id_run:    Some PDN design check(s) failed."
 #
 #			exit 1
 #		fi
 #
-#		echo "ISPD23 -- 2)  $id:   PDN checks passed."
+#		echo "ISPD23 -- 2)  $id_run:   PDN checks passed."
 #
 #		exit 0
 #	) &
@@ -648,7 +660,7 @@ check_submission() {
 
 ## TODO revisit all examples, log formats
 	(
-		echo "ISPD23 -- 2)  $id:   LEC design checks -- progress symbol: '.' ..."
+		echo "ISPD23 -- 2)  $id_run:   LEC design checks -- progress symbol: '.' ..."
 
 		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 		##sh -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile lec.do > lec.log 2>&1' &
@@ -675,7 +687,7 @@ check_submission() {
 
 					echo ""
 
-					echo "ISPD23 -- 2)  $id:   Some error occurred for LEC run. Killing process ..."
+					echo "ISPD23 -- 2)  $id_run:   Some error occurred for LEC run. Killing process ..."
 
 					echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> errors.rpt
 
@@ -697,7 +709,7 @@ check_submission() {
 						break
 					fi
 
-					echo "ISPD23 -- 2)  $id:   LEC run got interrupted. Abort processing ..."
+					echo "ISPD23 -- 2)  $id_run:   LEC run got interrupted. Abort processing ..."
 					echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> errors.rpt
 
 					exit 1
@@ -831,11 +843,11 @@ check_submission() {
 
 		if [[ $error == 1 ]]; then
 
-			echo "ISPD23 -- 2)  $id:   Some critical LEC design check(s) failed."
+			echo "ISPD23 -- 2)  $id_run:   Some critical LEC design check(s) failed."
 			exit 1
 		fi
 
-		echo "ISPD23 -- 2)  $id:   LEC design checks done."
+		echo "ISPD23 -- 2)  $id_run:   LEC design checks done."
 
 		exit 0
 	) &
@@ -846,7 +858,7 @@ check_submission() {
 	##
 
 	(
-		echo "ISPD23 -- 2)  $id:   Innovus design checks -- progress symbol: ':' ..."
+		echo "ISPD23 -- 2)  $id_run:   Innovus design checks -- progress symbol: ':' ..."
 
 		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 		##sh -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files check.tcl -log check > /dev/null 2>&1' &
@@ -872,7 +884,7 @@ check_submission() {
 
 					echo ""
 
-					echo "ISPD23 -- 2)  $id:   Some error occurred for Innovus run. Killing process ..."
+					echo "ISPD23 -- 2)  $id_run:   Some error occurred for Innovus run. Killing process ..."
 
 					echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- $errors" >> errors.rpt
 
@@ -894,7 +906,7 @@ check_submission() {
 						break
 					fi
 
-					echo "ISPD23 -- 2)  $id:   Innovus run got interrupted. Abort processing ..."
+					echo "ISPD23 -- 2)  $id_run:   Innovus run got interrupted. Abort processing ..."
 					echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- INTERRUPT" >> errors.rpt
 
 					exit 1
@@ -977,7 +989,7 @@ check_submission() {
 # TODO bring in timing checks here; start w/ stuff from init_eval.tcl, move to check.tcl as well
 # TODO bring in PG checks here; start w/ stuff from pg.tcl, move to check.tcl as well
 
-		echo "ISPD23 -- 2)  $id:   Innovus design checks done."
+		echo "ISPD23 -- 2)  $id_run:   Innovus design checks done."
 
 		exit 0
 	) &
@@ -989,7 +1001,7 @@ check_submission() {
 	wait $pid_LEC_checks || status=$?
 	wait $pid_basic_checks || status=$?
 
-	echo "ISPD23 -- 2)  $id:  All checks done"
+	echo "ISPD23 -- 2)  $id_run:  All checks done"
 
 	return $status
 }
@@ -1083,10 +1095,10 @@ start_eval() {
 			# handle all downloads folders
 			for folder in $(ls $downloads_folder); do
 
-				# TODO use id also for other eval processes, like exploit_regions etc
+				# TODO use id_run also for other eval processes, like exploit_regions etc
 				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
 				team_=$(printf "%-"$teams_string_max_length"s" $team)
-				id="[ $team_ -- $benchmark_ -- ${folder##*_} ]"
+				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
 
 				# TODO not started per iteration/call to start_eval but in total; just requires to keep track of current ongoing runs, which would also be great to log within the main loop
 
@@ -1106,7 +1118,7 @@ start_eval() {
 					continue
 				fi
 
-				echo "ISPD23 -- 2)  $id: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
+				echo "ISPD23 -- 2)  $id_run: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
 
 				## 1) count parallel runs (i.e., runs started within the same cycle)
 				((count_parallel_runs = count_parallel_runs + 1))
@@ -1115,7 +1127,7 @@ start_eval() {
 			(
 				## 1) send out email notification of start 
 				#
-				echo "ISPD23 -- 2)  $id:  Send out email about processing start ..."
+				echo "ISPD23 -- 2)  $id_run:  Send out email about processing start ..."
 
 				text="The evaluation for your latest $round round submission, benchmark $benchmark, has started. You will receive another email once results are available.\n\nMD5 and name of files processed in this run are:\n"
 
@@ -1124,15 +1136,16 @@ start_eval() {
 				for file in $(ls); do
 					text+=$(md5sum $file 2> /dev/null)"\n"
 				done
-				# return to previous main dir
-				cd - > /dev/null
-
+#TODO use $id_run for email subject and text
 				subject="[ISPD23] Processing started for $round round, benchmark $benchmark, internal reference: ${folder##*_}"
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 
+				# return to previous main dir
+				cd - > /dev/null
+
 				# 2) init folder
-				echo "ISPD23 -- 2)  $id:  Init work folder ..."
+				echo "ISPD23 -- 2)  $id_run:  Init work folder ..."
 				
 				## copy downloaded folder in full to work folder
 				cp -rf $downloads_folder/$folder $work_folder/
@@ -1157,7 +1170,7 @@ start_eval() {
 
 				if [[ $? != 0 ]]; then
 
-					echo "ISPD23 -- 2)  $id:   Error occurred during file init."
+					echo "ISPD23 -- 2)  $id_run:   Error occurred during file init."
 
 					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
 					# NOTE add other files here as needed for other evaluation steps
@@ -1175,13 +1188,13 @@ start_eval() {
 				fi
 
 				# 3) check submission
-				echo "ISPD23 -- 2)  $id:  Check submission files ..."
+				echo "ISPD23 -- 2)  $id_run:  Check submission files ..."
 
 				check_submission
 
 				if [[ $? != 0 ]]; then
 
-					echo "ISPD23 -- 2)  $id:   Submission is not valid/legal."
+					echo "ISPD23 -- 2)  $id_run:   Submission is not valid/legal."
 
 					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
 					# NOTE add other files here as needed for other evaluation steps
@@ -1217,14 +1230,14 @@ date > DONE.exploit_eval
 #					# prepare scripts
 #					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
 #
-#						echo "ISPD23 -- 2)  $id:  Exploitable regions: start background run for script version considering 10 metal layers..."
+#						echo "ISPD23 -- 2)  $id_run:  Exploitable regions: start background run for script version considering 10 metal layers..."
 #
 #						# cleanup scripts not needed
 #						rm exploit_regions_metal1--metal6.tcl
 #
 #					elif [[ "$benchmarks_6_metal_layers" == *"$benchmark"* ]]; then
 #
-#						echo "ISPD23 -- 2)  $id:  Exploitable regions: start background run for script version considering 6 metal layers..."
+#						echo "ISPD23 -- 2)  $id_run:  Exploitable regions: start background run for script version considering 6 metal layers..."
 #
 #						rm exploit_regions.tcl
 #						ln -s exploit_regions_metal1--metal6.tcl exploit_regions.tcl
