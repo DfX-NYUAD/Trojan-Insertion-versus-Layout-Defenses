@@ -658,7 +658,6 @@ check_submission() {
 	## LEC checks
 	##
 
-## TODO revisit all examples, log formats
 	(
 		echo "ISPD23 -- 2)  $id_run:   LEC design checks -- progress symbol: '.' ..."
 
@@ -771,7 +770,6 @@ check_submission() {
 ##Unmapped points   DLAT      Total
 ##--------------------------------------------------------------------------------
 ##Unreachable       31        31
-
 		##issues=$(tail -n 2 check_equivalence.rpt.unmapped | grep "Unreachable" 2> /dev/null | awk '{print $NF}')
 		issues=$(tail -n 2 check_equivalence.rpt.unmapped | grep "Unreachable" | awk '{print $NF}')
 		if [[ $issues != "" ]]; then
@@ -787,6 +785,21 @@ check_submission() {
 		#
 		## NOTE these are hinting on cells used as dummy fillers
 		#
+
+# Example:
+#// Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting (occurrence:7) 
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+		issues=$(grep "Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting" lec.log | awk '{print $18}' | awk 'NR==2')
+		issues=${issues##*:}
+		issues=${issues%*)}
+		if [[ $issues != "" ]]; then
+
+			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unassigned nets issues" >> warnings.rpt
+			echo "ISPD23 -- Unassigned nets issues: $issues" >> checks_summary.rpt
+		else
+			echo "ISPD23 -- Unassigned nets issues: 0" >> checks_summary.rpt
+		fi
 
 # Example:
 #// Warning: (RTL2.13) Undriven pin is detected (occurrence:3)
@@ -806,28 +819,11 @@ check_submission() {
 		fi
 
 # Example:
-#// Note: (HRC3.5b) Open output port connection is detected (occurrence:139)
-#
-# NOTE such line is only present if errors/issues found at all
-# NOTE such issues often occur for baseline layouts as well, but these are the only warning related to cells inserted and connected to inputs but otherwise useless (no output), so we need to keep that check
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		##issues=$(grep "Note: (HRC3.5b) Open output port connection is detected" lec.log 2> /dev/null | awk '{print $10}' | awk 'NR==2')
-		issues=$(grep "Note: (HRC3.5b) Open output port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues open output ports issues" >> warnings.rpt
-			echo "ISPD23 -- Open output ports issues: $issues" >> checks_summary.rpt
-		else
-			echo "ISPD23 -- Open output ports issues: 0" >> checks_summary.rpt
-		fi
-
-# Example:
 #// Warning: (RTL14) Signal has input but it has no output (occurrence:2632)
 #
 # NOTE such line is only present if errors/issues found at all
-# NOTE such issues often occur for baseline layouts as well, but these are the only warning related to cells inserted and connected to inputs but otherwise useless (no output), so we need to keep that check
+# NOTE such issues often occur for baseline layouts as well. These checks here are the only warnings related to cells
+# inserted and connected to inputs but otherwise useless (no output), so we need to keep that check
 # NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
 		##issues=$(grep "Warning: (RTL14) Signal has input but it has no output" lec.log 2> /dev/null | awk '{print $12}' | awk 'NR==2')
 		issues=$(grep "Warning: (RTL14) Signal has input but it has no output" lec.log | awk '{print $12}' | awk 'NR==2')
@@ -841,6 +837,70 @@ check_submission() {
 			echo "ISPD23 -- Net output floating issues: 0" >> checks_summary.rpt
 		fi
 
+# Example for two related issues:
+#// Warning: (HRC3.5a) Open input/inout port connection is detected (occurrence:3)
+#// Note: (HRC3.5b) Open output port connection is detected (occurrence:139)
+#
+# NOTE such lines are only present if errors/issues found at all
+# NOTE such lines, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+		issues_a=$(grep "Warning: (HRC3.5a) Open input/inout port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
+		issues_b=$(grep "Note: (HRC3.5b) Open output port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
+		issues_a=${issues_a##*:}
+		issues_a=${issues_a%*)}
+		issues_b=${issues_b##*:}
+		issues_b=${issues_b%*)}
+
+		issues=0
+		if [[ $issues_a != "" ]]; then
+			((issues = issues + issues_a))
+		fi
+		if [[ $issues_b != "" ]]; then
+			((issues = issues + issues_b))
+		fi
+		
+		if [[ $issues != 0 ]]; then
+
+			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues open ports issues" >> warnings.rpt
+			echo "ISPD23 -- Open ports issues: $issues" >> checks_summary.rpt
+		else
+			echo "ISPD23 -- Open ports issues: 0" >> checks_summary.rpt
+		fi
+
+# Example:
+// Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module (occurrence:674)
+#
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+		issues=$(grep "Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module" lec.log | awk '{print $18}' | awk 'NR==2')
+		issues=${issues##*:}
+		issues=${issues%*)}
+		if [[ $issues != "" ]]; then
+
+			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues input port not fully used issues" >> warnings.rpt
+			echo "ISPD23 -- Input port not fully used issues: $issues" >> checks_summary.rpt
+		else
+			echo "ISPD23 -- Input port not fully used issues: 0" >> checks_summary.rpt
+		fi
+
+# Example:
+// Warning: (HRC3.16) A wire is declared, but not used in the module (occurrence:1)
+#
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+		issues=$(grep "Warning: (HRC3.16) A wire is declared, but not used in the module" lec.log | awk '{print $14}' | awk 'NR==2')
+		issues=${issues##*:}
+		issues=${issues%*)}
+		if [[ $issues != "" ]]; then
+
+			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unused wire issues" >> warnings.rpt
+			echo "ISPD23 -- Unused wire issues: $issues" >> checks_summary.rpt
+		else
+			echo "ISPD23 -- Unused wire issues: 0" >> checks_summary.rpt
+		fi
+
+		#
+		# evaluate criticality of issues
+		#
 		if [[ $error == 1 ]]; then
 
 			echo "ISPD23 -- 2)  $id_run:   Some critical LEC design check(s) failed."
@@ -930,7 +990,7 @@ check_submission() {
 
 		if [[ $issues != "" ]]; then
 
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues routing issues; see *.conn.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues basic routing issues; see *.conn.rpt for more details." >> warnings.rpt
 			echo "ISPD23 -- Basic routing issues: $issues" >> checks_summary.rpt
 		else
 			echo "ISPD23 -- Basic routing issues: 0" >> checks_summary.rpt
@@ -951,7 +1011,7 @@ check_submission() {
 		issues=$(grep "TOTAL" *.checkPin.rpt | awk '{ sum = $9 + $13 + $17 + $21; print sum }')
 		if [[ $issues != '0' ]]; then
 
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues pin issues; see *.checkPin.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues module pin issues; see *.checkPin.rpt for more details." >> warnings.rpt
 			echo "ISPD23 -- Module pin issues: $issues" >> checks_summary.rpt
 		else
 			echo "ISPD23 -- Module pin issues: 0" >> checks_summary.rpt
