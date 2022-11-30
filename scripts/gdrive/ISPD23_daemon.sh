@@ -10,8 +10,8 @@ source ISPD23_daemon_procedures.sh
 round="alpha"
 ## wait b/w cycles [s]
 check_interval="60"
-## max runs allowed to be started in parallel per team
-max_parallel_runs="6"
+## max runs allowed in parallel per team
+max_parallel_runs="10"
 ## max uploads allowed to be started in parallel
 max_parallel_uploads="10"
 

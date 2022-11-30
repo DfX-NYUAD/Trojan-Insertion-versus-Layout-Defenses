@@ -9,10 +9,10 @@ initialize() {
 
 	while read -r a b; do
 		google_team_folders[$a]=$b
-#	# NOTE use this for testing, to work on _test folder only
-#	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '_test'" | awk '{print $1" "$2}')
-	# NOTE use this for actual runs
-	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
+	# NOTE use this for testing, to work on _test folders only
+	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and name = '_test*'" | awk '{print $1" "$2}')
+	## NOTE use this for actual runs
+	#done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false" | awk '{print $1" "$2}')
 	
 	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} team folders:"
 	for team in "${google_team_folders[@]}"; do
@@ -247,7 +247,8 @@ google_downloads() {
 				if [[ $(file $downloads_folder_/$actual_file_name_ | awk '{print $2}') == 'Zip' ]]; then
 
 					echo "ISPD23 -- 1)   Unpacking zip file \"$actual_file_name_\" into dedicated folder \"$downloads_folder_\" ..."
-					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ #> /dev/null #2>&1
+					# NOTE only mute regular stdout, but keep stderr
+					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ > /dev/null #2>&1
 					rm $downloads_folder_/$actual_file_name_ #> /dev/null 2>&1
 				fi
 
@@ -447,9 +448,11 @@ check_eval() {
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 				./scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
-				## zip all rpt files into uploads folder
-				echo "ISPD23 -- 3)  $id_run:  Copying report files to uploads folder \"$uploads_folder\" ..."
-				zip $uploads_folder/reports.zip *.rpt > /dev/null
+				## copy results files into uploads folder
+				echo "ISPD23 -- 3)  $id_run:  Copying results files to uploads folder \"$uploads_folder\" ..."
+				cp *.rpt $uploads_folder/
+				# TODO only for dev tree, we should also copy/upload log files
+				cp *.log* $uploads_folder/
 
 #				# NOTE deprecated
 #				## put processed files into uploads folder
@@ -901,6 +904,7 @@ check_submission() {
 		#
 		# evaluate criticality of issues
 		#
+# TODO declare any other issues aside from non-eq as errors as well?
 		if [[ $error == 1 ]]; then
 
 			echo "ISPD23 -- 2)  $id_run:   Some critical LEC design check(s) failed."
@@ -1046,8 +1050,11 @@ check_submission() {
 			echo "ISPD23 -- DRC issues: 0" >> checks_summary.rpt
 		fi
 
-# TODO bring in timing checks here; start w/ stuff from init_eval.tcl, move to check.tcl as well
-# TODO bring in PG checks here; start w/ stuff from pg.tcl, move to check.tcl as well
+# TODO bring in timing checks here; results in timing.rpt
+
+# TODO bring in PG checks here:
+#		start w/ stuff from pg.tcl, refactor into check.tcl as well
+#		consider violations as error, like w/ DRC and timing
 
 		echo "ISPD23 -- 2)  $id_run:   Innovus design checks done."
 
