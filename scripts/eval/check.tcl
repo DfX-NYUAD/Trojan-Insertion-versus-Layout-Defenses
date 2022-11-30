@@ -25,20 +25,16 @@ init_design
 ####
 # checks w/ rpt files auto-generated
 ####
-#
-# TODO use extended limits for check_* other than DRC? depends on whether issues will be considered for score or not
 
 # NOTE covers routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt for "IMPVFC", "Net"
 # NOTE does NOT flag cells not connected or routed at all -- those are caught by LEC, flagged as "Unreachable" points
-check_connectivity
+check_connectivity -error 100000 -warning 100000 -check_pg_ports -check_wire_loops
 
 # NOTE covers IO pins; check *.checkPin.rpt for "ERROR" as well as for "Illegal*", "Unplaced"
 check_pin_assignment
 
 # NOTE covers DRC for routing; check *.geom.rpt for "Total Violations"
-check_drc
-## NOTE no need for extended limit; standard limit of 1,000 violations is good enough to flag any violations 
-#check_drc -limit 99999
+check_drc -limit 100000
 
 ####
 # checks w/o rpt files auto-generated
