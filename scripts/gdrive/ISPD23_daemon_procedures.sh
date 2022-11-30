@@ -727,7 +727,9 @@ check_submission() {
 		## parse rpt, log files for errors
 		## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
 		##
-		error=0
+
+		# reset errors flag
+		errors=0
 
 		#
 		# non-equivalence issues
@@ -756,7 +758,7 @@ check_submission() {
 			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues equivalence issues; see check_equivalence.rpt for more details." >> errors.rpt
 			echo "ISPD23 -- Equivalence issues: $issues" >> checks_summary.rpt
 
-			error=1
+			errors=1
 		else
 			echo "ISPD23 -- Equivalence issues: 0" >> checks_summary.rpt
 		fi
@@ -907,15 +909,15 @@ check_submission() {
 		# evaluate criticality of issues
 		#
 # TODO declare any other issues aside from non-eq as errors as well?
-		if [[ $error == 1 ]]; then
+		if [[ $errors == 1 ]]; then
 
 			echo "ISPD23 -- 2)  $id_run:   Some critical LEC design check(s) failed."
 			exit 1
+		else
+			echo "ISPD23 -- 2)  $id_run:   LEC design checks done; all passed."
+			exit 0
 		fi
 
-		echo "ISPD23 -- 2)  $id_run:   LEC design checks done."
-
-		exit 0
 	) &
 	pid_LEC_checks=$!
 
@@ -987,6 +989,9 @@ check_submission() {
 		## put summary into warnings.rpt; also extract violations count into checks_summary.rpt
 		##
 
+		# reset errors flag
+		errors=0
+
 		# routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt -- we need "*" for file since name is defined by module name, not the verilog file name
 # Example:
 #    5 total info(s) created.
@@ -1035,10 +1040,10 @@ check_submission() {
 			echo "ISPD23 -- Placement and/or routing issues: 0" >> checks_summary.rpt
 		fi
 
-# TODO handle as errors!
-# NOTE see error handling for LEC checks above
-
 		# DRC routing issues; check *.geom.rpt for "Total Violations"
+		#
+		## NOTE failure on those considered as error/constraint violation
+		#
 # Example:
 #  Total Violations : 2 Viols.
 # NOTE such line is only present if errors/issues found at all
@@ -1046,8 +1051,10 @@ check_submission() {
 		issues=$(grep "Total Violations :" *.geom.rpt | awk '{print $4}')
 		if [[ $issues != "" ]]; then
 
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> errors.rpt
 			echo "ISPD23 -- DRC issues: $issues" >> checks_summary.rpt
+
+			errors=1
 		else
 			echo "ISPD23 -- DRC issues: 0" >> checks_summary.rpt
 		fi
@@ -1058,9 +1065,18 @@ check_submission() {
 #		start w/ stuff from pg.tcl, refactor into check.tcl as well
 #		consider violations as error, like w/ DRC and timing
 
-		echo "ISPD23 -- 2)  $id_run:   Innovus design checks done."
+		#
+		# evaluate criticality of issues
+		#
+# TODO declare any other issues aside from DRC, timing as errors as well?
+		if [[ $errors == 1 ]]; then
 
-		exit 0
+			echo "ISPD23 -- 2)  $id_run:   Some critical Innovus design check(s) failed."
+			exit 1
+		else
+			echo "ISPD23 -- 2)  $id_run:   Innovus design checks done; all passed."
+			exit 0
+		fi
 	) &
 	pid_basic_checks=$!
 
