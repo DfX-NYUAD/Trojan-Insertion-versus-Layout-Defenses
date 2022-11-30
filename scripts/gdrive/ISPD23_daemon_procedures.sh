@@ -436,7 +436,7 @@ check_eval() {
 					continue
 				fi
 
-# TODO ./design_cost.sh -- here, or in basic checks
+# TODO ./design_cost.sh -- here, or in basic checks, or directly in scores.sh
 
 				## compute scores
 				if ! [[ -e errors.rpt ]]; then
@@ -1074,7 +1074,7 @@ check_submission() {
 #    Group : in2reg   151.422    0.0     0  
 #    Group : reg2reg  149.277    0.0     0  
 		issues=$(grep "View : ALL" timing.rpt | awk '{print $6}' | awk 'NR==1')
-		if [[ $issues != "" ]]; then
+		if [[ $issues != "0" ]]; then
 
 			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for setup; see timing.rpt for more details." >> errors.rpt
 			echo "ISPD23 -- Timing issues for setup: $issues" >> checks_summary.rpt
@@ -1094,7 +1094,7 @@ check_submission() {
 #    Group : in2reg    17.732    0.0     0  
 #    Group : reg2reg  188.440    0.0     0  
 		issues=$(grep "View : ALL" timing.rpt | awk '{print $6}' | awk 'NR==2')
-		if [[ $issues != "" ]]; then
+		if [[ $issues != "0" ]]; then
 
 			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for hold; see timing.rpt for more details." >> errors.rpt
 			echo "ISPD23 -- Timing issues for hold: $issues" >> checks_summary.rpt
@@ -1116,6 +1116,7 @@ check_submission() {
 #    Check : max_fanout        N/A   N/A     0  
 #    Check : min_fanout        N/A   N/A     0  
 		issues=$(grep "View : ALL" timing.rpt | awk '{print $6}' | awk 'NR==3')
+# TODO check on some failing example, whether the line w/ 'VIEW : ALL' really contains some summary or not
 		if [[ $issues != "" ]]; then
 
 			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DRV timing issues; see timing.rpt for more details." >> errors.rpt
@@ -1204,6 +1205,7 @@ link_work_dir() {
 
 	## link runtime files related to benchmark and library into work dir
 
+#TODO move mmmc.tcl to scripts/eval
 	ln -sf $baselines_root_folder/$benchmark/mmmc.tcl .
 	ln -sf $baselines_root_folder/$benchmark/*.sdc . 
 
@@ -1375,6 +1377,8 @@ start_eval() {
 				## https://unix.stackexchange.com/a/103921
 				(
 					cd $work_folder/$folder > /dev/null
+
+# TODO current hack to bypass this check
 date > DONE.exploit_eval
 
 # TODO streamline into one; fix code
