@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# TODO update for new checks
+
 ## constant settings; not to be modified
 scale=$1
 baseline=$2
@@ -13,12 +15,12 @@ error=0
 
 ## 1) parameter checks
 if [[ $scale == "" ]]; then
-	echo "ERROR: cannot compute scores -- 1st parameter, scale, is not provided."
+	echo "ERROR: cannot compute scores -- 1st parameter, scale, is not provided." | tee -a $err_rpt
 	error=1
 fi
 ## 1) folder check
 if ! [[ -d $baseline ]]; then
-	echo "ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder."
+	echo "ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder." | tee -a $err_rpt
 	error=1
 fi
 ## exit for errors
