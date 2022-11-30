@@ -153,8 +153,8 @@ google_downloads() {
 			id_internal="$team:$benchmark"
 			google_benchmark_folder=${google_benchmark_folders[$id_internal]}
 
-			# NOTE relatively verbose; could be turned off
-			echo "ISPD23 -- 1)   Checking benchmark \"$benchmark\" (Google benchmark folder ID \"$google_benchmark_folder\") ..."
+			## NOTE relatively verbose; could be turned off
+			#echo "ISPD23 -- 1)   Checking benchmark \"$benchmark\" (Google benchmark folder ID \"$google_benchmark_folder\") ..."
 
 			downloads_folder="$team_folder/$benchmark/downloads"
 			declare -A basename_folders=()
@@ -448,11 +448,11 @@ check_eval() {
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 				./scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
-				## copy results files into uploads folder
+				## pack and results files into uploads folder
 				echo "ISPD23 -- 3)  $id_run:  Copying results files to uploads folder \"$uploads_folder\" ..."
-				cp *.rpt $uploads_folder/
-				# TODO only for dev tree, we should also copy/upload log files
-				cp *.log* $uploads_folder/
+				zip $uploads_folder/reports.zip *.rpt
+				# NOTE only for dev tree, we should also upload log files
+				zip $uploads_folder/logs.zip *.log*
 
 #				# NOTE deprecated
 #				## put processed files into uploads folder

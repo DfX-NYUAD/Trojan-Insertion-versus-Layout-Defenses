@@ -12,7 +12,7 @@ round="alpha"
 check_interval="60"
 ## max runs allowed in parallel per team
 max_parallel_runs="10"
-## max uploads allowed to be started in parallel
+## max uploads allowed to be started in parallel; based on experience of load behaviour w/ Google drive
 max_parallel_uploads="10"
 
 ## folders
