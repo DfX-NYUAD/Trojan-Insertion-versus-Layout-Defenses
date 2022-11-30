@@ -2,7 +2,7 @@
 # settings
 ####
 
-set_multi_cpu_usage -local_cpu 16
+set_multi_cpu_usage -local_cpu 24
 set_db design_process_node 7
 set_db design_tech_node N7
 
