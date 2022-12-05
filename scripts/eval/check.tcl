@@ -43,10 +43,6 @@ check_drc -limit 100000
 # NOTE covers placement and routing issues
 check_design -type route > check_route.rpt
 
-# NOTE checks routing track details
-## NOTE errors out (tested on Innovus 18, 21); probably not needed anyway as long as other checks here and later on check_DRC is done
-#check_tracks > check_tracks.rpt
-
 ####
 # clock propagation
 ####
@@ -56,8 +52,7 @@ reset_propagated_clock [all_clocks]
 #
 ## NOTE probably not needed w/ latency values and clock constraints defined in SDC file
 ## NOTE also errors out for Innovus 21 as follows:
-### ERROR: (TCLCMD-1411): The update_io_latency command cannot be run when a clock is propagated. Check if there is any
-### set_propagated_clock constraint on pin/port.
+### ERROR: (TCLCMD-1411): The update_io_latency command cannot be run when a clock is propagated. Check if there is any set_propagated_clock constraint on pin/port.
 #update_io_latency -adjust_source_latency -verbose
 #
 set_propagated_clock [all_clocks]
@@ -66,23 +61,31 @@ set_propagated_clock [all_clocks]
 # timing
 ####
 
-## NOTE faster to compute but probably less accurate; have seen some diff in results -- probably not to be used
-#set_db timing_enable_simultaneous_setup_hold_mode true
-#
+## NOTE only applicable for timing analysis, not for PD changes -- fits our scope
+set_db timing_enable_simultaneous_setup_hold_mode true
+# on-chip variations to be considered
 set_db timing_analysis_type ocv
+# removes clock pessimism
 set_db timing_analysis_cppr both
+# enables SI/noise reporting
 set_db si_delay_enable_report true
 set_db si_glitch_enable_report true
 set_db si_enable_glitch_propagation true
 set_db si_glitch_analysis_type full_propagation
+# actual timing eval command
 time_design -post_route
 
-## NOTE provides setup, DRV, clock checks; but, throws error on simultaneous late and early eval
-#report_timing_summary > timing.rpt
+# timing reporting
 #
-report_timing_summary -checks setup > timing.rpt
-report_timing_summary -checks hold >> timing.rpt
-report_timing_summary -checks drv >> timing.rpt
+## NOTE provides setup, hold, DRV, clock checks all in one; requires simultaneous_setup_hold_mode
+report_timing_summary > timing.rpt
+# NOTE explicit separate eval not needed
+#report_timing_summary -checks setup >> timing.rpt
+#report_timing_summary -checks hold >> timing.rpt
+#report_timing_summary -checks drv >> timing.rpt
+
+# SI/noise reporting
+#
 report_noise -threshold 0.2 > noise.rpt
 
 ####
