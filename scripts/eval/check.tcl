@@ -29,19 +29,22 @@ init_design
 # NOTE covers routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt for "IMPVFC", "Net"
 # NOTE does NOT flag cells not connected or routed at all -- those are caught by LEC, flagged as "Unreachable" points
 check_connectivity -error 100000 -warning 100000 -check_pg_ports -check_wire_loops
+mv *.conn.rpt reports/
 
 # NOTE covers IO pins; check *.checkPin.rpt for "ERROR" as well as for "Illegal*", "Unplaced"
 check_pin_assignment
+mv *.checkPin.rpt reports/
 
 # NOTE covers DRC for routing; check *.geom.rpt for "Total Violations"
 check_drc -limit 100000
+mv *.geom.rpt reports/
 
 ####
 # checks w/o rpt files auto-generated
 ####
 
 # NOTE covers placement and routing issues
-check_design -type route > check_route.rpt
+check_design -type route > reports/check_route.rpt
 
 ####
 # clock propagation
@@ -78,21 +81,21 @@ time_design -post_route
 # timing reporting
 #
 ## NOTE provides setup, hold, DRV, clock checks all in one; requires simultaneous_setup_hold_mode
-report_timing_summary > timing.rpt
+report_timing_summary > reports/timing.rpt
 # NOTE explicit separate eval not needed
-#report_timing_summary -checks setup >> timing.rpt
-#report_timing_summary -checks hold >> timing.rpt
-#report_timing_summary -checks drv >> timing.rpt
+#report_timing_summary -checks setup >> reports/timing.rpt
+#report_timing_summary -checks hold >> reports/timing.rpt
+#report_timing_summary -checks drv >> reports/timing.rpt
 
 # SI/noise reporting
 #
-report_noise -threshold 0.2 > noise.rpt
+report_noise -threshold 0.2 > reports/noise.rpt
 
 ####
 # die area
 ####
 
-set fl [open area.rpt w]
+set fl [open reports/area.rpt w]
 puts $fl [get_db current_design .bbox.area]
 close $fl
 
@@ -100,7 +103,7 @@ close $fl
 # power
 ####
 
-report_power > power.rpt
+report_power > reports/power.rpt
 
 ####
 # mark done; exit

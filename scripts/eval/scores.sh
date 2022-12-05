@@ -6,8 +6,8 @@
 scale=$1
 baseline=$2
 files="exploit_regions.rpt cells_ea.rpt nets_ea.rpt design_cost.rpt checks_summary.rpt"
-rpt=scores.rpt
-err_rpt=errors.rpt
+rpt=reports/scores.rpt
+err_rpt=reports/errors.rpt
 
 ## 1) init
 rm -f $rpt
