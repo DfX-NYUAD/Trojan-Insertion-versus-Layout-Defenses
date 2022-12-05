@@ -53,11 +53,13 @@ check_design -type route > check_route.rpt
 
 set_interactive_constraint_modes [all_constraint_modes -active]
 reset_propagated_clock [all_clocks]
-	## NOTE probably not needed w/ latency values and clock constraints defined in SDC file
-	## NOTE also errors out for Innovus 21 as follows:
-	### ERROR: (TCLCMD-1411): The update_io_latency command cannot be run when a clock is propagated. Check if there is any
-	### set_propagated_clock constraint on pin/port.
-	#update_io_latency -adjust_source_latency -verbose
+#
+## NOTE probably not needed w/ latency values and clock constraints defined in SDC file
+## NOTE also errors out for Innovus 21 as follows:
+### ERROR: (TCLCMD-1411): The update_io_latency command cannot be run when a clock is propagated. Check if there is any
+### set_propagated_clock constraint on pin/port.
+#update_io_latency -adjust_source_latency -verbose
+#
 set_propagated_clock [all_clocks]
 
 ####
@@ -66,8 +68,13 @@ set_propagated_clock [all_clocks]
 
 ## NOTE faster to compute but probably less accurate; have seen some diff in results -- probably not to be used
 #set_db timing_enable_simultaneous_setup_hold_mode true
+#
 set_db timing_analysis_type ocv
 set_db timing_analysis_cppr both
+set_db si_delay_enable_report true
+set_db si_glitch_enable_report true
+set_db si_enable_glitch_propagation true
+set_db si_glitch_analysis_type full_propagation
 time_design -post_route
 
 ## NOTE provides setup, DRV, clock checks; but, throws error on simultaneous late and early eval
@@ -76,6 +83,7 @@ time_design -post_route
 report_timing_summary -checks setup > timing.rpt
 report_timing_summary -checks hold >> timing.rpt
 report_timing_summary -checks drv >> timing.rpt
+report_noise -threshold 0.2 > noise.rpt
 
 ####
 # die area

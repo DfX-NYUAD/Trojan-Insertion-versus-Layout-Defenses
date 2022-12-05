@@ -988,7 +988,8 @@ check_submission() {
 
 		##
 		## parse rpt files for failures
-		## put summary into warnings.rpt; also extract violations count into checks_summary.rpt
+		##
+		## put issues into warnings.rpt; also report into checks_summary.rpt
 		##
 
 		# reset errors flag
@@ -1040,6 +1041,41 @@ check_submission() {
 			echo "ISPD23 -- Placement and/or routing issues: $issues" >> checks_summary.rpt
 		else
 			echo "ISPD23 -- Placement and/or routing issues: 0" >> checks_summary.rpt
+		fi
+
+		# noise issues; check noise.rpt for summary
+# Example:
+# Glitch Violations Summary :
+# --------------------------
+# Number of DC tolerance violations (VH + VL) =  35
+# Number of Receiver Output Peak violations (VH + VL) =  0
+# Number of total problem noise nets =  12
+
+		issues=$(grep "Number of DC tolerance violations" noise.rpt | awk '{print $10}')
+		if [[ $issues != '0' ]]; then
+
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DC tolerance issues; see noise.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- DC tolerance issues: $issues" >> checks_summary.rpt
+		else
+			echo "ISPD23 -- DC tolerance issues: 0" >> checks_summary.rpt
+		fi
+
+		issues=$(grep "Number of Receiver Output Peak violations" noise.rpt | awk '{print $11}')
+		if [[ $issues != '0' ]]; then
+
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues receiver output peak issues; see noise.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- Receiver output peak issues: $issues" >> checks_summary.rpt
+		else
+			echo "ISPD23 -- Receiver output peak issues: 0" >> checks_summary.rpt
+		fi
+
+		issues=$(grep "Number of total problem noise nets" noise.rpt | awk '{print $8}')
+		if [[ $issues != '0' ]]; then
+
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues noise net issues; see noise.rpt for more details." >> warnings.rpt
+			echo "ISPD23 -- Noise net issues: $issues" >> checks_summary.rpt
+		else
+			echo "ISPD23 -- Noise net issues: 0" >> checks_summary.rpt
 		fi
 
 		# DRC routing issues; check *.geom.rpt for "Total Violations"
