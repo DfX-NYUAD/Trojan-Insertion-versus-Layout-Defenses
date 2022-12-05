@@ -1089,7 +1089,7 @@ check_submission() {
 			echo "ISPD23 -- DRC issues: 0" >> checks_summary.rpt
 		fi
 
-		# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold, DRV checks
+		# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
 		#
 		## NOTE failure on those considered as error/constraint violation
 		#
@@ -1132,29 +1132,6 @@ check_submission() {
 			errors=1
 		else
 			echo "ISPD23 -- Timing issues for hold: 0" >> checks_summary.rpt
-		fi
-
-		# DRV 
-# Example:
-## DRV                         WNS   TNS   FEP   
-##----------------------------------------------
-# View : ALL                                    
-#    Check : max_transition    N/A   N/A     0  
-#    Check : min_transition    N/A   N/A     0  
-#    Check : max_capacitance   N/A   N/A     0  
-#    Check : min_capacitance   N/A   N/A     0  
-#    Check : max_fanout        N/A   N/A     0  
-#    Check : min_fanout        N/A   N/A     0  
-		issues=$(grep "View : ALL" timing.rpt | awk '{print $6}' | awk 'NR==3')
-# TODO check on some failing example, whether the line w/ 'VIEW : ALL' really contains some summary or not
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DRV timing issues; see timing.rpt for more details." >> errors.rpt
-			echo "ISPD23 -- DRV timing issues: $issues" >> checks_summary.rpt
-
-			errors=1
-		else
-			echo "ISPD23 -- DRV timing issues: 0" >> checks_summary.rpt
 		fi
 
 # TODO bring in PG checks here:
