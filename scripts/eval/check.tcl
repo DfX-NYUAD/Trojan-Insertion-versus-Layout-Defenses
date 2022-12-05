@@ -44,25 +44,28 @@ check_drc -limit 100000
 check_design -type route > check_route.rpt
 
 # NOTE checks routing track details
-## NOTE errors out; probably not needed anyway as long as other checks here and later on check_DRC is done
+## NOTE errors out (tested on Innovus 18, 21); probably not needed anyway as long as other checks here and later on check_DRC is done
 #check_tracks > check_tracks.rpt
 
 ####
 # clock propagation
-#
-# NOTE not needed when sdc files are properly set up
 ####
 
-#set_interactive_constraint_modes [all_constraint_modes -active]
-#reset_propagated_clock [all_clocks]
-#update_io_latency -adjust_source_latency -verbose
-#set_propagated_clock [all_clocks]
+set_interactive_constraint_modes [all_constraint_modes -active]
+reset_propagated_clock [all_clocks]
+	## NOTE probably not needed w/ latency values and clock constraints defined in SDC file
+	## NOTE also errors out for Innovus 21 as follows:
+	### ERROR: (TCLCMD-1411): The update_io_latency command cannot be run when a clock is propagated. Check if there is any
+	### set_propagated_clock constraint on pin/port.
+	#update_io_latency -adjust_source_latency -verbose
+set_propagated_clock [all_clocks]
 
 ####
 # timing
 ####
 
-#set_global timing_enable_simultaneous_setup_hold_mode true
+## NOTE faster to compute but probably less accurate; have seen some diff in results -- probably not to be used
+#set_db timing_enable_simultaneous_setup_hold_mode true
 set_db timing_analysis_type ocv
 set_db timing_analysis_cppr both
 time_design -post_route
