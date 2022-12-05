@@ -1239,6 +1239,8 @@ link_work_dir() {
 		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
 	done
 
+	cd - > /dev/null
+
 ## NOTE deprecated; handling of files separately and explicitly
 #	ln -sf $baselines_root_folder/$benchmark/ASAP7/$qrc_file .
 #	for file in $lib_files; do
