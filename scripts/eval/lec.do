@@ -6,8 +6,8 @@
 set parallel option -threads 16
 
 // just load all available lib and lef files
-read library -both -liberty *.lib 
-read lef file *.lef
+read library -both -liberty ASAP7/*.lib 
+read lef file ASAP7/*.lef
 
 read design -golden _design_original.v
 read design -revised design.v

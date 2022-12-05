@@ -599,8 +599,7 @@ check_submission() {
 #		echo "ISPD23 -- 2)  $id_run:   PDN checks ..."
 #
 #		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#		##sh -c 'echo $$ > PID.pg; exec innovus -nowin -files pg.tcl -log pg > /dev/null 2>&1' &
-#		sh -c 'echo $$ > PID.pg; exec innovus -nowin -files pg.tcl -log pg > /dev/null' &
+#		sh -c 'echo $$ > PID.pg; exec innovus -nowin -files scripts/pg.tcl -log pg > /dev/null' &
 #
 #		# sleep a little to avoid immediate but useless errors concerning log file not found
 #		sleep 1s
@@ -669,8 +668,7 @@ check_submission() {
 		echo "ISPD23 -- 2)  $id_run:   LEC design checks -- progress symbol: '.' ..."
 
 		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		##sh -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile lec.do > lec.log 2>&1' &
-		sh -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile lec.do > lec.log' &
+		sh -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
 
 		# sleep a little to avoid immediate but useless errors concerning log file not found
 		sleep 1s
@@ -931,8 +929,7 @@ check_submission() {
 		echo "ISPD23 -- 2)  $id_run:   Innovus design checks -- progress symbol: ':' ..."
 
 		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		##sh -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files check.tcl -log check > /dev/null 2>&1' &
-		sh -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files check.tcl -log check > /dev/null' &
+		sh -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
 
 		# sleep a little to avoid immediate but useless errors concerning log file not found
 		sleep 1s
@@ -1236,18 +1233,30 @@ link_work_dir() {
 		ln -s *.v design.v 2>&1 | grep -v "File exists"
 	fi
 
-	## link scripts into work dir
+	## link scripts into work dir, using dedicated subfolder
+
+	mkdir scripts
+	cd scripts > /dev/null
+
 	for script in $scripts; do
 		ln -sf $scripts_folder/$script .
 	done
+	
+	cd - > /dev/null
 
 	## link files related to benchmark into work dir
 	ln -sf $baselines_root_folder/$benchmark/*.sdc . 
 
 	## link files related to library into work dir
+
+	mkdir ASAP7
+	cd ASAP7 > /dev/null
+
 	for file in $(ls $baselines_root_folder/$benchmark/ASAP7); do
 		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
 	done
+
+	cd - > /dev/null
 
 ## NOTE deprecated; handling of files separately and explicitly
 #	ln -sf $baselines_root_folder/$benchmark/ASAP7/$qrc_file .
@@ -1362,7 +1371,7 @@ start_eval() {
 					echo "ISPD23 -- 2)  $id_run:   Error occurred during file init."
 
 					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# NOTE add other files here as needed for other evaluation steps
+					# TODO add other files here as needed for other evaluation steps
 					date > DONE.exploit_eval
 
 					# also return to previous main dir
@@ -1386,7 +1395,7 @@ start_eval() {
 					echo "ISPD23 -- 2)  $id_run:   Submission is not valid/legal."
 
 					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# NOTE add other files here as needed for other evaluation steps
+					# TODO add other files here as needed for other evaluation steps
 					date > DONE.exploit_eval
 
 					# also return to previous main dir
