@@ -168,8 +168,10 @@ google_downloads() {
 				google_folder_files[$a]=$b
 				google_folder_files_type[$a]=$c
 			# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
-			## ISPD23 -- 1)   Download new submission file "to" (Google file ID "Failed") into dedicated folder
-			## Failed to get file: googleapi: Error 404: File not found: Failed., notFound
+				## ISPD23 -- 1)   Download new submission file "to" (Google file ID "Failed") into dedicated folder
+				## Failed to get file: googleapi: Error 404: File not found: Failed., notFound
+				##
+				## ISPD23_daemon_procedures.sh: line 168: google_folder_files[$a]: bad array subscript
 			done < <(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
 
 			## pre-processing: list files within (sub)folders, if any
