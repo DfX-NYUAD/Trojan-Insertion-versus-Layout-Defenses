@@ -1241,12 +1241,10 @@ link_work_dir() {
 		ln -sf $scripts_folder/$script .
 	done
 
-	## link runtime files related to benchmark and library into work dir
-
-#TODO move mmmc.tcl to scripts/eval
-	ln -sf $baselines_root_folder/$benchmark/mmmc.tcl .
+	## link files related to benchmark into work dir
 	ln -sf $baselines_root_folder/$benchmark/*.sdc . 
 
+	## link files related to library into work dir
 	for file in $(ls $baselines_root_folder/$benchmark/ASAP7); do
 		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
 	done
