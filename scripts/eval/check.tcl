@@ -54,14 +54,14 @@ check_design -type route > reports/check_route.rpt
 # clock propagation
 ####
 
+# NOTE no differences in timing metrics w/ versus w/o this propagation; still kept here just to make sure and be
+# consistent w/ earlier scripts and our understanding of clock propagation
 set_interactive_constraint_modes [all_constraint_modes -active]
 reset_propagated_clock [all_clocks]
-#
-## NOTE probably not needed w/ latency values and clock constraints defined in SDC file
-## NOTE also errors out for Innovus 21 as follows:
-### ERROR: (TCLCMD-1411): The update_io_latency command cannot be run when a clock is propagated. Check if there is any set_propagated_clock constraint on pin/port.
-#update_io_latency -adjust_source_latency -verbose
-#
+	## NOTE probably not needed w/ latency values and clock constraints defined in SDC file
+	## NOTE also errors out for Innovus 21 as follows:
+	### ERROR: (TCLCMD-1411): The update_io_latency command cannot be run when a clock is propagated. Check if there is any set_propagated_clock constraint on pin/port.
+	#update_io_latency -adjust_source_latency -verbose
 set_propagated_clock [all_clocks]
 
 ####

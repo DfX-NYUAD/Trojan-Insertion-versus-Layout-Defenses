@@ -24,6 +24,7 @@ create_delay_corner -name TT_delay_corner \
     -late_rc_corner TT_rc_corner
 
 ## constraint_mode
+# NOTE the latency.sdc file is essential for meeting timing according to constraints in original PD run
 create_constraint_mode -name TT_constraints \
     -sdc_files { design.sdc latency.sdc }
 
