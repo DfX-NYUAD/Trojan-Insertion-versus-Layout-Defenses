@@ -527,17 +527,17 @@ check_submission() {
 
 	## consider versions of assets fiels w/ extended escape of special chars, so that grep later on can match
 	# NOTE escaping is handled in benchmarks/_release/scripts/4_mod_files
-	readarray -t cells_assets < cells.assets
-	readarray -t escaped_cells_assets < cells.assets.escaped
+	readarray -t design_assets < design.assets
+	readarray -t escaped_design_assets < design.assets.escaped
 
 	status=0
 
 	(
 		error=0
 
-		for ((i=0; i<${#cells_assets[@]}; i++)); do
-			asset=${cells_assets[$i]}
-			escaped_asset=${escaped_cells_assets[$i]}
+		for ((i=0; i<${#design_assets[@]}; i++)); do
+			asset=${design_assets[$i]}
+			escaped_asset=${escaped_design_assets[$i]}
 
 			# for DEF format, each token/word is separated, so we can use -w here
 			grep -q -w $escaped_asset design.def
@@ -546,19 +546,19 @@ check_submission() {
 
 				error=1
 				
-				echo "ISPD23 -- ERROR: the cell asset \"$asset\" is not maintained in the DEF." >> reports/errors.rpt
+				echo "ISPD23 -- ERROR: the asset \"$asset\" is not maintained in the DEF." >> reports/errors.rpt
 			fi
 		done
 
 		exit $error
 	) &
-	pid_cell_assets=$!
+	pid_assets=$!
 
 	# wait for subshells and memorize their exit code in case it's non-zero
 	## NOTE subshells currently not really needed, as there's only one check conducted here. We used to check also
 	## for net assets in the prior contest.
 	## If any other, early checks should be conducted before designs checkes, they should be added here.
-	wait $pid_cell_assets || status=$?
+	wait $pid_assets || status=$?
 
 	if [[ $status != 0 ]]; then
 
@@ -1225,7 +1225,7 @@ link_work_dir() {
 
 	ln -sf $baselines_root_folder/$benchmark/*.sdc . 
 
-	ln -sf $baselines_root_folder/$benchmark/cells.assets* .
+	ln -sf $baselines_root_folder/$benchmark/design.assets* .
 
 	# NOTE note the '_' prefix which is used to differentiate this true original file with any submission also named design_original
 	ln -sf $baselines_root_folder/$benchmark/design_original.v _design_original.v
