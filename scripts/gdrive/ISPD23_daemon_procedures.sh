@@ -453,11 +453,13 @@ check_eval() {
 				## pack and results files into uploads folder
 				echo "ISPD23 -- 3)  $id_run:  Copying results files to uploads folder \"$uploads_folder\" ..."
 
+				# -j means to smash reports/ folder; just put files into zip archive directly
+				# include regular rpt files, not others (like, *.rpt.extended files)
 				# NOTE only mute regular stdout, but keep stderr
-				# NOTE -j means to smash reports/ folder; just put files into zip archive directly
-				# NOTE only include regular rpt files, nothing else (like, no *.rpt.extended etc files)
 				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
-				# NOTE also include detailed timing reports
+				# also include lec.log
+				zip $uploads_folder/reports.zip lec.log > /dev/null
+				# also include detailed timing reports
 				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
 				# NOTE only for dev tree, we should also upload log files
 				# NOTE only mute regular stdout, but keep stderr
