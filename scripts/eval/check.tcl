@@ -68,7 +68,7 @@ set_propagated_clock [all_clocks]
 # timing
 ####
 
-## NOTE only applicable for timing analysis, not for PD changes -- fits our scope
+## NOTE only applicable for timing analysis, not for subsequent ECO or so -- fits our scope
 set_db timing_enable_simultaneous_setup_hold_mode true
 # on-chip variations to be considered
 set_db timing_analysis_type ocv
@@ -78,7 +78,6 @@ set_db timing_analysis_cppr both
 set_db si_delay_enable_report true
 set_db si_glitch_enable_report true
 set_db si_enable_glitch_propagation true
-set_db si_glitch_analysis_type full_propagation
 # actual timing eval command
 time_design -post_route
 
