@@ -497,9 +497,9 @@ check_eval() {
 
 				rm -r $folder/
 
-				# unzip rpt files again, as these should be readily accessible for debugging
+				# unzip all rpt files again, also those *.rpt.ext etc; rpt files should be readily accessible for debugging
 				# NOTE only mute regular stdout, but keep stderr
-				unzip $folder'.zip' $folder/reports/ > /dev/null #2>&1
+				unzip $folder'.zip' $folder/reports/* > /dev/null #2>&1
 #				# NOTE deprecated; log files can be GBs large in case of interrupts
 #				#unzip $folder'.zip' $folder/*.log > /dev/null #2>&1
 
