@@ -763,11 +763,11 @@ check_submission() {
 		if [[ $issues != "" ]]; then
 
 			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues equivalence issues; see check_equivalence.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- Equivalence issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Equivalence issues: $issues" >> reports/checks_summary.rpt
 
 			errors=1
 		else
-			echo "ISPD23 -- Equivalence issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Equivalence issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		#
@@ -788,9 +788,9 @@ check_submission() {
 		if [[ $issues != "" ]]; then
 
 			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unreachable points issues; see check_equivalence.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Unreachable points issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Unreachable points issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Unreachable points issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Unreachable points issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		#
@@ -809,9 +809,9 @@ check_submission() {
 		if [[ $issues != "" ]]; then
 
 			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unassigned nets issues" >> reports/warnings.rpt
-			echo "ISPD23 -- Unassigned nets issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Unassigned nets issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Unassigned nets issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Unassigned nets issues: 0" >> reports/checks_summary.rpt
 		fi
 
 # Example:
@@ -825,9 +825,9 @@ check_submission() {
 		if [[ $issues != "" ]]; then
 
 			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues undriven pins issues" >> reports/warnings.rpt
-			echo "ISPD23 -- Undriven pins issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Undriven pins issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Undriven pins issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Undriven pins issues: 0" >> reports/checks_summary.rpt
 		fi
 
 # Example:
@@ -843,9 +843,9 @@ check_submission() {
 		if [[ $issues != "" ]]; then
 
 			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues net output floating issues" >> reports/warnings.rpt
-			echo "ISPD23 -- Net output floating issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Net output floating issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Net output floating issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Net output floating issues: 0" >> reports/checks_summary.rpt
 		fi
 
 # Example for two related issues:
@@ -872,9 +872,9 @@ check_submission() {
 		if [[ $issues != 0 ]]; then
 
 			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues open ports issues" >> reports/warnings.rpt
-			echo "ISPD23 -- Open ports issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Open ports issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Open ports issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Open ports issues: 0" >> reports/checks_summary.rpt
 		fi
 
 # Example:
@@ -888,9 +888,9 @@ check_submission() {
 		if [[ $issues != "" ]]; then
 
 			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues input port not fully used issues" >> reports/warnings.rpt
-			echo "ISPD23 -- Input port not fully used issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Input port not fully used issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Input port not fully used issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Input port not fully used issues: 0" >> reports/checks_summary.rpt
 		fi
 
 # Example:
@@ -904,9 +904,9 @@ check_submission() {
 		if [[ $issues != "" ]]; then
 
 			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unused wire issues" >> reports/warnings.rpt
-			echo "ISPD23 -- Unused wire issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Unused wire issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Unused wire issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- LEC: Unused wire issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		#
@@ -1004,10 +1004,10 @@ check_submission() {
 
 		if [[ $issues != "" ]]; then
 
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues basic routing issues; see *.conn.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Basic routing issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues basic routing issues; see *.conn.rpt and floating_signals.rpt for more details." >> reports/warnings.rpt
+			echo "ISPD23 -- Innovus: Basic routing issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Basic routing issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Basic routing issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		# IO pins; check *.checkPin.rpt for illegal and unplaced pins from summary
@@ -1025,9 +1025,9 @@ check_submission() {
 		if [[ $issues != '0' ]]; then
 
 			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues module pin issues; see *.checkPin.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Module pin issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Module pin issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Module pin issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Module pin issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		# placement and routing; check check_route.rpt file for unplaced components as well as for summary
@@ -1037,9 +1037,9 @@ check_submission() {
 		if [[ $issues != '0' ]]; then
 
 			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues placement and/or routing issues; see check_route.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Placement and/or routing issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Placement and/or routing issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Placement and/or routing issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Placement and/or routing issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		# noise issues; check noise.rpt for summary
@@ -1054,27 +1054,27 @@ check_submission() {
 		if [[ $issues != '0' ]]; then
 
 			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DC tolerance issues; see noise.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- DC tolerance issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: DC tolerance issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- DC tolerance issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: DC tolerance issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $11}')
 		if [[ $issues != '0' ]]; then
 
 			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues receiver output peak issues; see noise.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Receiver output peak issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Receiver output peak issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Receiver output peak issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Receiver output peak issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $8}')
 		if [[ $issues != '0' ]]; then
 
 			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues noise net issues; see noise.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Noise net issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Noise net issues: $issues" >> reports/checks_summary.rpt
 		else
-			echo "ISPD23 -- Noise net issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Noise net issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		# DRC routing issues; check *.geom.rpt for "Total Violations"
@@ -1088,11 +1088,11 @@ check_submission() {
 		if [[ $issues != "" ]]; then
 
 			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- DRC issues: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: DRC issues: $issues" >> reports/checks_summary.rpt
 
 			errors=1
 		else
-			echo "ISPD23 -- DRC issues: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: DRC issues: 0" >> reports/checks_summary.rpt
 		fi
 
 		# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
@@ -1113,11 +1113,11 @@ check_submission() {
 		if [[ $issues != "0" ]]; then
 
 			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for setup; see timing.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- Timing issues for setup: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Timing issues for setup: $issues" >> reports/checks_summary.rpt
 
 			errors=1
 		else
-			echo "ISPD23 -- Timing issues for setup: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Timing issues for setup: 0" >> reports/checks_summary.rpt
 		fi
 
 		# hold 
@@ -1133,11 +1133,11 @@ check_submission() {
 		if [[ $issues != "0" ]]; then
 
 			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for hold; see timing.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- Timing issues for hold: $issues" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Timing issues for hold: $issues" >> reports/checks_summary.rpt
 
 			errors=1
 		else
-			echo "ISPD23 -- Timing issues for hold: 0" >> reports/checks_summary.rpt
+			echo "ISPD23 -- Innovus: Timing issues for hold: 0" >> reports/checks_summary.rpt
 		fi
 
 # TODO bring in PG checks here:
