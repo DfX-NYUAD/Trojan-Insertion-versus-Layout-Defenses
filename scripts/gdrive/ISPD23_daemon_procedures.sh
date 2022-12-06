@@ -454,8 +454,9 @@ check_eval() {
 				echo "ISPD23 -- 3)  $id_run:  Copying results files to uploads folder \"$uploads_folder\" ..."
 
 				# NOTE only mute regular stdout, but keep stderr
-				# NOTE -j means to don't include reports/ structure into zip archive
-				zip -j $uploads_folder/reports.zip reports/* > /dev/null
+				# NOTE -j means to smash reports/ folder; just put files into zip archive directly
+				# NOTE only include regular rpt files, nothing else (like, no *.rpt.extended etc files)
+				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
 				# NOTE also include detailed timing reports
 				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
 				# NOTE only for dev tree, we should also upload log files
@@ -484,6 +485,11 @@ check_eval() {
 #				       rm $folder/summarize_assets.log*
 #				fi
 
+				# cleanup of rpt files lingering around in main folder
+				# NOTE As of now, only a 0-byte power.rpt file occurs here (the proper file is in reports/power.rpt). Not sure why this happens
+				# though. Also, instead of deleting, moving to reports/ would be an option -- but, not for that 0-byte power.rpt file
+				rm $folder/*.rpt
+
 				# NOTE only mute regular stdout, but keep stderr
 				zip -y -r $folder'.zip' $folder/ > /dev/null #2>&1
 
@@ -491,7 +497,7 @@ check_eval() {
 
 				# unzip rpt files again, as these should be readily accessible for debugging
 				# NOTE only mute regular stdout, but keep stderr
-				unzip $folder'.zip' $folder/*.rpt > /dev/null #2>&1
+				unzip $folder'.zip' $folder/reports/ > /dev/null #2>&1
 #				# NOTE deprecated; log files can be GBs large in case of interrupts
 #				#unzip $folder'.zip' $folder/*.log > /dev/null #2>&1
 
@@ -1205,7 +1211,7 @@ link_work_dir() {
 		ln -s *.v design.v 2>&1 | grep -v "File exists"
 	fi
 
-	## init reports folder; mv any already existing report
+	## init reports folder; mv any already existing report (should be only processed_files_MD5.rpt at this point)
 	mkdir reports
 	mv *.rpt reports/
 
@@ -1238,9 +1244,6 @@ link_work_dir() {
 	for file in $(ls $baselines_root_folder/$benchmark/ASAP7); do
 		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
 	done
-
-	cd - > /dev/null
-
 ## NOTE deprecated; handling of files separately and explicitly
 #	ln -sf $baselines_root_folder/$benchmark/ASAP7/$qrc_file .
 #	for file in $lib_files; do
