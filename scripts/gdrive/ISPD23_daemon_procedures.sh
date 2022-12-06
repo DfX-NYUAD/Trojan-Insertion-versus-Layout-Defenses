@@ -440,15 +440,17 @@ check_eval() {
 
 # TODO scripts/design_cost.sh -- here, or in basic checks, or directly in scores.sh
 
-				## compute scores
-				if ! [[ -e reports/errors.rpt ]]; then
-					echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
-				else
-					# NOTE not really skipping the script itself; scores.sh is called in any case to track the related errors, if any, in errors.rpt as well
-					echo "ISPD23 -- 3)  $id_run:  Skipping scores, as there were some errors ..."
-				fi
-				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-				scripts/scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
+# TODO activate once 1st order sec metrics are done
+#
+#				## compute scores
+#				if ! [[ -e reports/errors.rpt ]]; then
+#					echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
+#				else
+#					# NOTE not really skipping the script itself; scores.sh is called in any case to track the related errors, if any, in errors.rpt as well
+#					echo "ISPD23 -- 3)  $id_run:  Skipping scores, as there were some errors ..."
+#				fi
+#				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#				scripts/scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
 				## pack and results files into uploads folder
 				echo "ISPD23 -- 3)  $id_run:  Copying results files to uploads folder \"$uploads_folder\" ..."
