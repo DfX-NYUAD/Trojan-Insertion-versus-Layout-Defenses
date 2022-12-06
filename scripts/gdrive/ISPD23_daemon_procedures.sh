@@ -1044,40 +1044,42 @@ check_submission() {
 			echo "ISPD23 -- Innovus: Placement and/or routing issues: 0" >> reports/checks_summary.rpt
 		fi
 
-		# noise issues; check noise.rpt for summary
-# Example:
-# Glitch Violations Summary :
-# --------------------------
-# Number of DC tolerance violations (VH + VL) =  35
-# Number of Receiver Output Peak violations (VH + VL) =  0
-# Number of total problem noise nets =  12
-
-		issues=$(grep "Number of DC tolerance violations" reports/noise.rpt | awk '{print $10}')
-		if [[ $issues != '0' ]]; then
-
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DC tolerance issues; see noise.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Innovus: DC tolerance issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- Innovus: DC tolerance issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $11}')
-		if [[ $issues != '0' ]]; then
-
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues receiver output peak issues; see noise.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Innovus: Receiver output peak issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- Innovus: Receiver output peak issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $8}')
-		if [[ $issues != '0' ]]; then
-
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues noise net issues; see noise.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Innovus: Noise net issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- Innovus: Noise net issues: 0" >> reports/checks_summary.rpt
-		fi
+## NOTE deprecated, deactivated for now
+#
+#		# noise issues; check noise.rpt for summary
+## Example:
+## Glitch Violations Summary :
+## --------------------------
+## Number of DC tolerance violations (VH + VL) =  35
+## Number of Receiver Output Peak violations (VH + VL) =  0
+## Number of total problem noise nets =  12
+#
+#		issues=$(grep "Number of DC tolerance violations" reports/noise.rpt | awk '{print $10}')
+#		if [[ $issues != '0' ]]; then
+#
+#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DC tolerance issues; see noise.rpt for more details." >> reports/warnings.rpt
+#			echo "ISPD23 -- Innovus: DC tolerance issues: $issues" >> reports/checks_summary.rpt
+#		else
+#			echo "ISPD23 -- Innovus: DC tolerance issues: 0" >> reports/checks_summary.rpt
+#		fi
+#
+#		issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $11}')
+#		if [[ $issues != '0' ]]; then
+#
+#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues receiver output peak issues; see noise.rpt for more details." >> reports/warnings.rpt
+#			echo "ISPD23 -- Innovus: Receiver output peak issues: $issues" >> reports/checks_summary.rpt
+#		else
+#			echo "ISPD23 -- Innovus: Receiver output peak issues: 0" >> reports/checks_summary.rpt
+#		fi
+#
+#		issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $8}')
+#		if [[ $issues != '0' ]]; then
+#
+#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues noise net issues; see noise.rpt for more details." >> reports/warnings.rpt
+#			echo "ISPD23 -- Innovus: Noise net issues: $issues" >> reports/checks_summary.rpt
+#		else
+#			echo "ISPD23 -- Innovus: Noise net issues: 0" >> reports/checks_summary.rpt
+#		fi
 
 		# DRC routing issues; check *.geom.rpt for "Total Violations"
 		#

@@ -85,14 +85,19 @@ time_design -post_route
 #
 ## NOTE provides setup, hold, DRV, clock checks all in one; requires simultaneous_setup_hold_mode
 report_timing_summary > reports/timing.rpt
-# NOTE explicit separate eval not needed
-#report_timing_summary -checks setup >> reports/timing.rpt
-#report_timing_summary -checks hold >> reports/timing.rpt
-#report_timing_summary -checks drv >> reports/timing.rpt
+	# NOTE explicit separate eval not needed
+	#report_timing_summary -checks setup >> reports/timing.rpt
+	#report_timing_summary -checks hold >> reports/timing.rpt
+	#report_timing_summary -checks drv >> reports/timing.rpt
 
-# SI/noise reporting
-#
-report_noise -threshold 0.2 > reports/noise.rpt
+	## SI/noise reporting
+	##
+	## NOTE values differ from those obtained in regular flow, as in here less noise and no violations at all are reported
+	## NOTE somewhat more noise, violations are reported for separate timing checks and 'timing_enable_simultaneous_setup_hold_mode false'
+	## NOTE deactivated for now
+	#report_noise -threshold 0.2 > reports/noise.rpt
+	# NOTE for some reason, the parameter to be used here is noisy_waveform, not bumpy_waveform
+	#report_noise -threshold 0 -noisy_waveform >> reports/noise.rpt
 
 ####
 # die area
