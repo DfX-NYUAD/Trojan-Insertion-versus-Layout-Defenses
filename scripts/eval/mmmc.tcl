@@ -3,13 +3,13 @@ create_library_set -name TT_library_set \
     -timing {ASAP7/asap7sc7p5t_AO_LVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_AO_SLVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_INVBUF_LVT_TT_nldm_220122.lib ASAP7/asap7sc7p5t_INVBUF_SLVT_TT_nldm_220122.lib ASAP7/asap7sc7p5t_OA_LVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_OA_SLVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_SEQ_LVT_TT_nldm_220123.lib ASAP7/asap7sc7p5t_SEQ_SLVT_TT_nldm_220123.lib ASAP7/asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120.lib}
 
 ### opcond
-#create_opcond -name TT_opcond -process 1.0 -voltage 1.1 -temperature 25.0
+## NOTE is optional; useful for setting different conditions w/o changing library itself; not needed here
+#create_opcond -name TT_opcond -process 1.0 -voltage 0.7 -temperature 25.0
 
 ## timing_condition
 create_timing_condition -name TT_timing_cond \
     -library_sets { TT_library_set }
-	# NOTE opcond is optional
-    #-opcond TT_opcond \
+#    -opcond TT_opcond
 
 ## rc_corner
 create_rc_corner -name TT_rc_corner \
