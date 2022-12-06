@@ -60,6 +60,7 @@ add compare point -all
 compare
 
 // reports
+report floating signals > reports/floating_signals.rpt
 report verification > reports/check_equivalence.rpt
 echo >> reports/check_equivalence.rpt
 report statistics >> reports/check_equivalence.rpt
@@ -68,7 +69,7 @@ report unmapped points >> reports/check_equivalence.rpt
 echo >> reports/check_equivalence.rpt
 report compare data >> reports/check_equivalence.rpt
 // NOTE redundant report but helps for parsing
-report unmapped points >> reports/check_equivalence.rpt.unmapped
+report unmapped points > reports/check_equivalence.rpt.unmapped
 
 // mark done; exit
 date > DONE.lec
