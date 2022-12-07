@@ -10,7 +10,7 @@ baseline=$1
 rpt_out="pg_metals_eval.rpt"
 err_rpt="errors.rpt"
 DEF_sub="design.def"
-DEF_orig="_design_original.def"
+DEF_orig="design_original.def"
 rpt_sub="pg_metals.rpt"
 rpt_orig="$baseline/pg_metals.rpt"
 # math

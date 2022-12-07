@@ -1201,7 +1201,6 @@ link_work_dir() {
 	##
 
 	## DEF, including sanity checks
-	#def_files=$(ls *.def 2> /dev/null | wc -l)
 	def_files=$(ls *.def 2> /dev/null | wc -l)
 	if [[ $def_files != '1' ]]; then
 
@@ -1214,39 +1213,27 @@ link_work_dir() {
 	ln -s *.def design.def 2>&1 | grep -v "File exists"
 	
 	## netlist, including sanity checks
-	##netlist_files=$(ls *.v 2> /dev/null | wc -l)
-	netlist_files=$(ls *.v | wc -l)
-	if [[ $netlist_files > '1' ]]; then
+	netlist_files=$(ls *.v 2> /dev/null | wc -l)
+	if [[ $netlist_files != '1' ]]; then
 
 		echo "ISPD23 -- ERROR: there are $netlist_files netlist files in the submission's work directory, which shouldn't happen." >> reports/errors.rpt
 
 		error=1
-
-	elif [[ $netlist_files == '0' ]]; then
-
-		echo "ISPD23 -- WARNING: there is no dedicated netlist found in the submission's work directory; continuing with original baseline netlist for now. Most likely your DEF deviates from the original netlist, so you'd want to re-upload the DEF along with its netlist." >> reports/warnings.rpt
-		ln -sf $baselines_root_folder/$benchmark/design_original.v design.v
-
-	#elif [[ $netlist_files -eq 1 ]]; then
-	else
-		## NOTE don't force here, to avoid circular links from design.v to itself, in case the submitted file's name is already the same
-		## NOTE suppress stderr for 'File exists' -- happens when submission uses same name already -- but keep all others
-		ln -s *.v design.v 2>&1 | grep -v "File exists"
 	fi
+	## NOTE don't force here, to avoid circular links from design.v to itself, in case the submitted file's name is already the same
+	## NOTE suppress stderr for 'File exists' -- happens when submission uses same name already -- but keep all others
+	ln -s *.v design.v 2>&1 | grep -v "File exists"
 
 	## init reports folder; mv any already existing report (should be only processed_files_MD5.rpt at this point)
 	mkdir reports
 	mv *.rpt reports/
 
 	## link files related to benchmark into work dir
-
+	# NOTE force here in order to guarantee that the correct files are used, namely those from the reference folders
 	ln -sf $baselines_root_folder/$benchmark/*.sdc . 
-
 	ln -sf $baselines_root_folder/$benchmark/design.assets* .
-
-	# NOTE note the '_' prefix which is used to differentiate this true original file with any submission also named design_original
-	ln -sf $baselines_root_folder/$benchmark/design_original.v _design_original.v
-	ln -sf $baselines_root_folder/$benchmark/design_original.def _design_original.def
+	ln -sf $baselines_root_folder/$benchmark/design.v design_original.v
+	ln -sf $baselines_root_folder/$benchmark/design.def design_original.def
 
 	## link scripts into work dir, using dedicated subfolder
 

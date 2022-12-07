@@ -9,7 +9,7 @@ set parallel option -threads 16
 read library -both -liberty ASAP7/*.lib 
 read lef file ASAP7/*.lef
 
-read design -golden _design_original.v
+read design -golden design_original.v
 read design -revised design.v
 
 // Enter LEC mode but w/o auto mapping

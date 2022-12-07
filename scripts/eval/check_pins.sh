@@ -5,7 +5,7 @@
 # files
 rpt="check_pins.rpt"
 DEF_sub="design.def"
-DEF_orig="_design_original.def"
+DEF_orig="design_original.def"
 # math
 scale="6"
 margin="0.000001"
