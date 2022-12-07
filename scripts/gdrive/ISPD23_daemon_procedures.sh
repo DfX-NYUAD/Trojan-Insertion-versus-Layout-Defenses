@@ -1023,6 +1023,8 @@ check_submission() {
 
 		if [[ $issues != "" ]]; then
 
+			# NOTE the related file floating_signals.rpt does not have to be parsed; it just provides more
+			# details but metrics/values are already covered in the lec.log file
 			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues basic routing issues; see *.conn.rpt and floating_signals.rpt for more details." >> reports/warnings.rpt
 			echo "ISPD23 -- Innovus: Basic routing issues: $issues" >> reports/checks_summary.rpt
 		else
