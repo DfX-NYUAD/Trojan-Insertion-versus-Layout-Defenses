@@ -27,12 +27,9 @@ init_design
 ####
 
 # NOTE covers routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt for "IMPVFC", "Net"
-# NOTE only check regular nets, ignore special nets (VDD, VSS); there are false positives for dangling VDD, VSS at M1,
-# already seen at ISPD22; VDD, VSS are checked separately anyway
-# NOTE any re-declaration of other nets as special nets would allow teams to bypass checks; but, DRC checks are still
-# there anyway, so should be fine
+# NOTE check regular and special nets, false positives for dangling VDD, VSS at M1 (already seen for ISPD22) are filtered out from the report using TODO script called below
 # NOTE does NOT flag cells not connected or routed at all -- those are caught by LEC, flagged as "Unreachable" points
-check_connectivity -type regular -error 100000 -warning 100000 -check_wire_loops
+check_connectivity -error 100000 -warning 100000 -check_wire_loops
 mv *.conn.rpt reports/
 
 # NOTE covers IO pins; check *.checkPin.rpt for "ERROR" as well as for "Illegal*", "Unplaced"
