@@ -33,8 +33,7 @@ baselines_root_folder="$local_root_folder/benchmarks/_release/_$round"
 
 ## benchmarks
 ##
-#TODO add sha256
-benchmarks="aes camellia cast misty seed"
+benchmarks="aes camellia cast misty seed sha256"
 ## NOTE use this for testing
 #benchmarks="aes"
 ## NOTE will be set automatically via initialize()
