@@ -18,6 +18,7 @@ max_parallel_uploads="10"
 ## folders
 ##
 google_root_folder="1G1EENqSquzCQbxI1Ij-4vbD8C3yrC_FF"
+google_json_file="$HOME/.config/gdrive/USERNAME_v2.json"
 local_root_folder="$HOME/nyu_projects/ISPD23"
 tmp_root_folder="$local_root_folder/data/tmp/"
 teams_root_folder="$local_root_folder/data/$round"
