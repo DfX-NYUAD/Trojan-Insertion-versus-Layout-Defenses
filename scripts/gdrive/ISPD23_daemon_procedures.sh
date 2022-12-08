@@ -116,8 +116,9 @@ send_email() {
 		emails_string="$emails_string $email"
 	done
 
-# TODO setup on new dfx server for new account; ~/.mailrc and ~/.certs
-#	ssh dfx "echo '$text' | mailx -A gmail -s '$subject' $emails_string" #> /dev/null 2>&1
+	# NOTE suppress warnings for certificate issue not recognized (won't fail email sending, more like a warning)
+	# but keep any others
+	echo -e "$text" | mailx -A ispd23contest -s "$subject" $emails_string 2>&1 | grep -v "Error in certificate: Peer's certificate issuer is not recognized."
 }
 
 # https://unix.stackexchange.com/a/415450
@@ -343,9 +344,10 @@ google_uploads() {
 				# NOTE errors could be suppressed here, but they can also just be sent out. In case it fails, these might be helpful and can be checked from the sent mailbox
 				#google_uploaded_folder=$(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and name = '$folder'" 2> /dev/null | awk '{print $1}')
 				google_uploaded_folder=$(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and name = '$folder'" | awk '{print $1}')
-#TODO use $id_run for email subject and text
-				text="The evaluation results for your latest $round round submission, benchmark $benchmark, are available in your corresponding Google Drive folder, within subfolder \"$folder\".\n\nDirect link: https://drive.google.com/drive/folders/$google_uploaded_folder"
-				subject="[ISPD23] Results ready for $round round, benchmark $benchmark, run $folder"
+
+				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
+				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
+				text="The results for your latest submission are ready in your corresponding Google Drive folder.\n\nDirect link: https://drive.google.com/drive/folders/$google_uploaded_folder"
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 			) &
@@ -1321,15 +1323,16 @@ start_eval() {
 				#
 				echo "ISPD23 -- 2)  $id_run:  Send out email about processing start ..."
 
-				text="The evaluation for your latest $round round submission, benchmark $benchmark, has started. You will receive another email once results are available.\n\nMD5 and name of files processed in this run are:\n"
+				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
+				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
 
-				# NOTE cd to the directory such that paths are not revealed/included into email, only filenames; remain silent for this "quick thing"
+				text="The processing of your latest submission has started. You will receive another email once results are ready\n\nMD5 and name of files processed are as follows:\n"
+
+				# NOTE cd to the directory such that paths are not revealed/included into email, only filenames
 				cd $downloads_folder/$folder > /dev/null
 				for file in $(ls); do
 					text+=$(md5sum $file 2> /dev/null)"\n"
 				done
-#TODO use $id_run for email subject and text
-				subject="[ISPD23] Processing started for $round round, benchmark $benchmark, internal reference: ${folder##*_}"
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 
