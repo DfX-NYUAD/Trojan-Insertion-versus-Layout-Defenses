@@ -1,4 +1,10 @@
 ####
+#
+# Script for ISPD'23 contest. Johann Knechtel, NYUAD, in collaboration with Mohammad Eslami and Samuel Pagliarini, TalTech
+#
+####
+
+####
 # settings
 ####
 

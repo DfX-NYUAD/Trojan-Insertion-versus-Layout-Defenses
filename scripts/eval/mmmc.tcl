@@ -1,3 +1,9 @@
+####
+#
+# Script for ISPD'23 contest. Johann Knechtel, NYUAD, in collaboration with Mohammad Eslami and Samuel Pagliarini, TalTech
+#
+####
+
 ## library_sets
 create_library_set -name TT_library_set \
     -timing {ASAP7/asap7sc7p5t_AO_LVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_AO_SLVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_INVBUF_LVT_TT_nldm_220122.lib ASAP7/asap7sc7p5t_INVBUF_SLVT_TT_nldm_220122.lib ASAP7/asap7sc7p5t_OA_LVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_OA_SLVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_SEQ_LVT_TT_nldm_220123.lib ASAP7/asap7sc7p5t_SEQ_SLVT_TT_nldm_220123.lib ASAP7/asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120.lib ASAP7/asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120.lib}

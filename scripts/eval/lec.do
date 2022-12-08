@@ -1,6 +1,10 @@
-//// lec_64 -nogui -xl -dofile lec.do
-////
-//// template derived from "Sample Dofile" from "Conformal Equivalence Checking User Guide"
+//////
+//
+// Script for ISPD'23 contest. Johann Knechtel, NYUAD, in collaboration with Mohammad Eslami and Samuel Pagliarini, TalTech
+//
+// Template derived from "Sample Dofile" from "Conformal Equivalence Checking User Guide"
+//
+//////
 
 // setup
 set parallel option -threads 16
