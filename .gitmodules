@@ -7,3 +7,6 @@
 [submodule "gdrive"]
 	path = gdrive
 	url = https://github.com/carstentrink/gdrive.git
+[submodule "scripts/CUHK"]
+	path = scripts/CUHK
+	url = git@github.com:wfz0755/ispd2022-security-closure.git
