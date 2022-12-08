@@ -28,6 +28,7 @@ init_design
 
 # NOTE covers routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt for "IMPVFC", "Net"
 # NOTE check regular and special nets, false positives for dangling VDD, VSS at M1 (already seen for ISPD22) are filtered out from the report using TODO script called below
+## TODO see exploitable_regions.tcl for syntax for call of external tools
 # NOTE does NOT flag cells not connected or routed at all -- those are caught by LEC, flagged as "Unreachable" points
 check_connectivity -error 100000 -warning 100000 -check_wire_loops
 mv *.conn.rpt reports/
@@ -109,6 +110,12 @@ close $fl
 ####
 
 report_power > reports/power.rpt
+
+####
+# exploitable regions
+####
+
+source scripts/exploitable_regions.tcl
 
 ####
 # mark done; exit
