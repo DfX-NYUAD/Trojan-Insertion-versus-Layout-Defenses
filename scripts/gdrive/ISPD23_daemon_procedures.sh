@@ -933,7 +933,7 @@ check_submission() {
 		#
 		# evaluate criticality of issues
 		#
-# TODO declare any other issues aside from non-eq as errors as well?
+# (TODO) declare any other issues aside from non-eq as errors as well?
 		if [[ $errors == 1 ]]; then
 
 			echo "ISPD23 -- 2)  $id_run:   Some critical LEC design check(s) failed."
@@ -1172,7 +1172,7 @@ check_submission() {
 		#
 		# evaluate criticality of issues
 		#
-# TODO declare any other issues aside from DRC, timing as errors as well?
+# (TODO) declare any other issues aside from DRC, timing as errors as well?
 		if [[ $errors == 1 ]]; then
 
 			echo "ISPD23 -- 2)  $id_run:   Some critical Innovus design check(s) failed."
@@ -1289,7 +1289,6 @@ start_eval() {
 			# handle all downloads folders
 			for folder in $(ls $downloads_folder); do
 
-				# TODO use id_run also for other eval processes, like exploit_regions etc
 				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
 				team_=$(printf "%-"$teams_string_max_length"s" $team)
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
@@ -1368,7 +1367,7 @@ start_eval() {
 					echo "ISPD23 -- 2)  $id_run:   Error occurred during file init."
 
 					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# TODO add other files here as needed for other evaluation steps
+					# (TODO) add other files here as needed for other evaluation steps
 					date > DONE.exploit_eval
 
 					# also return to previous main dir
@@ -1392,7 +1391,7 @@ start_eval() {
 					echo "ISPD23 -- 2)  $id_run:   Submission is not valid/legal."
 
 					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# TODO add other files here as needed for other evaluation steps
+					# (TODO) add other files here as needed for other evaluation steps
 					date > DONE.exploit_eval
 
 					# also return to previous main dir
