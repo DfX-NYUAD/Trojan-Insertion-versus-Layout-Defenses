@@ -29,7 +29,7 @@ read_def $def_path -preserve_shape
 init_design
 
 ####
-# checks w/ rpt files auto-generated
+# design checks
 ####
 
 # NOTE covers routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt for "IMPVFC", "Net"
@@ -47,17 +47,13 @@ mv *.checkPin.rpt reports/
 check_drc -limit 100000
 mv *.geom.rpt reports/
 
-####
-# checks w/o rpt files auto-generated
-####
-
 # NOTE covers placement and routing issues
 check_design -type {place cts route} > reports/check_design.rpt
 
 ####
 # clock propagation
 ####
-
+#
 # NOTE no differences in timing metrics w/ versus w/o this propagation; still kept here just to make sure and be
 # consistent w/ earlier scripts and our understanding of clock propagation
 set_interactive_constraint_modes [all_constraint_modes -active]
@@ -69,9 +65,9 @@ reset_propagated_clock [all_clocks]
 set_propagated_clock [all_clocks]
 
 ####
-# timing
+# timing analysis
 ####
-
+#
 ## NOTE only applicable for timing analysis, not for subsequent ECO or so -- fits our scope
 set_db timing_enable_simultaneous_setup_hold_mode true
 # on-chip variations to be considered
@@ -85,8 +81,6 @@ set_db si_enable_glitch_propagation true
 # actual timing eval command
 time_design -post_route
 
-# timing reporting
-#
 ## NOTE provides setup, hold, DRV, clock checks all in one; requires simultaneous_setup_hold_mode
 report_timing_summary > reports/timing.rpt
 	# NOTE explicit separate eval not needed
@@ -106,7 +100,7 @@ report_timing_summary > reports/timing.rpt
 ####
 # die area
 ####
-
+#
 set out [open reports/area.rpt w]
 puts $out [get_db current_design .bbox.area]
 close $out
@@ -114,23 +108,25 @@ close $out
 ####
 # power
 ####
-
+#
 report_power > reports/power.rpt
 
 ####
 # routing track utilization
 ####
+#
+# NOTE M1 is somehow skipped, even when explicitly setting "-layer 1:10"
 report_route -include_regular_routes -track_utilization > reports/track_utilization.rpt
 
 ####
 # exploitable regions
 ####
-
+#
 source scripts/exploitable_regions.tcl
 
 ####
 # mark done; exit
 ####
-
+#
 date > DONE.check
 exit
