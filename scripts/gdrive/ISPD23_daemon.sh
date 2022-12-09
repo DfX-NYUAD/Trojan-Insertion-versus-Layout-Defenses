@@ -51,10 +51,10 @@ emails_excluded_for_notification="ispd23contest.drive@gmail.com|jk176@nyu.edu"
 ##
 # NOTE as above, use pipe as separate and provide at least one term
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
-# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as
-# error though for basic checks
+# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as error though for design checks
+# NOTE 'IMPPP' errors are related to the check_design command, which is no reason to kill; should be reported as error though for design checks
 # NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain keywords like ERROR etc
-innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|@file"
+innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP-4418|@file"
 # NOTE as above, use pipe as separate and provide at least one term
 innovus_errors_for_checking="ERROR|StackTrace"
 
