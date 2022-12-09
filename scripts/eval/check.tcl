@@ -107,9 +107,9 @@ report_timing_summary > reports/timing.rpt
 # die area
 ####
 
-set fl [open reports/area.rpt w]
-puts $fl [get_db current_design .bbox.area]
-close $fl
+set out [open reports/area.rpt w]
+puts $out [get_db current_design .bbox.area]
+close $out
 
 ####
 # power
