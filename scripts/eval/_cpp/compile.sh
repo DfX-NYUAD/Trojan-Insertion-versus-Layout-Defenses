@@ -1,3 +1,5 @@
 #!/bin/bash
 
-g++ -std=c++11 exploitable_regions.cpp -o ../exploitable_regions.bin
+options="-std=c++11 -O3 -march=native"
+
+g++ $options exploitable_regions.cpp -o ../exploitable_regions.bin
