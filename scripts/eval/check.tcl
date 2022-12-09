@@ -48,7 +48,7 @@ check_drc -limit 100000
 mv *.geom.rpt reports/
 
 # NOTE covers placement and routing issues
-check_design -type {place cts route} > reports/check_design.rpt
+check_design -type {place route} > reports/check_design.rpt
 
 ####
 # clock propagation
