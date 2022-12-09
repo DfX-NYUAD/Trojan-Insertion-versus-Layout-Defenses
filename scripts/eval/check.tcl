@@ -118,6 +118,11 @@ close $out
 report_power > reports/power.rpt
 
 ####
+# routing track utilization
+####
+report_route -include_regular_routes -track_utilization > reports/track_utilization.rpt
+
+####
 # exploitable regions
 ####
 
