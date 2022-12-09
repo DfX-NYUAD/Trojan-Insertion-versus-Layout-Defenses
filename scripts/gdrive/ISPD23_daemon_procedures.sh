@@ -346,7 +346,7 @@ google_uploads() {
 				google_uploaded_folder=$(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and name = '$folder'" | awk '{print $1}')
 
 				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
-				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
+				subject="Re: [ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
 				text="The results for your latest submission are ready in your corresponding Google Drive folder.\n\nDirect link: https://drive.google.com/drive/folders/$google_uploaded_folder"
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
@@ -1053,13 +1053,13 @@ check_submission() {
 			echo "ISPD23 -- Innovus: Module pin issues: 0" >> reports/checks_summary.rpt
 		fi
 
-		# placement and routing; check check_route.rpt file for unplaced components as well as for summary
+		# placement and routing; check check_design.rpt file for summary
 # Example:
-#	**INFO: Identified 0 error(s) and 1 warning(s) during 'check_design -type {route}'.
-		issues=$(grep "**INFO: Identified" reports/check_route.rpt | awk '{ sum = $3 + $6; print sum }')
+#	**INFO: Identified 21 error(s) and 0 warning(s) during 'check_design -type {place cts route}'.
+		issues=$(grep "**INFO: Identified" reports/check_design.rpt | awk '{ sum = $3 + $6; print sum }')
 		if [[ $issues != '0' ]]; then
 
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues placement and/or routing issues; see check_route.rpt for more details." >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues placement and/or routing issues; see check_design.rpt for more details." >> reports/warnings.rpt
 			echo "ISPD23 -- Innovus: Placement and/or routing issues: $issues" >> reports/checks_summary.rpt
 		else
 			echo "ISPD23 -- Innovus: Placement and/or routing issues: 0" >> reports/checks_summary.rpt

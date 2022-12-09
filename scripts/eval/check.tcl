@@ -52,7 +52,7 @@ mv *.geom.rpt reports/
 ####
 
 # NOTE covers placement and routing issues
-check_design -type route > reports/check_route.rpt
+check_design -type {place cts route} > reports/check_design.rpt
 
 ####
 # clock propagation
