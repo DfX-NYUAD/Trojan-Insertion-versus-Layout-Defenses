@@ -128,5 +128,5 @@ source scripts/exploitable_regions.tcl
 # mark done; exit
 ####
 #
-date > DONE.check
+date > DONE.design_checks
 exit

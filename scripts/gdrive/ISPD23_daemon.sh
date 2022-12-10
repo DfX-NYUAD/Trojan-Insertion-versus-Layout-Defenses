@@ -67,7 +67,6 @@ lec_errors_for_checking="Error|StackTrace|License check failed!"
 ##
 ## NOTE only to be changed if you know what you're doing
 scripts_sec_first_order="exploitable_regions.bin exploitable_regions.tcl"
-#TODO fix once related scripts are updated
 scripts_des="check.tcl mmmc.tcl lec.do design_cost.sh scores.sh check_pins.sh check_pg.sh pg.tcl pg_procedures.tcl summarize_assets.tcl"
 scripts_des="check.tcl mmmc.tcl lec.do"
 scripts="$scripts_sec_first_order $scripts_des"

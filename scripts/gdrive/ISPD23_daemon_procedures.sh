@@ -333,7 +333,7 @@ google_uploads() {
 				## cleanup locally, but only if upload succeeded
 				if [[ $? -ne 0 ]]; then
 					# NOTE use exit, not contine, as we are at the main level in a subshell here now
-					exit
+					exit 1
 				fi
 
 				rm -rf $uploads_folder/$folder
@@ -395,61 +395,65 @@ check_eval() {
 				# notation: 0 -- still running; 1 -- done; 2 -- error
 				declare -A status=()
 
-				## exploit eval
-				#
-				if [[ -e DONE.exploit_eval ]]; then
-					echo "ISPD23 -- 3)  $id_run:  Exploitable regions: done"
-					status[exploit_eval]=1
+				# check init steps for fails; does not matter which one failed
+				if [[ -e FAILED.link_work_dir ]]; then
+					status[init]=2
+				elif [[ -e FAILED.check_submission ]]; then
+					status[init]=2
 				else
-					echo "ISPD23 -- 3)  $id_run:  Exploitable regions: still working ..."
-					status[exploit_eval]=0
+					status[init]=1
 				fi
-#				## for dbg only (e.g., manual re-upload of work folders just moved from backup_up to work again)
-#				#status[exploit_eval]=1
-#				#
-#				# also check for any errors; if found, mark to kill and proceed
-#				# note the * for the log files, to make sure to check all log files for iterative runs w/ threshold adapted
-### NOTE suppress warnings for file not existing yet, but keep any others
-##errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -v "No such file or directory" | grep -Ev "$innovus_errors_excluded_for_checking")
-#				errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -Ev "$innovus_errors_excluded_for_checking")
-#				if [[ $errors != "" ]]; then
-#
-#					echo "ISPD23 -- 3)  $id_run:   Exploitable regions: some error occurred for Innovus run ..."
-#					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- $errors" >> reports/errors.rpt
-#
-#					status[exploit_eval]=2
-#				fi
-#				#
-# TODO streamline w/ interrupt handling from basic checks
-#				# NOTE interrupt errors will be triggered in massive numbers, resulting in string allocation errors here after some time -- handle manually
-#				# NOTE handling here is to keep only single error message
-#				# NOTE memorize status in var as to skip log files for zip archive later on
-#				#
-### NOTE suppress warnings for file not existing yet, but keep any others
-##errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1 | grep -v "No such file or directory"; echo $?)
-#				# NOTE check for 0 as successful return code for grep for the INTERRUPT keyword
-#				errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1; echo $?)
-#				if [[ $errors_interrupt == 0 ]]; then
-#
-#					echo "ISPD23 -- 3)  $id_run:   Exploitable regions: Innovus run got interrupted ..."
-#					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- INTERRUPT" >> reports/errors.rpt
-#
-#					status[exploit_eval]=2
-#				fi
-			
-				## if there's any error, kill all the processes; only runs w/o any errors should be kept going
-				if [[ ${status[exploit_eval]} == 2 ]]; then
 
-					echo "ISPD23 -- 3)  $id_run:   Kill all processes, as some error occurred, and move on ..."
+				## design checks
+				if [[ -e PASSED.designs_checks ]]; then
 
-					cat PID.exploit_eval | xargs kill #2> /dev/null 
-					# also memorize that the exploit eval process was killed; required to break exploit_eval.sh inner loop
-					date > KILLED.exploit_eval
+					status[design_checks]=1
 
-					cat PID.summarize_assets | xargs kill #2> /dev/null
+					echo "ISPD23 -- 3)  $id_run:  Innovus checks: done"
 
-				## if no error, and not done yet, then just continue
-				elif ! [[ ${status[exploit_eval]} == 1 ]]; then
+				elif [[ -e FAILED.design_checks ]]; then
+
+					status[design_checks]=2
+
+					echo "ISPD23 -- 3)  $id_run:  Innovus checks: failed"
+
+				# in case init steps failed, this check is not running at all -- mark as failed but
+				# don't report on status
+				elif [[ ${status[init]} == 2 ]]; then
+
+					status[design_checks]=2
+				else
+					status[design_checks]=0
+
+					echo "ISPD23 -- 3)  $id_run:  Innovus checks: still working ..."
+				fi
+
+				## LEC checks
+				if [[ -e PASSED.lec ]]; then
+
+					status[lec]=1
+
+					echo "ISPD23 -- 3)  $id_run:  LEC checks: done"
+
+				elif [[ -e FAILED.lec ]]; then
+
+					status[lec]=2
+
+					echo "ISPD23 -- 3)  $id_run:  LEC checks: failed"
+
+				# in case init steps failed, this check is not running at all -- mark as failed but
+				# don't report on status
+				elif [[ ${status[init]} == 2 ]]; then
+
+					status[lec]=2
+				else
+					status[lec]=0
+
+					echo "ISPD23 -- 3)  $id_run:  LEC checks: still working ..."
+				fi
+
+				## if not done yet (implies no error), then continue, i.e., skip the further processing
+				if [[ ${status[design_checks]} == 0 || ${status[lec]} == 0 ]]; then
 					
 					# first return to previous main dir silently
 					cd - > /dev/null
@@ -457,17 +461,10 @@ check_eval() {
 					continue
 				fi
 
-# TODO scripts/design_cost.sh -- here, or in basic checks, or directly in scores.sh
-
 # TODO activate once 1st order sec metrics are done
 #
 #				## compute scores
-#				if ! [[ -e reports/errors.rpt ]]; then
-#					echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
-#				else
-#					# NOTE not really skipping the script itself; scores.sh is called in any case to track the related errors, if any, in errors.rpt as well
-#					echo "ISPD23 -- 3)  $id_run:  Skipping scores, as there were some errors ..."
-#				fi
+#				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
 #				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 #				scripts/scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
@@ -532,26 +529,27 @@ check_eval() {
 
 check_submission() {
 
-	##
-	## check for assets maintained in DEF
-	##
-
-	## NOTE trivial checks for matching of names -- could be easily cheated on, e.g,., by swapping names w/ some less complex assets, or even just putting the asset names in some comment.
-	## However, subsequent LEC run does check for equivalence of all FF assets.
-	## Further, the evaluation scripts would fail if the assets are missing.
-	## So, this here is really only an initial quick check to short-cut further efforts if needed.
-
 	# NOTE id_run is passed through from calling function, start_eval()
-	echo "ISPD23 -- 2)  $id_run:   Quick check whether assets are maintained ..."
-
-	## consider versions of assets fiels w/ extended escape of special chars, so that grep later on can match
-	# NOTE escaping is handled in benchmarks/_release/scripts/4_mod_files
-	readarray -t design_assets < design.assets
-	readarray -t escaped_design_assets < design.assets.escaped
+	echo "ISPD23 -- 2)  $id_run:   Basic checks ..."
 
 	status=0
 
+	##
+	## check for assets maintained in DEF
+	##
+	#
+	# NOTE trivial checks for matching of names -- could be easily cheated on, e.g,., by swapping names w/ some less complex assets, or even just putting the asset names in some comment.
+	# However, subsequent LEC run does check for equivalence of all FF assets.
+	# Further, the evaluation scripts would fail if the assets are missing.
+	# So, this here is really only an initial quick check to short-cut further efforts if needed.
+
 	(
+		echo "ISPD23 -- 2)  $id_run:    Assets check ..."
+
+		## consider versions of assets w/ extended escape of special chars, so that grep later on can match
+		# NOTE escaping is handled in benchmarks/_release/scripts/init.sh
+		readarray -t design_assets < design.assets
+		readarray -t escaped_design_assets < design.assets.escaped
 		error=0
 
 		for ((i=0; i<${#design_assets[@]}; i++)); do
@@ -569,30 +567,20 @@ check_submission() {
 			fi
 		done
 
+		if [[ $error == 0 ]]; then
+			echo "ISPD23 -- 2)  $id_run:    Assets check passed."
+		else
+			echo "ISPD23 -- 2)  $id_run:    Assets check failed."
+		fi
+
 		exit $error
 	) &
 	pid_assets=$!
 
-	# wait for subshells and memorize their exit code in case it's non-zero
-	## NOTE subshells currently not really needed, as there's only one check conducted here. We used to check also
-	## for net assets in the prior contest.
-	## If any other, early checks should be conducted before designs checkes, they should be added here.
-	wait $pid_assets || status=$?
-
-	if [[ $status != 0 ]]; then
-
-		echo "ISPD23 -- 2)  $id_run:   Some asset(s) is/are missing. Skipping other checks ..."
-
-		return 1
-	else
-		echo "ISPD23 -- 2)  $id_run:   Assets check passed."
-	fi
-
-	# reset status (not needed really as non-zero status would render this code skipped)
-	status=0
-
 # TODO revise checks; currently off: pins, PDN
-
+# NOTE should be done as simple scripts, ideally w/o need for loading DEF, or least just loading DEF and then quick
+# checks. Otherwise, long Innovus runs should be move to start_eval() procedure
+#
 #	##
 #	## pins checks
 #	##
@@ -625,7 +613,6 @@ check_submission() {
 #	##
 #
 #	(
-# 		# TODO update w/ progress symbol
 #		echo "ISPD23 -- 2)  $id_run:   PDN checks ..."
 #
 #		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
@@ -645,7 +632,7 @@ check_submission() {
 #				errors=$(grep -E "$innovus_errors_for_checking" pg.log* | grep -Ev "$innovus_errors_excluded_for_checking")
 #				if [[ $errors != "" ]]; then
 #
-#					echo "ISPD23 -- 2)  $id_run:   Some error occurred for PDN checks. Killing process ..."
+#					echo "ISPD23 -- 2)  $id_run:   Some error occurred for PDN checks. Trying to kill process ..."
 #
 #					echo "ISPD23 -- ERROR: process failed for PDN design checks -- $errors" >> reports/errors.rpt
 #
@@ -690,508 +677,18 @@ check_submission() {
 #	) &
 #	pid_PDN_checks=$!
 
-	##
-	## LEC checks
-	##
-
-	(
-		echo "ISPD23 -- 2)  $id_run:   LEC design checks -- progress symbol: '.' ..."
-
-		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		sh -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
-
-		# sleep a little to avoid immediate but useless errors concerning log file not found
-		sleep 1s
-
-		while true; do
-
-			echo -n "."
-
-			if [[ -e DONE.lec ]]; then
-
-				echo ""
-
-				break
-			else
-				# check for any errors; if found, try to kill and return
-				#
-				errors=$(grep -E "$lec_errors_for_checking" lec.log)
-				if [[ $errors != "" ]]; then
-
-					echo ""
-
-					echo "ISPD23 -- 2)  $id_run:   Some error occurred for LEC run. Killing process ..."
-
-					echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> reports/errors.rpt
-
-					cat PID.lec | xargs kill #2> /dev/null
-
-					exit 1
-				fi
-			
-				# also check for interrupts; if triggered, abort processing
-				#
-				errors_interrupt=$(ps --pid $(cat PID.lec) > /dev/null; echo $?)
-				if [[ $errors_interrupt != 0 ]]; then
-
-					echo ""
-
-					# NOTE also check again for DONE flag file, to avoid race condition where
-					# process just finished but DONE did not write out yet
-					if [[ -e DONE.lec ]]; then
-						break
-					fi
-
-					echo "ISPD23 -- 2)  $id_run:   LEC run got interrupted. Abort processing ..."
-					echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> reports/errors.rpt
-
-					exit 1
-				fi
-			fi
-
-			sleep 1s
-		done
-
-		##
-		## parse rpt, log files for errors
-		## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
-		##
-
-		# reset errors flag
-		errors=0
-
-		#
-		# non-equivalence issues
-		#
-		## NOTE failure on those considered as error/constraint violation
-		#
-# NOTE such line is only present if errors/issues found at all
-# NOTE multiple, differently formated occurrence of "Non-equivalent" -- use that from "report compare data" command, at end of rpt file
-#
-# Example 1:
-##Compared points      PO     DFF       Total   
-##--------------------------------------------------------------------------------
-##Equivalent           66     147       213     
-##--------------------------------------------------------------------------------
-##Non-equivalent       0      6         6       
-# Example 2:
-##Compared points      PO     DFF    DLAT      Total
-##--------------------------------------------------------------------------------
-##Equivalent           136    732    3         871
-##--------------------------------------------------------------------------------
-##Non-equivalent       0      2      0         2
-		issues=$(tail -n 2 reports/check_equivalence.rpt | grep "Non-equivalent" | awk '{print $NF}')
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues equivalence issues; see check_equivalence.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- LEC: Equivalence issues: $issues" >> reports/checks_summary.rpt
-
-			errors=1
-		else
-			echo "ISPD23 -- LEC: Equivalence issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		#
-		# unreachable issues
-		#
-# NOTE such line is only present if errors/issues found at all
-# NOTE multiple, differently formated occurrence of "Unreachable" -- use that from "report unmapped points" command, at end of related rpt file
-#
-# Example 1:
-##Unmapped points   DFF    Z         Total   
-##--------------------------------------------------------------------------------
-##Unreachable       1      3         4       
-# Example 2:
-##Unmapped points   DLAT      Total
-##--------------------------------------------------------------------------------
-##Unreachable       31        31
-		issues=$(tail -n 2 reports/check_equivalence.rpt.unmapped | grep "Unreachable" | awk '{print $NF}')
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unreachable points issues; see check_equivalence.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Unreachable points issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Unreachable points issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		#
-		# different connectivity issues during parsing
-		#
-		## NOTE these are hinting on cells used as dummy fillers
-		#
-
-# Example:
-#// Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting (occurrence:7) 
-# NOTE such line is only present if errors/issues found at all
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting" lec.log | awk '{print $18}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unassigned nets issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Unassigned nets issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Unassigned nets issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example:
-#// Warning: (RTL2.13) Undriven pin is detected (occurrence:3)
-#
-# NOTE such line is only present if errors/issues found at all
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (RTL2.13) Undriven pin is detected" lec.log | awk '{print $8}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues undriven pins issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Undriven pins issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Undriven pins issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example:
-#// Warning: (RTL14) Signal has input but it has no output (occurrence:2632)
-#
-# NOTE such line is only present if errors/issues found at all
-# NOTE such issues often occur for baseline layouts as well. These checks here are the only warnings related to cells
-# inserted and connected to inputs but otherwise useless (no output), so we need to keep that check
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (RTL14) Signal has input but it has no output" lec.log | awk '{print $12}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues net output floating issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Net output floating issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Net output floating issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example for two related issues:
-#// Warning: (HRC3.5a) Open input/inout port connection is detected (occurrence:3)
-#// Note: (HRC3.5b) Open output port connection is detected (occurrence:139)
-#
-# NOTE such lines are only present if errors/issues found at all
-# NOTE such lines, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues_a=$(grep "Warning: (HRC3.5a) Open input/inout port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
-		issues_b=$(grep "Note: (HRC3.5b) Open output port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
-		issues_a=${issues_a##*:}
-		issues_a=${issues_a%*)}
-		issues_b=${issues_b##*:}
-		issues_b=${issues_b%*)}
-
-		issues=0
-		if [[ $issues_a != "" ]]; then
-			((issues = issues + issues_a))
-		fi
-		if [[ $issues_b != "" ]]; then
-			((issues = issues + issues_b))
-		fi
-		
-		if [[ $issues != 0 ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues open ports issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Open ports issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Open ports issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example:
-#// Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module (occurrence:674)
-#
-# NOTE such line is only present if errors/issues found at all
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module" lec.log | awk '{print $18}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues input port not fully used issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Input port not fully used issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Input port not fully used issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example:
-#// Warning: (HRC3.16) A wire is declared, but not used in the module (occurrence:1)
-#
-# NOTE such line is only present if errors/issues found at all
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (HRC3.16) A wire is declared, but not used in the module" lec.log | awk '{print $14}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unused wire issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Unused wire issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Unused wire issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		#
-		# evaluate criticality of issues
-		#
-# (TODO) declare any other issues aside from non-eq as errors as well?
-		if [[ $errors == 1 ]]; then
-
-			echo "ISPD23 -- 2)  $id_run:   Some critical LEC design check(s) failed."
-			exit 1
-		else
-			echo "ISPD23 -- 2)  $id_run:   LEC design checks done; all passed."
-			exit 0
-		fi
-
-	) &
-	pid_LEC_checks=$!
-
-	##
-	## basic design checks
-	##
-
-	(
-		echo "ISPD23 -- 2)  $id_run:   Innovus design checks -- progress symbol: ':' ..."
-
-		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		sh -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
-
-		# sleep a little to avoid immediate but useless errors concerning log file not found
-		sleep 1s
-
-		while true; do
-
-			echo -n ":"
-
-			if [[ -e DONE.check ]]; then
-
-				echo ""
-
-				break
-			else
-				# check for any errors; if found, try to kill and return
-				#
-				errors=$(grep -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
-				if [[ $errors != "" ]]; then
-
-					echo ""
-
-					echo "ISPD23 -- 2)  $id_run:   Some error occurred for Innovus run. Killing process ..."
-
-					echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- $errors" >> reports/errors.rpt
-
-					cat PID.check | xargs kill #2> /dev/null
-
-					exit 1
-				fi
-			
-				# also check for interrupts; if triggered, abort processing
-				#
-				errors_interrupt=$(ps --pid $(cat PID.check) > /dev/null; echo $?)
-				if [[ $errors_interrupt != 0 ]]; then
-
-					echo ""
-
-					# NOTE also check again for DONE flag file, to avoid race condition where
-					# process just finished but DONE did not write out yet
-					if [[ -e DONE.check ]]; then
-						break
-					fi
-
-					echo "ISPD23 -- 2)  $id_run:   Innovus run got interrupted. Abort processing ..."
-					echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- INTERRUPT" >> reports/errors.rpt
-
-					exit 1
-				fi
-			fi
-
-			sleep 1s
-		done
-
-		##
-		## parse rpt files for failures
-		##
-		## put issues into warnings.rpt; also report into checks_summary.rpt
-		##
-
-		# reset errors flag
-		errors=0
-
-		# routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt -- we need "*" for file since name is defined by module name, not the verilog file name
-# Example:
-#    5 total info(s) created.
-# NOTE such line is only present if errors/issues found at all
-		issues=$(grep "total info(s) created" reports/*.conn.rpt | awk '{print $1}')
-
-		if [[ $issues != "" ]]; then
-
-			# NOTE the related file floating_signals.rpt does not have to be parsed; it just provides more
-			# details but metrics/values are already covered in the lec.log file
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues basic routing issues; see *.conn.rpt and floating_signals.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Innovus: Basic routing issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- Innovus: Basic routing issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		# IO pins; check *.checkPin.rpt for illegal and unplaced pins from summary
-# Example:
-#	====================================================================================================================================
-#	                                                     checkPinAssignment Summary
-#	====================================================================================================================================
-#	Partition            | pads  | pins   | legal  | illegal | internal | internal illegal | FT     | FT illegal | constant | unplaced |
-#	====================================================================================================================================
-#	present_encryption   |     0 |    213 |    212 |       0 |        0 |                0 |      0 |          0 |        0 |        1 |
-#	====================================================================================================================================
-#	TOTAL                |     0 |    213 |    212 |       0 |        0 |                0 |      0 |          0 |        0 |        1 |
-#	====================================================================================================================================
-		issues=$(grep "TOTAL" reports/*.checkPin.rpt | awk '{ sum = $9 + $13 + $17 + $21; print sum }')
-		if [[ $issues != '0' ]]; then
-
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues module pin issues; see *.checkPin.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Innovus: Module pin issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- Innovus: Module pin issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		# placement and routing; check check_design.rpt file for summary
-# Example:
-#	**INFO: Identified 21 error(s) and 0 warning(s) during 'check_design -type {place cts route}'.
-		issues=$(grep "**INFO: Identified" reports/check_design.rpt | awk '{ sum = $3 + $6; print sum }')
-		if [[ $issues != '0' ]]; then
-
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues placement and/or routing issues; see check_design.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Innovus: Placement and/or routing issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- Innovus: Placement and/or routing issues: 0" >> reports/checks_summary.rpt
-		fi
-
-## NOTE deprecated, deactivated for now
-#
-#		# noise issues; check noise.rpt for summary
-## Example:
-## Glitch Violations Summary :
-## --------------------------
-## Number of DC tolerance violations (VH + VL) =  35
-## Number of Receiver Output Peak violations (VH + VL) =  0
-## Number of total problem noise nets =  12
-#
-#		issues=$(grep "Number of DC tolerance violations" reports/noise.rpt | awk '{print $10}')
-#		if [[ $issues != '0' ]]; then
-#
-#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DC tolerance issues; see noise.rpt for more details." >> reports/warnings.rpt
-#			echo "ISPD23 -- Innovus: DC tolerance issues: $issues" >> reports/checks_summary.rpt
-#		else
-#			echo "ISPD23 -- Innovus: DC tolerance issues: 0" >> reports/checks_summary.rpt
-#		fi
-#
-#		issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $11}')
-#		if [[ $issues != '0' ]]; then
-#
-#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues receiver output peak issues; see noise.rpt for more details." >> reports/warnings.rpt
-#			echo "ISPD23 -- Innovus: Receiver output peak issues: $issues" >> reports/checks_summary.rpt
-#		else
-#			echo "ISPD23 -- Innovus: Receiver output peak issues: 0" >> reports/checks_summary.rpt
-#		fi
-#
-#		issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $8}')
-#		if [[ $issues != '0' ]]; then
-#
-#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues noise net issues; see noise.rpt for more details." >> reports/warnings.rpt
-#			echo "ISPD23 -- Innovus: Noise net issues: $issues" >> reports/checks_summary.rpt
-#		else
-#			echo "ISPD23 -- Innovus: Noise net issues: 0" >> reports/checks_summary.rpt
-#		fi
-
-		# DRC routing issues; check *.geom.rpt for "Total Violations"
-		#
-		## NOTE failure on those considered as error/constraint violation
-		#
-# Example:
-#  Total Violations : 2 Viols.
-# NOTE such line is only present if errors/issues found at all
-		issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $4}')
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- Innovus: DRC issues: $issues" >> reports/checks_summary.rpt
-
-			errors=1
-		else
-			echo "ISPD23 -- Innovus: DRC issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
-		#
-		## NOTE failure on those considered as error/constraint violation
-		#
-
-		# setup 
-# Example:
-## SETUP                  WNS    TNS   FEP   
-##------------------------------------------
-# View : ALL           16.703  0.000     0  
-#    Group : in2out       N/A    N/A     0  
-#    Group : reg2out   16.703  0.000     0  
-#    Group : in2reg   151.422    0.0     0  
-#    Group : reg2reg  149.277    0.0     0  
-		issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $6}' | awk 'NR==1')
-		if [[ $issues != "0" ]]; then
-
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for setup; see timing.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- Innovus: Timing issues for setup: $issues" >> reports/checks_summary.rpt
-
-			errors=1
-		else
-			echo "ISPD23 -- Innovus: Timing issues for setup: 0" >> reports/checks_summary.rpt
-		fi
-
-		# hold 
-# Example:
-## HOLD                   WNS    TNS   FEP   
-##------------------------------------------
-# View : ALL           17.732  0.000     0  
-#    Group : in2out       N/A    N/A     0  
-#    Group : reg2out  305.300  0.000     0  
-#    Group : in2reg    17.732    0.0     0  
-#    Group : reg2reg  188.440    0.0     0  
-		issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $6}' | awk 'NR==2')
-		if [[ $issues != "0" ]]; then
-
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for hold; see timing.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- Innovus: Timing issues for hold: $issues" >> reports/checks_summary.rpt
-
-			errors=1
-		else
-			echo "ISPD23 -- Innovus: Timing issues for hold: 0" >> reports/checks_summary.rpt
-		fi
-
-# TODO bring in PG checks here:
-#		start w/ stuff from pg.tcl, refactor into check.tcl as well
-#		consider violations as error, like w/ DRC and timing
-
-		#
-		# evaluate criticality of issues
-		#
-# (TODO) declare any other issues aside from DRC, timing as errors as well?
-		if [[ $errors == 1 ]]; then
-
-			echo "ISPD23 -- 2)  $id_run:   Some critical Innovus design check(s) failed."
-			exit 1
-		else
-			echo "ISPD23 -- 2)  $id_run:   Innovus design checks done; all passed."
-			exit 0
-		fi
-	) &
-	pid_basic_checks=$!
-
 	# wait for subshells and memorize their exit code in case it's non-zero
+	wait $pid_assets || status=$?
 # TODO revise checks; currently off: pins, PDN
 #	wait $pid_pins_checks || status=$?
 #	wait $pid_PDN_checks || status=$?
-	wait $pid_LEC_checks || status=$?
-	wait $pid_basic_checks || status=$?
 
-	echo "ISPD23 -- 2)  $id_run:  All checks done"
+	if [[ $status != 0 ]]; then
+
+		echo "ISPD23 -- 2)  $id_run:   Some basic check(s) failed."
+	else
+		echo "ISPD23 -- 2)  $id_run:   All basic checks passed."
+	fi
 
 	return $status
 }
@@ -1269,6 +766,11 @@ link_work_dir() {
 
 	cd - > /dev/null
 
+	if [[ $error != 0 ]]; then
+
+		echo "ISPD23 -- 2)  $id_run:   Error occurred during init of submission files."
+	fi
+
 	return $error
 }
 
@@ -1316,7 +818,8 @@ start_eval() {
 				## 1) count parallel runs (i.e., runs started within the same cycle)
 				((count_parallel_runs = count_parallel_runs + 1))
 
-			## start parallel processing
+			## start frame of code to be run in parallel
+			## https://unix.stackexchange.com/a/103921
 			(
 				## 1) send out email notification of start 
 				#
@@ -1364,11 +867,10 @@ start_eval() {
 
 				if [[ $? != 0 ]]; then
 
-					echo "ISPD23 -- 2)  $id_run:   Error occurred during file init."
+					echo "ISPD23 -- 2)  $id_run:   Abort further processing ..."
 
-					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# (TODO) add other files here as needed for other evaluation steps
-					date > DONE.exploit_eval
+					# mark as failed, via file, to allow check_eval to clear and prepare to upload this run
+					date > FAILED.link_work_dir
 
 					# also return to previous main dir
 					cd - > /dev/null
@@ -1376,23 +878,19 @@ start_eval() {
 					# cleanup downloads dir, to avoid processing again; do so even considering it failed, because it would likely fail again then anyway unless we are fixing things
 					rm -r $downloads_folder/$folder
 
-					# NOTE replace continue w/ exit, as we are at the main level in a subshell here now
-					##continue
-					exit
+					# exit subshell for processing of this submission
+					exit 1
 				fi
 
 				# 3) check submission
-				echo "ISPD23 -- 2)  $id_run:  Check submission files ..."
-
 				check_submission
 
 				if [[ $? != 0 ]]; then
 
-					echo "ISPD23 -- 2)  $id_run:   Submission is not valid/legal."
+					echo "ISPD23 -- 2)  $id_run:   Abort further processing ..."
 
-					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# (TODO) add other files here as needed for other evaluation steps
-					date > DONE.exploit_eval
+					# mark as failed, via file, to allow check_eval to clear and prepare to upload this run
+					date > FAILED.check_submission
 
 					# also return to previous main dir
 					cd - > /dev/null
@@ -1401,56 +899,498 @@ start_eval() {
 					# because it would likely fail again then anyway unless we are fixing things
 					rm -r $downloads_folder/$folder
 
-					# NOTE replace continue w/ exit, as we are at the main level in a subshell here now
-					##continue
-					exit
+					# exit subshell for processing of this submission
+					exit 1
 				fi
 
-				### done w/ init files within work folder, switch back to previous dir
-				###
-				cd - > /dev/null
-
-				# 4) actual processing
+				# 4) actual processing, also done in parallel
 			
-				## exploit_eval
 				##
-				## start frame of code to be run in parallel
-				## https://unix.stackexchange.com/a/103921
+				## LEC checks
+				##
+
 				(
-					cd $work_folder/$folder > /dev/null
+					echo "ISPD23 -- 2)  $id_run:   Starting LEC design checks ..."
 
-# TODO current hack to bypass this check
-date > DONE.exploit_eval
+					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+					sh -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
 
-# TODO streamline into one; fix code
-#					# prepare scripts
-#					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
+					# sleep a little to avoid immediate but useless errors concerning log file not found
+					sleep 1s
+
+					while true; do
+
+						if [[ -e DONE.lec ]]; then
+
+							break
+						else
+							# check for any errors; if found, try to kill and return
+							#
+							errors=$(grep -E "$lec_errors_for_checking" lec.log)
+							if [[ $errors != "" ]]; then
+
+								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
+								echo -e "\nISPD23 -- 2)  $id_run:   Some error occurred for LEC run. Trying to kill process ..."
+
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> reports/errors.rpt
+
+								cat PID.lec | xargs kill #2> /dev/null
+
+								date > FAILED.lec
+								exit 1
+							fi
+						
+							# also check for interrupts; if triggered, abort processing
+							#
+							errors_interrupt=$(ps --pid $(cat PID.lec) > /dev/null; echo $?)
+							if [[ $errors_interrupt != 0 ]]; then
+
+								# NOTE also check again for DONE flag file, to avoid race condition where
+								# process just finished but DONE did not write out yet
+								sleep 1s
+								if [[ -e DONE.lec ]]; then
+									break
+								fi
+
+								echo -e "\nISPD23 -- 2)  $id_run:   LEC run got interrupted. Abort processing ..."
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> reports/errors.rpt
+
+								date > FAILED.lec
+								exit 1
+							fi
+						fi
+
+						sleep 1s
+					done
+
+					##
+					## parse rpt, log files for errors
+					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
+					##
+
+					# reset errors flag
+					errors=0
+
+					#
+					# non-equivalence issues
+					#
+					## NOTE failure on those considered as error/constraint violation
+					#
+# NOTE such line is only present if errors/issues found at all
+# NOTE multiple, differently formated occurrence of "Non-equivalent" -- use that from "report compare data" command, at end of rpt file
 #
-#						echo "ISPD23 -- 2)  $id_run:  Exploitable regions: start background run for script version considering 10 metal layers..."
+# Example 1:
+##Compared points      PO     DFF       Total   
+##--------------------------------------------------------------------------------
+##Equivalent           66     147       213     
+##--------------------------------------------------------------------------------
+##Non-equivalent       0      6         6       
+# Example 2:
+##Compared points      PO     DFF    DLAT      Total
+##--------------------------------------------------------------------------------
+##Equivalent           136    732    3         871
+##--------------------------------------------------------------------------------
+##Non-equivalent       0      2      0         2
+					issues=$(tail -n 2 reports/check_equivalence.rpt | grep "Non-equivalent" | awk '{print $NF}')
+					if [[ $issues != "" ]]; then
+
+						echo "ISPD23 -- ERROR: LEC design checks failure -- $issues equivalence issues; see check_equivalence.rpt for more details." >> reports/errors.rpt
+						echo "ISPD23 -- LEC: Equivalence issues: $issues" >> reports/checks_summary.rpt
+
+						errors=1
+					else
+						echo "ISPD23 -- LEC: Equivalence issues: 0" >> reports/checks_summary.rpt
+					fi
+
+					#
+					# unreachable issues
+					#
+# NOTE such line is only present if errors/issues found at all
+# NOTE multiple, differently formated occurrence of "Unreachable" -- use that from "report unmapped points" command, at end of related rpt file
 #
-#						# cleanup scripts not needed
-#						rm exploit_regions_metal1--metal6.tcl
+# Example 1:
+##Unmapped points   DFF    Z         Total   
+##--------------------------------------------------------------------------------
+##Unreachable       1      3         4       
+# Example 2:
+##Unmapped points   DLAT      Total
+##--------------------------------------------------------------------------------
+##Unreachable       31        31
+					issues=$(tail -n 2 reports/check_equivalence.rpt.unmapped | grep "Unreachable" | awk '{print $NF}')
+					if [[ $issues != "" ]]; then
+
+						echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unreachable points issues; see check_equivalence.rpt for more details." >> reports/warnings.rpt
+						echo "ISPD23 -- LEC: Unreachable points issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- LEC: Unreachable points issues: 0" >> reports/checks_summary.rpt
+					fi
+
+					#
+					# different connectivity issues during parsing
+					#
+					## NOTE these are hinting on cells used as dummy fillers
+					#
+
+# Example:
+#// Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting (occurrence:7) 
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+					issues=$(grep "Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting" lec.log | awk '{print $18}' | awk 'NR==2')
+					issues=${issues##*:}
+					issues=${issues%*)}
+					if [[ $issues != "" ]]; then
+
+						echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unassigned nets issues" >> reports/warnings.rpt
+						echo "ISPD23 -- LEC: Unassigned nets issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- LEC: Unassigned nets issues: 0" >> reports/checks_summary.rpt
+					fi
+
+# Example:
+#// Warning: (RTL2.13) Undriven pin is detected (occurrence:3)
 #
-#					elif [[ "$benchmarks_6_metal_layers" == *"$benchmark"* ]]; then
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+					issues=$(grep "Warning: (RTL2.13) Undriven pin is detected" lec.log | awk '{print $8}' | awk 'NR==2')
+					issues=${issues##*:}
+					issues=${issues%*)}
+					if [[ $issues != "" ]]; then
+
+						echo "ISPD23 -- WARNING: LEC design checks failure -- $issues undriven pins issues" >> reports/warnings.rpt
+						echo "ISPD23 -- LEC: Undriven pins issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- LEC: Undriven pins issues: 0" >> reports/checks_summary.rpt
+					fi
+
+# Example:
+#// Warning: (RTL14) Signal has input but it has no output (occurrence:2632)
 #
-#						echo "ISPD23 -- 2)  $id_run:  Exploitable regions: start background run for script version considering 6 metal layers..."
+# NOTE such line is only present if errors/issues found at all
+# NOTE such issues often occur for baseline layouts as well. These checks here are the only warnings related to cells
+# inserted and connected to inputs but otherwise useless (no output), so we need to keep that check
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+					issues=$(grep "Warning: (RTL14) Signal has input but it has no output" lec.log | awk '{print $12}' | awk 'NR==2')
+					issues=${issues##*:}
+					issues=${issues%*)}
+					if [[ $issues != "" ]]; then
+
+						echo "ISPD23 -- WARNING: LEC design checks failure -- $issues net output floating issues" >> reports/warnings.rpt
+						echo "ISPD23 -- LEC: Net output floating issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- LEC: Net output floating issues: 0" >> reports/checks_summary.rpt
+					fi
+
+# Example for two related issues:
+#// Warning: (HRC3.5a) Open input/inout port connection is detected (occurrence:3)
+#// Note: (HRC3.5b) Open output port connection is detected (occurrence:139)
 #
-#						rm exploit_regions.tcl
-#						ln -s exploit_regions_metal1--metal6.tcl exploit_regions.tcl
+# NOTE such lines are only present if errors/issues found at all
+# NOTE such lines, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+					issues_a=$(grep "Warning: (HRC3.5a) Open input/inout port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
+					issues_b=$(grep "Note: (HRC3.5b) Open output port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
+					issues_a=${issues_a##*:}
+					issues_a=${issues_a%*)}
+					issues_b=${issues_b##*:}
+					issues_b=${issues_b%*)}
+
+					issues=0
+					if [[ $issues_a != "" ]]; then
+						((issues = issues + issues_a))
+					fi
+					if [[ $issues_b != "" ]]; then
+						((issues = issues + issues_b))
+					fi
+					
+					if [[ $issues != 0 ]]; then
+
+						echo "ISPD23 -- WARNING: LEC design checks failure -- $issues open ports issues" >> reports/warnings.rpt
+						echo "ISPD23 -- LEC: Open ports issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- LEC: Open ports issues: 0" >> reports/checks_summary.rpt
+					fi
+
+# Example:
+#// Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module (occurrence:674)
+#
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+					issues=$(grep "Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module" lec.log | awk '{print $18}' | awk 'NR==2')
+					issues=${issues##*:}
+					issues=${issues%*)}
+					if [[ $issues != "" ]]; then
+
+						echo "ISPD23 -- WARNING: LEC design checks failure -- $issues input port not fully used issues" >> reports/warnings.rpt
+						echo "ISPD23 -- LEC: Input port not fully used issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- LEC: Input port not fully used issues: 0" >> reports/checks_summary.rpt
+					fi
+
+# Example:
+#// Warning: (HRC3.16) A wire is declared, but not used in the module (occurrence:1)
+#
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+					issues=$(grep "Warning: (HRC3.16) A wire is declared, but not used in the module" lec.log | awk '{print $14}' | awk 'NR==2')
+					issues=${issues##*:}
+					issues=${issues%*)}
+					if [[ $issues != "" ]]; then
+
+						echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unused wire issues" >> reports/warnings.rpt
+						echo "ISPD23 -- LEC: Unused wire issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- LEC: Unused wire issues: 0" >> reports/checks_summary.rpt
+					fi
+
+					#
+					# evaluate criticality of issues
+					#
+# (TODO) declare any other issues aside from non-eq as errors as well?
+					if [[ $errors == 1 ]]; then
+
+						echo -e "\nISPD23 -- 2)  $id_run:   Some critical LEC design check(s) failed."
+
+						date > FAILED.lec
+						exit 1
+					else
+						echo -e "\nISPD23 -- 2)  $id_run:   LEC design checks done; all passed."
+
+						date > PASSED.lec
+						exit 0
+					fi
+
+				) &
+
+				##
+				## basic design checks
+				##
+
+				(
+					echo "ISPD23 -- 2)  $id_run:   Starting Innovus design checks ..."
+
+					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+					sh -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
+
+					# sleep a little to avoid immediate but useless errors concerning log file not found
+					sleep 1s
+
+					while true; do
+
+						if [[ -e DONE.design_checks ]]; then
+
+							break
+						else
+							# check for any errors; if found, try to kill and return
+							#
+							errors=$(grep -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
+							if [[ $errors != "" ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:   Some error occurred for Innovus run. Trying to kill process ..."
+
+								echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- $errors" >> reports/errors.rpt
+
+								cat PID.check | xargs kill #2> /dev/null
+
+								date > FAILED.design_checks
+								exit 1
+							fi
+						
+							# also check for interrupts; if triggered, abort processing
+							#
+							errors_interrupt=$(ps --pid $(cat PID.check) > /dev/null; echo $?)
+							if [[ $errors_interrupt != 0 ]]; then
+
+								# NOTE also check again for DONE flag file, to avoid race condition where
+								# process just finished but DONE did not write out yet
+								sleep 1s
+								if [[ -e DONE.design_checks ]]; then
+									break
+								fi
+
+								echo -e "\nISPD23 -- 2)  $id_run:   Innovus run got interrupted. Abort processing ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- INTERRUPT" >> reports/errors.rpt
+
+								date > FAILED.design_checks
+								exit 1
+							fi
+						fi
+
+						sleep 1s
+					done
+
+					##
+					## parse rpt files for failures
+					##
+					## put issues into warnings.rpt; also report into checks_summary.rpt
+					##
+
+					# reset errors flag
+					errors=0
+
+					# routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt -- we need "*" for file since name is defined by module name, not the verilog file name
+# Example:
+#    5 total info(s) created.
+# NOTE such line is only present if errors/issues found at all
+					issues=$(grep "total info(s) created" reports/*.conn.rpt | awk '{print $1}')
+
+					if [[ $issues != "" ]]; then
+
+						# NOTE the related file floating_signals.rpt does not have to be parsed; it just provides more
+						# details but metrics/values are already covered in the lec.log file
+						echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues basic routing issues; see *.conn.rpt and floating_signals.rpt for more details." >> reports/warnings.rpt
+						echo "ISPD23 -- Innovus: Basic routing issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- Innovus: Basic routing issues: 0" >> reports/checks_summary.rpt
+					fi
+
+					# IO pins; check *.checkPin.rpt for illegal and unplaced pins from summary
+# Example:
+#	====================================================================================================================================
+#	                                                     checkPinAssignment Summary
+#	====================================================================================================================================
+#	Partition            | pads  | pins   | legal  | illegal | internal | internal illegal | FT     | FT illegal | constant | unplaced |
+#	====================================================================================================================================
+#	present_encryption   |     0 |    213 |    212 |       0 |        0 |                0 |      0 |          0 |        0 |        1 |
+#	====================================================================================================================================
+#	TOTAL                |     0 |    213 |    212 |       0 |        0 |                0 |      0 |          0 |        0 |        1 |
+#	====================================================================================================================================
+					issues=$(grep "TOTAL" reports/*.checkPin.rpt | awk '{ sum = $9 + $13 + $17 + $21; print sum }')
+					if [[ $issues != '0' ]]; then
+
+						echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues module pin issues; see *.checkPin.rpt for more details." >> reports/warnings.rpt
+						echo "ISPD23 -- Innovus: Module pin issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- Innovus: Module pin issues: 0" >> reports/checks_summary.rpt
+					fi
+
+					# placement and routing; check check_design.rpt file for summary
+# Example:
+#	**INFO: Identified 21 error(s) and 0 warning(s) during 'check_design -type {place cts route}'.
+					issues=$(grep "**INFO: Identified" reports/check_design.rpt | awk '{ sum = $3 + $6; print sum }')
+					if [[ $issues != '0' ]]; then
+
+						echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues placement and/or routing issues; see check_design.rpt for more details." >> reports/warnings.rpt
+						echo "ISPD23 -- Innovus: Placement and/or routing issues: $issues" >> reports/checks_summary.rpt
+					else
+						echo "ISPD23 -- Innovus: Placement and/or routing issues: 0" >> reports/checks_summary.rpt
+					fi
+
+## NOTE deprecated, deactivated for now
+#
+#		# noise issues; check noise.rpt for summary
+## Example:
+## Glitch Violations Summary :
+## --------------------------
+## Number of DC tolerance violations (VH + VL) =  35
+## Number of Receiver Output Peak violations (VH + VL) =  0
+## Number of total problem noise nets =  12
+#
+#					issues=$(grep "Number of DC tolerance violations" reports/noise.rpt | awk '{print $10}')
+#					if [[ $issues != '0' ]]; then
+#
+#						echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DC tolerance issues; see noise.rpt for more details." >> reports/warnings.rpt
+#						echo "ISPD23 -- Innovus: DC tolerance issues: $issues" >> reports/checks_summary.rpt
 #					else
-#						echo "ISPD23 -- ERROR: benchmark cannot be matched to some exploit-regions script version, which shouldn't happen." >> reports/errors.rpt
-#
-#						# also mark as done in case of an error, to allow check_eval to clear and prepare to upload this run
-#						date > DONE.exploit_eval
-#
-#						return
+#						echo "ISPD23 -- Innovus: DC tolerance issues: 0" >> reports/checks_summary.rpt
 #					fi
 #
-#					# runs scripts wrapper
-#					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#					scripts/exploit_eval.sh > /dev/null #2>&1
+#					issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $11}')
+#					if [[ $issues != '0' ]]; then
 #
-#				## end frame of code to be run in parallel
+#						echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues receiver output peak issues; see noise.rpt for more details." >> reports/warnings.rpt
+#						echo "ISPD23 -- Innovus: Receiver output peak issues: $issues" >> reports/checks_summary.rpt
+#					else
+#						echo "ISPD23 -- Innovus: Receiver output peak issues: 0" >> reports/checks_summary.rpt
+#					fi
+#
+#					issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $8}')
+#					if [[ $issues != '0' ]]; then
+#
+#						echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues noise net issues; see noise.rpt for more details." >> reports/warnings.rpt
+#						echo "ISPD23 -- Innovus: Noise net issues: $issues" >> reports/checks_summary.rpt
+#					else
+#						echo "ISPD23 -- Innovus: Noise net issues: 0" >> reports/checks_summary.rpt
+#					fi
+
+					# DRC routing issues; check *.geom.rpt for "Total Violations"
+					#
+					## NOTE failure on those considered as error/constraint violation
+					#
+# Example:
+#  Total Violations : 2 Viols.
+# NOTE such line is only present if errors/issues found at all
+					issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $4}')
+					if [[ $issues != "" ]]; then
+
+						echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> reports/errors.rpt
+						echo "ISPD23 -- Innovus: DRC issues: $issues" >> reports/checks_summary.rpt
+
+						errors=1
+					else
+						echo "ISPD23 -- Innovus: DRC issues: 0" >> reports/checks_summary.rpt
+					fi
+
+					# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
+					#
+					## NOTE failure on those considered as error/constraint violation
+					#
+
+					# setup 
+# Example:
+## SETUP                  WNS    TNS   FEP   
+##------------------------------------------
+# View : ALL           16.703  0.000     0  
+#    Group : in2out       N/A    N/A     0  
+#    Group : reg2out   16.703  0.000     0  
+#    Group : in2reg   151.422    0.0     0  
+#    Group : reg2reg  149.277    0.0     0  
+					issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $6}' | awk 'NR==1')
+					if [[ $issues != "0" ]]; then
+
+						echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for setup; see timing.rpt for more details." >> reports/errors.rpt
+						echo "ISPD23 -- Innovus: Timing issues for setup: $issues" >> reports/checks_summary.rpt
+
+						errors=1
+					else
+						echo "ISPD23 -- Innovus: Timing issues for setup: 0" >> reports/checks_summary.rpt
+					fi
+
+					# hold 
+# Example:
+## HOLD                   WNS    TNS   FEP   
+##------------------------------------------
+# View : ALL           17.732  0.000     0  
+#    Group : in2out       N/A    N/A     0  
+#    Group : reg2out  305.300  0.000     0  
+#    Group : in2reg    17.732    0.0     0  
+#    Group : reg2reg  188.440    0.0     0  
+					issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $6}' | awk 'NR==2')
+					if [[ $issues != "0" ]]; then
+
+						echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for hold; see timing.rpt for more details." >> reports/errors.rpt
+						echo "ISPD23 -- Innovus: Timing issues for hold: $issues" >> reports/checks_summary.rpt
+
+						errors=1
+					else
+						echo "ISPD23 -- Innovus: Timing issues for hold: 0" >> reports/checks_summary.rpt
+					fi
+
+					#
+					# evaluate criticality of issues
+					#
+# (TODO) declare any other issues aside from DRC, timing as errors as well?
+					if [[ $errors == 1 ]]; then
+
+						echo -e "\nISPD23 -- 2)  $id_run:   Some critical Innovus design check(s) failed."
+
+						date > FAILED.design_checks
+						exit 1
+					else
+						echo -e "\nISPD23 -- 2)  $id_run:   Innovus design checks done; all passed."
+
+						date > PASSED.designs_checks
+						exit 0
+					fi
+
 				) &
 
 				# 5) cleanup downloads dir, to avoid processing again
