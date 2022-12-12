@@ -406,49 +406,37 @@ check_eval() {
 
 				## design checks
 				if [[ -e PASSED.designs_checks ]]; then
-
 					status[design_checks]=1
-
 					echo "ISPD23 -- 3)  $id_run:  Innovus checks: done"
 
 				elif [[ -e FAILED.design_checks ]]; then
-
 					status[design_checks]=2
-
 					echo "ISPD23 -- 3)  $id_run:  Innovus checks: failed"
 
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
-
 					status[design_checks]=2
 				else
 					status[design_checks]=0
-
 					echo "ISPD23 -- 3)  $id_run:  Innovus checks: still working ..."
 				fi
 
 				## LEC checks
 				if [[ -e PASSED.lec ]]; then
-
 					status[lec]=1
-
 					echo "ISPD23 -- 3)  $id_run:  LEC checks: done"
 
 				elif [[ -e FAILED.lec ]]; then
-
 					status[lec]=2
-
 					echo "ISPD23 -- 3)  $id_run:  LEC checks: failed"
 
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
-
 					status[lec]=2
 				else
 					status[lec]=0
-
 					echo "ISPD23 -- 3)  $id_run:  LEC checks: still working ..."
 				fi
 
@@ -475,8 +463,9 @@ check_eval() {
 				# include regular rpt files, not others (like, *.rpt.extended files)
 				# NOTE only mute regular stdout, but keep stderr
 				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
-				# also include lec.log
-				zip $uploads_folder/reports.zip lec.log > /dev/null
+#				# NOTE deprecated
+#				# also include lec.log
+#				zip $uploads_folder/reports.zip lec.log > /dev/null
 				# also include detailed timing reports
 				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
 				# NOTE only for dev tree, we should also upload log files
@@ -578,8 +567,8 @@ check_submission() {
 	pid_assets=$!
 
 # TODO revise checks; currently off: pins, PDN
-# NOTE should be done as simple scripts, ideally w/o need for loading DEF, or least just loading DEF and then quick
-# checks. Otherwise, long Innovus runs should be move to start_eval() procedure
+# TODO should be done as simple scripts, ideally w/o need for loading DEF, or least just loading DEF and then quick
+# checks. Otherwise, long Innovus runs should be move to related subshells in the start_eval() procedure
 #
 #	##
 #	## pins checks
