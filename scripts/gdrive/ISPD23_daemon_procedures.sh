@@ -8,6 +8,50 @@ google_check_fix_json() {
 	sed 's/}}/}/g' -i $google_json_file
 }
 
+send_email() {
+	local text=$1
+	local subject=$2
+	local emails=$3
+
+	# unroll emails explicitly; use of ${emails[@]} won't work within larger string
+	local emails_string=""
+	for email in $emails; do
+		emails_string="$emails_string $email"
+	done
+
+	# NOTE suppress warnings for certificate issue not recognized (won't fail email sending, more like a warning)
+	# but keep any others
+	echo -e "$text" | mailx -A ispd23contest -s "$subject" $emails_string 2>&1 | grep -v "Error in certificate: Peer's certificate issuer is not recognized."
+}
+
+# https://unix.stackexchange.com/a/415450
+progress_bar() {
+	local w=1 p=$1;  shift
+	# create a string of spaces, then change them to dots
+	printf -v dots "%*s" "$(( $p * $w ))" ""; dots=${dots// /.}
+	# print those dots on a fixed-width space plus the percentage etc. 
+	printf "\r\e[K|%-*s| %3d %% %s" "$w" "$dots" "$p" "$*" #>&2 ## use to write to stderr
+}
+
+sleeping() {
+
+	local sleep_interval=$1
+
+	# init; minor delay to allow other regular logs to complete, so as to avoid intermixing of sleeping and regular logs
+	sleep 1s
+	progress_bar 0
+
+	for ((i=0; i<$sleep_interval; i++)); do
+
+		sleep 1s
+
+		progress_bar $(( 100 * (i+1)/sleep_interval ))
+	done
+
+	# final newline to finish progress bar
+	echo ""
+}
+
 initialize() {
 	
 	## query drive for root folder, extract columns 1 and 2 from response
@@ -47,7 +91,7 @@ initialize() {
 	
 		for benchmark in $benchmarks; do
 	
-			id_internal="$team:$benchmark"
+			id_internal="$team --- $benchmark"
 
 			# obtain drive references per benchmark
 			google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
@@ -105,50 +149,6 @@ initialize() {
 	done
 }
 
-send_email() {
-	local text=$1
-	local subject=$2
-	local emails=$3
-
-	# unroll emails explicitly; use of ${emails[@]} won't work within larger string
-	local emails_string=""
-	for email in $emails; do
-		emails_string="$emails_string $email"
-	done
-
-	# NOTE suppress warnings for certificate issue not recognized (won't fail email sending, more like a warning)
-	# but keep any others
-	echo -e "$text" | mailx -A ispd23contest -s "$subject" $emails_string 2>&1 | grep -v "Error in certificate: Peer's certificate issuer is not recognized."
-}
-
-# https://unix.stackexchange.com/a/415450
-progress_bar() {
-	local w=1 p=$1;  shift
-	# create a string of spaces, then change them to dots
-	printf -v dots "%*s" "$(( $p * $w ))" ""; dots=${dots// /.}
-	# print those dots on a fixed-width space plus the percentage etc. 
-	printf "\r\e[K|%-*s| %3d %% %s" "$w" "$dots" "$p" "$*" #>&2 ## use to write to stderr
-}
-
-sleeping() {
-
-	local sleep_interval=$1
-
-	# init; minor delay to allow other regular logs to complete, so as to avoid intermixing of sleeping and regular logs
-	sleep 1s
-	progress_bar 0
-
-	for ((i=0; i<$sleep_interval; i++)); do
-
-		sleep 1s
-
-		progress_bar $(( 100 * (i+1)/sleep_interval ))
-	done
-
-	# final newline to finish progress bar
-	echo ""
-}
-
 google_downloads() {
 
 	## check and fix, if needed, the json file for current session in json file
@@ -165,7 +165,7 @@ google_downloads() {
 		for benchmark in $benchmarks; do
 
 		(
-			id_internal="$team:$benchmark"
+			id_internal="$team --- $benchmark"
 			google_benchmark_folder=${google_benchmark_folders[$id_internal]}
 
 			## NOTE relatively verbose; could be turned off
@@ -277,6 +277,7 @@ google_downloads() {
 		done
 	done
 
+	# wait for all parallel runs to finish
 	wait
 }
 
@@ -293,9 +294,7 @@ google_uploads() {
 		for benchmark in $benchmarks; do
 
 			team=${google_team_folders[$google_team_folder]}
-
-			id_internal="$team:$benchmark"
-
+			id_internal="$team --- $benchmark"
 			uploads_folder="$teams_root_folder/$team/$benchmark/uploads"
 
 			# handle all the uploads folders that might have accumulated through batch processing
@@ -306,23 +305,13 @@ google_uploads() {
 					break 3
 				fi
 
-				## 0) only proceed for non-empty folder
-				if [[ $(ls $uploads_folder/$folder/ | wc -l) == '0' ]]; then
-
-					continue
-
-					# NOTE don't delete here any empty upload folders; should still be under processing
-				fi
-
 				## 1) count parallel uploads (i.e., uploads started within the same cycle)
 				((count_parallel_uploads = count_parallel_uploads + 1))
 
-			# begin parallel processing
+				## 2) begin parallel uploads
 
 				# NOTE init vars once, before parallel runs start
-
 				google_benchmark_folder=${google_benchmark_folders[$id_internal]}
-
 				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
 				team_=$(printf "%-"$teams_string_max_length"s" $team)
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
@@ -356,6 +345,7 @@ google_uploads() {
 		done
 	done
 
+	# wait for all parallel runs to finish
 	wait
 }
 
@@ -377,20 +367,162 @@ check_eval() {
 				team_=$(printf "%-"$teams_string_max_length"s" $team)
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
 
-				echo "ISPD23 -- 3)"
-				echo "ISPD23 -- 3)  $id_run: Checking work folder \"$work_folder/$folder\""
-				# (related uploads folder: \"$uploads_folder\") ..."
-
-				## create related upload folder, w/ same timestamp as work and download folder
-				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
-
-				# NOTE suppress warnings for folder already existing, but keep any others
-				mkdir $uploads_folder 2>&1 | grep -v "File exists"
-
-				## enter work folder silently
+				## 0) enter work folder silently
 				cd $work_folder/$folder > /dev/null
 
-				## check status of processes
+				echo "ISPD23 -- 3)"
+				echo "ISPD23 -- 3)  $id_run: Checking work folder \"$work_folder/$folder\""
+
+				## 0) start parallel subshells to continuously monitor the actual evaluation processes
+				#
+				# NOTE we need this double subshell to avoid stalling further processing; otherwise, I
+				# think, the two inner subshells would be locking into the next wait command, even
+				# from any other procedure
+			(
+				# Innovus design checks
+				(
+					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
+				 	# NOTE ignore errors for cat, in case PID file not existing yet; for ps, ignore
+					# related file errors and others errors and also drop output, just keep status/exit code
+					running=$(ps --pid $(cat PID.monitor.design_checks 2> /dev/null) > /dev/null 2>&1; echo $?)
+					if [[ $running != 0 ]]; then
+						echo $$ > PID.monitor.design_checks
+					else
+						exit 2
+					fi
+
+#					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for Innovus design checks"
+
+					# sleep a little to avoid immediate but useless errors concerning log file not
+					# found; is only relevant for the very first run just following right after
+					# starting the process, but should still be employed here as fail-safe measure
+					sleep 1s
+
+					while true; do
+
+						if [[ -e DONE.design_checks ]]; then
+							break
+						else
+							# check for any errors; if found, try to kill and return
+							#
+							# NOTE limit to 1k errors since tools may flood log files w/
+							# INTERRUPT messages etc, which would then stall grep
+							errors=$(grep -m 1000 -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
+							if [[ $errors != "" ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for Innovus design check. Trying to kill process ..."
+
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- $errors" >> reports/errors.rpt
+
+								cat PID.design_checks | xargs kill #2> /dev/null
+
+								date > FAILED.design_checks
+								exit 1
+							fi
+						
+							# also check for interrupts; if triggered, abort processing
+							#
+							errors_interrupt=$(ps --pid $(cat PID.design_checks) > /dev/null; echo $?)
+							if [[ $errors_interrupt != 0 ]]; then
+
+								# NOTE also check again for DONE flag file, to avoid race condition where
+								# process just finished but DONE did not write out yet
+								sleep 1s
+								if [[ -e DONE.design_checks ]]; then
+									break
+								fi
+
+								echo -e "\nISPD23 -- 2)  $id_run:  Innovus design check got interrupted. Abort processing ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- INTERRUPT" >> reports/errors.rpt
+
+								date > FAILED.design_checks
+								exit 1
+							fi
+						fi
+
+						sleep 1s
+					done
+
+					## parse rpt, log files for failures
+					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
+					## set/mark status via PASSED/FAILED files
+					parse_design_checks
+				) &
+
+				# LEC design checks
+				(
+					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
+				 	# NOTE ignore errors for cat, in case PID file not existing yet; for ps, ignore
+					# related file errors and others errors and also drop output, just keep status/exit code
+					running=$(ps --pid $(cat PID.monitor.lec 2> /dev/null) > /dev/null 2>&1; echo $?)
+					if [[ $running != 0 ]]; then
+						echo $$ > PID.monitor.lec
+					else
+						exit 2
+					fi
+
+#					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for LEC design checks ..."
+
+					# sleep a little to avoid immediate but useless errors concerning log file not
+					# found; is only relevant for the very first run just following right after
+					# starting the process, but should still be employed here as fail-safe measure
+					sleep 1s
+
+					while true; do
+
+						if [[ -e DONE.lec ]]; then
+							break
+						else
+							# check for any errors; if found, try to kill and return
+							#
+							# NOTE limit to 1k errors since tools may flood log files w/
+							# INTERRUPT messages etc, which would then stall grep
+							errors=$(grep -m 1000 -E "$lec_errors_for_checking" lec.log)
+							if [[ $errors != "" ]]; then
+
+								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
+								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for LEC design check. Trying to kill process ..."
+
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> reports/errors.rpt
+
+								cat PID.lec | xargs kill #2> /dev/null
+
+								date > FAILED.lec
+								exit 1
+							fi
+						
+							# also check for interrupts; if triggered, abort processing
+							#
+							errors_interrupt=$(ps --pid $(cat PID.lec) > /dev/null; echo $?)
+							if [[ $errors_interrupt != 0 ]]; then
+
+								# NOTE also check again for DONE flag file, to avoid race condition where
+								# process just finished but DONE did not write out yet
+								sleep 1s
+								if [[ -e DONE.lec ]]; then
+									break
+								fi
+
+								echo -e "\nISPD23 -- 2)  $id_run:  LEC design check got interrupted. Abort processing ..."
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> reports/errors.rpt
+
+								date > FAILED.lec
+								exit 1
+							fi
+						fi
+
+						sleep 1s
+					done
+
+					## parse rpt, log files for failures
+					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
+					## set/mark status via PASSED/FAILED files
+					parse_lec_checks
+				) &
+
+			) &
+
+				## 1) check status of processes
 				#
 				# notation: 0 -- still running; 1 -- done; 2 -- error
 				declare -A status=()
@@ -407,11 +539,11 @@ check_eval() {
 				## design checks
 				if [[ -e PASSED.designs_checks ]]; then
 					status[design_checks]=1
-					echo "ISPD23 -- 3)  $id_run:  Innovus checks: done"
+					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: done"
 
 				elif [[ -e FAILED.design_checks ]]; then
 					status[design_checks]=2
-					echo "ISPD23 -- 3)  $id_run:  Innovus checks: failed"
+					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: failed"
 
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
@@ -419,17 +551,17 @@ check_eval() {
 					status[design_checks]=2
 				else
 					status[design_checks]=0
-					echo "ISPD23 -- 3)  $id_run:  Innovus checks: still working ..."
+					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: still working ..."
 				fi
 
-				## LEC checks
+				## LEC design checks
 				if [[ -e PASSED.lec ]]; then
 					status[lec]=1
-					echo "ISPD23 -- 3)  $id_run:  LEC checks: done"
+					echo "ISPD23 -- 3)  $id_run:  LEC design checks: done"
 
 				elif [[ -e FAILED.lec ]]; then
 					status[lec]=2
-					echo "ISPD23 -- 3)  $id_run:  LEC checks: failed"
+					echo "ISPD23 -- 3)  $id_run:  LEC design checks: failed"
 
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
@@ -437,10 +569,10 @@ check_eval() {
 					status[lec]=2
 				else
 					status[lec]=0
-					echo "ISPD23 -- 3)  $id_run:  LEC checks: still working ..."
+					echo "ISPD23 -- 3)  $id_run:  LEC design checks: still working ..."
 				fi
 
-				## if not done yet (implies no error), then continue, i.e., skip the further processing for now
+				## 2) if not done yet (implies no error), then continue, i.e., skip the further processing for now
 				if [[ ${status[design_checks]} == 0 || ${status[lec]} == 0 ]]; then
 					
 					# first return to previous main dir silently
@@ -451,23 +583,30 @@ check_eval() {
 
 # TODO activate once 1st order sec metrics are done
 #
-#				## compute scores
+#				## 3) compute scores
 #				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
 #				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 #				scripts/scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
-				## pack and results files into uploads folder
+				## 4) create related upload folder, w/ same timestamp as work and download folder
+				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
+				mkdir $uploads_folder
+
+				## 5) pack and results files into uploads folder
 				echo "ISPD23 -- 3)  $id_run:  Packing results files into uploads folder \"$uploads_folder\" ..."
 
 				# -j means to smash reports/ folder; just put files into zip archive directly
 				# include regular rpt files, not others (like, *.rpt.extended files)
 				# NOTE only mute regular stdout, but keep stderr
 				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
+
 #				# NOTE deprecated
 #				# also include lec.log
 #				zip $uploads_folder/reports.zip lec.log > /dev/null
+
 				# also include detailed timing reports
 				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
+
 				# NOTE only for dev tree, we should also upload log files
 				# NOTE only mute regular stdout, but keep stderr
 				zip $uploads_folder/logs.zip *.log* > /dev/null
@@ -477,27 +616,20 @@ check_eval() {
 #				echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 #				mv processed_files.zip $uploads_folder/ #2> /dev/null
 
-				## backup work dir
+				## 6) backup work dir
 				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
 				mv $work_folder/$folder $backup_work_folder/
 
-				# return to previous main dir silently
+				# return to previous main dir silently; goes together with the final 'cd -' command at the end
 				cd - > /dev/null
 
-				## compress backup
+				# compress backup
 				cd $backup_work_folder > /dev/null
 
-#				# NOTE deprecated; better to keep the log file, but only in zip, do not unpack again
-#				# for interrupts, delete the probably excessively large log files before zipping
-#				if [[ $errors_interrupt == 0 ]]; then
-#				       rm $folder/exploit_eval.log*
-#				       rm $folder/summarize_assets.log*
-#				fi
-
-				# cleanup of rpt files lingering around in main folder
+				# silent cleanup of rpt files lingering around in main folder
 				# NOTE As of now, only a 0-byte power.rpt file occurs here (the proper file is in reports/power.rpt). Not sure why this happens
 				# though. Also, instead of deleting, moving to reports/ would be an option -- but, not for that 0-byte power.rpt file
-				rm $folder/*.rpt
+				rm $folder/*.rpt > /dev/null 2>&1
 
 				# NOTE only mute regular stdout, but keep stderr
 				zip -y -r $folder'.zip' $folder/ > /dev/null #2>&1
@@ -528,7 +660,7 @@ check_submission() {
 	##
 	#
 	# NOTE trivial checks for matching of names -- could be easily cheated on, e.g,., by swapping names w/ some less complex assets, or even just putting the asset names in some comment.
-	# However, subsequent LEC run does check for equivalence of all FF assets.
+	# However, subsequent LEC design check does check for equivalence of all FF assets.
 	# Further, the evaluation scripts would fail if the assets are missing.
 	# So, this here is really only an initial quick check to short-cut further efforts if needed.
 
@@ -568,7 +700,7 @@ check_submission() {
 
 # TODO revise checks; currently off: pins, PDN
 # TODO should be done as simple scripts, ideally w/o need for loading DEF, or least just loading DEF and then quick
-# checks. Otherwise, long Innovus runs should be move to related subshells in the start_eval() procedure
+# checks. Otherwise, long Innovus design checks should be move to related subshells in the start_eval() procedure
 #
 #	##
 #	## pins checks
@@ -587,7 +719,6 @@ check_submission() {
 #
 #			echo "ISPD23 -- ERROR: For pins design check -- see check_pins.rpt for more details." >> errors.rpt
 #
-#TODO use $errors for monitoring and logging further below; as done for assets above
 #			exit 1
 #		fi
 #
@@ -630,7 +761,7 @@ check_submission() {
 #					exit 1
 #				fi
 #
-#				# TODO add checking for INTERRUPT, as in basic checks
+#				# TODO add checking for INTERRUPT, as in design checks
 #			fi
 #
 #			sleep 1s
@@ -1009,7 +1140,7 @@ parse_design_checks() {
 
 ## NOTE deprecated, deactivated for now
 #
-#		# noise issues; check noise.rpt for summary
+#	# noise issues; check noise.rpt for summary
 ## Example:
 ## Glitch Violations Summary :
 ## --------------------------
@@ -1147,6 +1278,7 @@ start_eval() {
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
 
 				# TODO not started per iteration/call to start_eval but in total; just requires to keep track of current ongoing runs, which would also be great to log within the main loop
+				# TODO just go by all team/bechnmark/work/download_* folders
 
 				## 0)  only max_runs runs in parallel should be started at once per team
 				if [[ "$count_parallel_runs" == "$max_parallel_runs" ]]; then
@@ -1166,7 +1298,7 @@ start_eval() {
 
 				echo "ISPD23 -- 2)  $id_run: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
 
-				## 1) count parallel runs (i.e., runs started within the same cycle)
+				## 0) count parallel runs (i.e., runs started within the same cycle)
 				((count_parallel_runs = count_parallel_runs + 1))
 
 			## start frame of code to be run in parallel
@@ -1214,6 +1346,7 @@ start_eval() {
 				done
 
 				## link scripts and design files needed for evaluation
+
 				link_work_dir
 
 				if [[ $? != 0 ]]; then
@@ -1233,7 +1366,8 @@ start_eval() {
 					exit 1
 				fi
 
-				# 3) check submission
+				# 3) check submission; simple checks
+
 				check_submission
 
 				if [[ $? != 0 ]]; then
@@ -1254,132 +1388,22 @@ start_eval() {
 					exit 1
 				fi
 
-				# 4) actual processing, also done in parallel
+				# 4) start processing for actual checks
 			
-				##
-				## LEC checks
-				##
-				(
-					echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
+				echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
+#				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
+#				note for the related syntax
+#				bash -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
+				lec_64 -nogui -xl -dofile scripts/lec.do > lec.log &
+				echo $! > PID.lec
 
-					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-					bash -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
-
-					# sleep a little to avoid immediate but useless errors concerning log file not found
-					sleep 1s
-
-					while true; do
-
-						if [[ -e DONE.lec ]]; then
-
-							break
-						else
-							# check for any errors; if found, try to kill and return
-							#
-							errors=$(grep -E "$lec_errors_for_checking" lec.log)
-							if [[ $errors != "" ]]; then
-
-								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
-								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for LEC run. Trying to kill process ..."
-
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> reports/errors.rpt
-
-								cat PID.lec | xargs kill #2> /dev/null
-
-								date > FAILED.lec
-								exit 1
-							fi
-						
-							# also check for interrupts; if triggered, abort processing
-							#
-							errors_interrupt=$(ps --pid $(cat PID.lec) > /dev/null; echo $?)
-							if [[ $errors_interrupt != 0 ]]; then
-
-								# NOTE also check again for DONE flag file, to avoid race condition where
-								# process just finished but DONE did not write out yet
-								sleep 1s
-								if [[ -e DONE.lec ]]; then
-									break
-								fi
-
-								echo -e "\nISPD23 -- 2)  $id_run:  LEC run got interrupted. Abort processing ..."
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> reports/errors.rpt
-
-								date > FAILED.lec
-								exit 1
-							fi
-						fi
-
-						sleep 1s
-					done
-
-					## parse rpt, log files for failures
-					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
-					## set/mark status via PASSED/FAILED files
-					parse_lec_checks
-				) &
-
-				##
-				## basic design checks
-				##
-				(
-					echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
-
-					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-					bash -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
-
-					# sleep a little to avoid immediate but useless errors concerning log file not found
-					sleep 1s
-
-					while true; do
-
-						if [[ -e DONE.design_checks ]]; then
-
-							break
-						else
-							# check for any errors; if found, try to kill and return
-							#
-							errors=$(grep -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
-							if [[ $errors != "" ]]; then
-
-								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for Innovus run. Trying to kill process ..."
-
-								echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- $errors" >> reports/errors.rpt
-
-								cat PID.check | xargs kill #2> /dev/null
-
-								date > FAILED.design_checks
-								exit 1
-							fi
-						
-							# also check for interrupts; if triggered, abort processing
-							#
-							errors_interrupt=$(ps --pid $(cat PID.check) > /dev/null; echo $?)
-							if [[ $errors_interrupt != 0 ]]; then
-
-								# NOTE also check again for DONE flag file, to avoid race condition where
-								# process just finished but DONE did not write out yet
-								sleep 1s
-								if [[ -e DONE.design_checks ]]; then
-									break
-								fi
-
-								echo -e "\nISPD23 -- 2)  $id_run:  Innovus run got interrupted. Abort processing ..."
-								echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- INTERRUPT" >> reports/errors.rpt
-
-								date > FAILED.design_checks
-								exit 1
-							fi
-						fi
-
-						sleep 1s
-					done
-
-					## parse rpt, log files for failures
-					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
-					## set/mark status via PASSED/FAILED files
-					parse_design_checks
-				) &
+				echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
+#				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
+#				note for the related syntax
+#				bash -c 'echo $$ > PID.design_checks; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
+				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+				innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null &
+				echo $! > PID.design_checks
 
 				# 5) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null
@@ -1389,5 +1413,6 @@ start_eval() {
 		done
 	done
 
+	# wait for all parallel runs to finish
 	wait
 }

@@ -50,13 +50,13 @@ emails_excluded_for_notification="ispd23contest.drive@gmail.com|jk176@nyu.edu"
 ## Innovus
 ##
 # NOTE as above, use pipe as separate and provide at least one term
+innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
+# NOTE as above, use pipe as separate and provide at least one term
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as error though for design checks
 # NOTE 'IMPPP' errors are related to the check_design command, which is no reason to kill; should be reported as error though for design checks
 # NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain keywords like ERROR etc
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file"
-# NOTE as above, use pipe as separate and provide at least one term
-innovus_errors_for_checking="ERROR|StackTrace"
 
 ## LEC
 ##
@@ -76,13 +76,14 @@ scripts="$scripts_sec_first_order $scripts_des"
 
 ## main data structures
 
-# key: google IDs; value: team names
+# key: Google ID; value: team name
 declare -A google_team_folders
 
-# syntax for key: "$team:$benchmark"
+# key: internal id; value: Google ID
+# syntax for key: team --- benchmark
 declare -A google_benchmark_folders
 
-# key: $team
+# key: team name; value: emails of all accounts having shared access to the team folder
 declare -A google_share_emails
 
 echo "ISPD23 -- 0)"
