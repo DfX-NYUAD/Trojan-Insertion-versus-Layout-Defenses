@@ -71,7 +71,7 @@ initialize() {
 	
 	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} team folders:"
 	for team in "${google_team_folders[@]}"; do
-		echo "ISPD23 -- 0)    $team"
+		echo "ISPD23 -- 0)    \"$team\""
 	done
 	echo "ISPD23 -- 0)"
 	
@@ -183,7 +183,7 @@ google_downloads() {
 				google_folder_files[$a]=$b
 				google_folder_files_type[$a]=$c
 			# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
-				## ISPD23 -- 1)   Download new submission file "to" (Google file ID "Failed") into dedicated folder
+				## ISPD23 -- 1)  Download new submission file "to" (Google file ID "Failed") into dedicated folder
 				## Failed to get file: googleapi: Error 404: File not found: Failed., notFound
 				##
 				## ISPD23_daemon_procedures.sh: line 168: google_folder_files[$a]: bad array subscript
@@ -249,7 +249,7 @@ google_downloads() {
 					#echo "ISPD23 -- existing downloads_folder_: $downloads_folder_"
 				fi
 
-				echo "ISPD23 -- 1)   Download new submission file \"$actual_file_name\" (Google file ID \"$file\") into dedicated folder \"$downloads_folder_\" ..."
+				echo "ISPD23 -- 1)  Download new submission file \"$actual_file_name\" (Google file ID \"$file\") into dedicated folder \"$downloads_folder_\" ..."
 				./gdrive download -f --path $downloads_folder_ $file #> /dev/null 2>&1
 
 				# memorize to not download again, but only if the download succeeded
@@ -607,7 +607,7 @@ check_eval() {
 				# also include detailed timing reports
 				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
 
-				# NOTE only for dev tree, we should also upload log files
+				# (TODO) only for dev tree, we should also upload log files
 				# NOTE only mute regular stdout, but keep stderr
 				zip $uploads_folder/logs.zip *.log* > /dev/null
 
@@ -1262,26 +1262,26 @@ start_eval() {
 	for google_team_folder in "${!google_team_folders[@]}"; do
 
 		team="${google_team_folders[$google_team_folder]}"
+		team_=$(printf "%-"$teams_string_max_length"s" $team)
 
-		count_parallel_runs=0
+		# NOTE init the current ongoing runs from the work folder of all benchmarks; ignore errors for
+		# ls, which are probably only due to empy folders
+		count_parallel_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
+		echo "ISPD23 -- 2)  [ $team_ ]: Currently $count_parallel_runs run(s) ongoing; allowed to start $((max_parallel_runs - $count_parallel_runs)) more run(s) ..."
 
 		for benchmark in $benchmarks; do
 
 			downloads_folder="$teams_root_folder/$team/$benchmark/downloads"
 			work_folder="$teams_root_folder/$team/$benchmark/work"
+			benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
 
 			# handle all downloads folders
 			for folder in $(ls $downloads_folder); do
 
-				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
-				team_=$(printf "%-"$teams_string_max_length"s" $team)
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
 
-				# TODO not started per iteration/call to start_eval but in total; just requires to keep track of current ongoing runs, which would also be great to log within the main loop
-				# TODO just go by all team/bechnmark/work/download_* folders
-
-				## 0)  only max_runs runs in parallel should be started at once per team
-				if [[ "$count_parallel_runs" == "$max_parallel_runs" ]]; then
+				## 0)  only max_runs runs in parallel should be running at once per team
+				if [[ $count_parallel_runs -ge $max_parallel_runs ]]; then
 					break 2
 				fi
 
