@@ -915,16 +915,19 @@ parse_lec_checks() {
 ##Equivalent           136    732    3         871
 ##--------------------------------------------------------------------------------
 ##Non-equivalent       0      2      0         2
+
 	issues=$(tail -n 2 reports/check_equivalence.rpt | grep "Non-equivalent" | awk '{print $NF}')
+	string="LEC: Equivalence issues:"
+
 	if [[ $issues != "" ]]; then
 
-		echo "ISPD23 -- ERROR: LEC design checks failure -- $issues equivalence issues; see check_equivalence.rpt for more details." >> reports/errors.rpt
-		echo "ISPD23 -- LEC: Equivalence issues: $issues" >> reports/checks_summary.rpt
-
 		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see check_equivalence.rpt for more details." >> reports/errors.rpt
 	else
-		echo "ISPD23 -- LEC: Equivalence issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 	#
 	# unreachable issues
@@ -942,16 +945,19 @@ parse_lec_checks() {
 ##Unmapped points   DLAT      Total
 ##--------------------------------------------------------------------------------
 ##Unreachable       31        31
+
 	issues=$(tail -n 2 reports/check_equivalence.rpt.unmapped | grep "Unreachable" | awk '{print $NF}')
+	string="LEC: Unreachable points issues:"
+
 	if [[ $issues != "" ]]; then
 
-		echo "ISPD23 -- ERROR: LEC design checks failure -- $issues unreachable points issues; see check_equivalence.rpt for more details." >> reports/errors.rpt
-		echo "ISPD23 -- LEC: Unreachable points issues: $issues" >> reports/checks_summary.rpt
-
 		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see check_equivalence.rpt for more details." >> reports/errors.rpt
 	else
-		echo "ISPD23 -- LEC: Unreachable points issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 	#
 	# different connectivity issues during parsing
@@ -963,50 +969,56 @@ parse_lec_checks() {
 #// Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting (occurrence:7) 
 # NOTE such line is only present if errors/issues found at all
 # NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-	issues=$(grep "Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting" lec.log | awk '{print $18}' | awk 'NR==2')
+
+	issues=$(grep "Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting" lec.log | awk '{print $NF}' | awk 'NR==2')
 	issues=${issues##*:}
 	issues=${issues%*)}
+	string="LEC: Unassigned nets issues:"
+
 	if [[ $issues != "" ]]; then
 
-		issues_baseline=$(grep "ISPD23 -- LEC: Unassigned nets issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
-			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues unassigned nets issues -- exceeds the allowed margin of $issues_margin issues" >> reports/errors.rpt
 			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unassigned nets issues" >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
 		fi
-
-		echo "ISPD23 -- LEC: Unassigned nets issues: $issues" >> reports/checks_summary.rpt
 	else
-		echo "ISPD23 -- LEC: Unassigned nets issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 # Example:
 #// Warning: (RTL2.13) Undriven pin is detected (occurrence:3)
 #
 # NOTE such line is only present if errors/issues found at all
 # NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-	issues=$(grep "Warning: (RTL2.13) Undriven pin is detected" lec.log | awk '{print $8}' | awk 'NR==2')
+
+	issues=$(grep "Warning: (RTL2.13) Undriven pin is detected" lec.log | awk '{print $NF}' | awk 'NR==2')
 	issues=${issues##*:}
 	issues=${issues%*)}
+	string="LEC: Undriven pins issues:"
+
 	if [[ $issues != "" ]]; then
 
-		issues_baseline=$(grep "ISPD23 -- LEC: Undriven pins issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
-			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues undriven pins issues -- exceeds the allowed margin of $issues_margin issues" >> reports/errors.rpt
 			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues undriven pins issues" >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
 		fi
-
-		echo "ISPD23 -- LEC: Undriven pins issues: $issues" >> reports/checks_summary.rpt
 	else
-		echo "ISPD23 -- LEC: Undriven pins issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 # Example:
 #// Warning: (RTL14) Signal has input but it has no output (occurrence:2632)
@@ -1015,25 +1027,28 @@ parse_lec_checks() {
 # NOTE such issues often occur for baseline layouts as well. These checks here are the only warnings related to cells
 # inserted and connected to inputs but otherwise useless (no output), so we need to keep that check
 # NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-	issues=$(grep "Warning: (RTL14) Signal has input but it has no output" lec.log | awk '{print $12}' | awk 'NR==2')
+
+	issues=$(grep "Warning: (RTL14) Signal has input but it has no output" lec.log | awk '{print $NF}' | awk 'NR==2')
 	issues=${issues##*:}
 	issues=${issues%*)}
+	string="LEC: Net output floating issues:"
+
 	if [[ $issues != "" ]]; then
 
-		issues_baseline=$(grep "ISPD23 -- LEC: Net output floating issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
-			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues net output floating issues -- exceeds the allowed margin of $issues_margin issues" >> reports/errors.rpt
 			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues net output floating issues" >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
 		fi
-
-		echo "ISPD23 -- LEC: Net output floating issues: $issues" >> reports/checks_summary.rpt
 	else
-		echo "ISPD23 -- LEC: Net output floating issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 # Example for two related issues:
 #// Warning: (HRC3.5a) Open input/inout port connection is detected (occurrence:3)
@@ -1041,14 +1056,16 @@ parse_lec_checks() {
 #
 # NOTE such lines are only present if errors/issues found at all
 # NOTE such lines, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-	issues_a=$(grep "Warning: (HRC3.5a) Open input/inout port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
-	issues_b=$(grep "Note: (HRC3.5b) Open output port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
+
+	issues_a=$(grep "Warning: (HRC3.5a) Open input/inout port connection is detected" lec.log | awk '{print $NF}' | awk 'NR==2')
+	issues_b=$(grep "Note: (HRC3.5b) Open output port connection is detected" lec.log | awk '{print $NF}' | awk 'NR==2')
 	issues_a=${issues_a##*:}
 	issues_a=${issues_a%*)}
 	issues_b=${issues_b##*:}
 	issues_b=${issues_b%*)}
-
 	issues=0
+	string="LEC: Open ports issues:"
+
 	if [[ $issues_a != "" ]]; then
 		((issues = issues + issues_a))
 	fi
@@ -1058,70 +1075,76 @@ parse_lec_checks() {
 	
 	if [[ $issues != 0 ]]; then
 
-		issues_baseline=$(grep "ISPD23 -- LEC: Open ports issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
-			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues open ports issues -- exceeds the allowed margin of $issues_margin issues" >> reports/errors.rpt
 			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues open ports issues" >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
 		fi
-
-		echo "ISPD23 -- LEC: Open ports issues: $issues" >> reports/checks_summary.rpt
 	else
-		echo "ISPD23 -- LEC: Open ports issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 # Example:
 #// Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module (occurrence:674)
 #
 # NOTE such line is only present if errors/issues found at all
 # NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-	issues=$(grep "Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module" lec.log | awk '{print $18}' | awk 'NR==2')
+
+	issues=$(grep "Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module" lec.log | awk '{print $NF}' | awk 'NR==2')
 	issues=${issues##*:}
 	issues=${issues%*)}
+	string="LEC: Input port not fully used issues:"
+
 	if [[ $issues != "" ]]; then
 
-		issues_baseline=$(grep "ISPD23 -- LEC: Input port not fully used issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
-			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues input port not fully used issues -- exceeds the allowed margin of $issues_margin issues" >> reports/errors.rpt
 			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues input port not fully used issues" >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
 		fi
-
-		echo "ISPD23 -- LEC: Input port not fully used issues: $issues" >> reports/checks_summary.rpt
 	else
-		echo "ISPD23 -- LEC: Input port not fully used issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 # Example:
 #// Warning: (HRC3.16) A wire is declared, but not used in the module (occurrence:1)
 #
 # NOTE such line is only present if errors/issues found at all
 # NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-	issues=$(grep "Warning: (HRC3.16) A wire is declared, but not used in the module" lec.log | awk '{print $14}' | awk 'NR==2')
+
+	issues=$(grep "Warning: (HRC3.16) A wire is declared, but not used in the module" lec.log | awk '{print $NF}' | awk 'NR==2')
 	issues=${issues##*:}
 	issues=${issues%*)}
+	string="LEC: Unused wire issues:"
+
 	if [[ $issues != "" ]]; then
 
-		issues_baseline=$(grep "ISPD23 -- LEC: Unused wire issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
-			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues unused wire issues -- exceeds the allowed margin of $issues_margin issues" >> reports/errors.rpt
 			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unused wire issues" >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
 		fi
-
-		echo "ISPD23 -- LEC: Unused wire issues: $issues" >> reports/checks_summary.rpt
 	else
-		echo "ISPD23 -- LEC: Unused wire issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 	#
 	# evaluate criticality of issues
@@ -1149,24 +1172,26 @@ parse_design_checks() {
 # Example:
 #    5 total info(s) created.
 # NOTE such line is only present if errors/issues found at all
+
 	issues=$(grep "total info(s) created" reports/*.conn.rpt | awk '{print $1}')
+       string="Innovus: Basic routing issues:"
 
 	if [[ $issues != "" ]]; then
 
-		issues_baseline=$(grep "ISPD23 -- Innovus: Basic routing issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues basic routing issues -- exceeds the allowed margin of $issues_margin issues; see *.conn.rpt and floating_signals.rpt for more details." >> reports/errors.rpt
 			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see *.conn.rpt and floating_signals.rpt for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues basic routing issues; see *.conn.rpt and floating_signals.rpt for more details." >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see *.conn.rpt and floating_signals.rpt for more details." >> reports/warnings.rpt
 		fi
-
-		echo "ISPD23 -- Innovus: Basic routing issues: $issues" >> reports/checks_summary.rpt
 	else
-		echo "ISPD23 -- Innovus: Basic routing issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 	# IO pins; check *.checkPin.rpt for illegal and unplaced pins from summary
 # Example:
@@ -1179,44 +1204,50 @@ parse_design_checks() {
 #	====================================================================================================================================
 #	TOTAL                |     0 |    213 |    212 |       0 |        0 |                0 |      0 |          0 |        0 |        1 |
 #	====================================================================================================================================
+
 	issues=$(grep "TOTAL" reports/*.checkPin.rpt | awk '{ sum = $9 + $13 + $17 + $21; print sum }')
+	string="Innovus: Module pin issues:"
+
 	if [[ $issues != '0' ]]; then
 
-		issues_baseline=$(grep "ISPD23 -- Innovus: Module pin issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues module pin issues -- exceeds the allowed margin of $issues_margin issues; see *.checkPin.rpt for more details." >> reports/errors.rpt
 			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see *.checkPin.rpt for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues module pin issues; see *.checkPin.rpt for more details." >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see *.checkPin.rpt for more details." >> reports/warnings.rpt
 		fi
-
-		echo "ISPD23 -- Innovus: Module pin issues: $issues" >> reports/checks_summary.rpt
 	else
-		echo "ISPD23 -- Innovus: Module pin issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 	# placement and routing; check check_design.rpt file for summary
 # Example:
 #	**INFO: Identified 21 error(s) and 0 warning(s) during 'check_design -type {place cts route}'.
+
 	issues=$(grep "**INFO: Identified" reports/check_design.rpt | awk '{ sum = $3 + $6; print sum }')
+	string="Innovus: Placement and/or routing issues:"
+
 	if [[ $issues != '0' ]]; then
 
-		issues_baseline=$(grep "ISPD23 -- Innovus: Placement and/or routing issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues placement and/or routing issues -- exceeds the allowed margin of $issues_margin issues; see check_design.rpt for more details." >> reports/errors.rpt
 			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see check_design.rpt and check.logv for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues placement and/or routing issues; see check_design.rpt for more details." >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see check_design.rpt and check.logv for more details." >> reports/warnings.rpt
 		fi
-
-		echo "ISPD23 -- Innovus: Placement and/or routing issues: $issues" >> reports/checks_summary.rpt
 	else
-		echo "ISPD23 -- Innovus: Placement and/or routing issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 ## (TODO) deactivated for now
 #
@@ -1228,59 +1259,65 @@ parse_design_checks() {
 ## Number of Receiver Output Peak violations (VH + VL) =  0
 ## Number of total problem noise nets =  12
 #
-#	issues=$(grep "Number of DC tolerance violations" reports/noise.rpt | awk '{print $10}')
+#	issues=$(grep "Number of DC tolerance violations" reports/noise.rpt | awk '{print $NF}')
+#	string="Innovus: DC tolerance issues:"
+#
 #	if [[ $issues != '0' ]]; then
 #
-#		issues_baseline=$(grep "ISPD23 -- Innovus: DC tolerance issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+#		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 #
 #		if (( issues > (issues_baseline + issues_margin) )); then
 #
-#			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DC tolerance issues -- exceeds the allowed margin of $issues_margin issues; see noise.rpt for more details." >> reports/errors.rpt
 #			errors=1
+#			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see noise.rpt for more details." >> reports/errors.rpt
 #		else
-#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DC tolerance issues; see noise.rpt for more details." >> reports/warnings.rpt
+#			echo "ISPD23 -- WARNING: $string $issues -- see noise.rpt for more details." >> reports/warnings.rpt
 #		fi
-#
-#		echo "ISPD23 -- Innovus: DC tolerance issues: $issues" >> reports/checks_summary.rpt
 #	else
-#		echo "ISPD23 -- Innovus: DC tolerance issues: 0" >> reports/checks_summary.rpt
+#		issues=0
 #	fi
 #
-#	issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $11}')
+#	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
+#
+#	issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $NF}')
+#	string="Innovus: Receiver output peak issues:"
+#
 #	if [[ $issues != '0' ]]; then
 #
-#		issues_baseline=$(grep "ISPD23 -- Innovus: Receiver output peak issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+#		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 #
 #		if (( issues > (issues_baseline + issues_margin) )); then
 #
-#			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues receiver output peak issues -- exceeds the allowed margin of $issues_margin issues; see noise.rpt for more details." >> reports/errors.rpt
 #			errors=1
+#			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see noise.rpt for more details." >> reports/errors.rpt
 #		else
-#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues receiver output peak issues; see noise.rpt for more details." >> reports/warnings.rpt
+#			echo "ISPD23 -- WARNING: $string $issues -- see noise.rpt for more details." >> reports/warnings.rpt
 #		fi
-#
-#		echo "ISPD23 -- Innovus: Receiver output peak issues: $issues" >> reports/checks_summary.rpt
 #	else
-#		echo "ISPD23 -- Innovus: Receiver output peak issues: 0" >> reports/checks_summary.rpt
+#		issues=0
 #	fi
 #
-#	issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $8}')
+#	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
+#
+#	issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $NF}')
+#	string="Innovus: Noise net issues:"
+#
 #	if [[ $issues != '0' ]]; then
 #
-#		issues_baseline=$(grep "ISPD23 -- Innovus: Noise net issues:" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+#		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 #
 #		if (( issues > (issues_baseline + issues_margin) )); then
 #
-#			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues noise net issues -- exceeds the allowed margin of $issues_margin issues; see noise.rpt for more details." >> reports/errors.rpt
 #			errors=1
+#			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see noise.rpt for more details." >> reports/errors.rpt
 #		else
-#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues noise net issues; see noise.rpt for more details." >> reports/warnings.rpt
+#			echo "ISPD23 -- WARNING: $string $issues -- see noise.rpt for more details." >> reports/warnings.rpt
 #		fi
-#
-#		echo "ISPD23 -- Innovus: Noise net issues: $issues" >> reports/checks_summary.rpt
 #	else
-#		echo "ISPD23 -- Innovus: Noise net issues: 0" >> reports/checks_summary.rpt
+#		issues=0
 #	fi
+#
+#	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
 
 	# DRC routing issues; check *.geom.rpt for "Total Violations"
 	#
@@ -1289,16 +1326,19 @@ parse_design_checks() {
 # Example:
 #  Total Violations : 2 Viols.
 # NOTE such line is only present if errors/issues found at all
+
 	issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $4}')
+	string="Innovus: DRC issues:"
+
 	if [[ $issues != "" ]]; then
 
-		echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> reports/errors.rpt
-		echo "ISPD23 -- Innovus: DRC issues: $issues" >> reports/checks_summary.rpt
-
 		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see *.geom.rpt for more details." >> reports/errors.rpt
 	else
-		echo "ISPD23 -- Innovus: DRC issues: 0" >> reports/checks_summary.rpt
+		issues=0
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 	# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
 	#
@@ -1314,16 +1354,17 @@ parse_design_checks() {
 #    Group : reg2out   16.703  0.000     0  
 #    Group : in2reg   151.422    0.0     0  
 #    Group : reg2reg  149.277    0.0     0  
-	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $6}' | awk 'NR==1')
-	if [[ $issues != "0" ]]; then
 
-		echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for setup; see timing.rpt for more details." >> reports/errors.rpt
-		echo "ISPD23 -- Innovus: Timing issues for setup: $issues" >> reports/checks_summary.rpt
+	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==1')
+	string="Innovus: Timing issues for setup:"
+
+	if [[ $issues != '0' ]]; then
 
 		errors=1
-	else
-		echo "ISPD23 -- Innovus: Timing issues for setup: 0" >> reports/checks_summary.rpt
+		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 	# hold 
 # Example:
@@ -1334,16 +1375,17 @@ parse_design_checks() {
 #    Group : reg2out  305.300  0.000     0  
 #    Group : in2reg    17.732    0.0     0  
 #    Group : reg2reg  188.440    0.0     0  
-	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $6}' | awk 'NR==2')
-	if [[ $issues != "0" ]]; then
 
-		echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for hold; see timing.rpt for more details." >> reports/errors.rpt
-		echo "ISPD23 -- Innovus: Timing issues for hold: $issues" >> reports/checks_summary.rpt
+	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==2')
+	string="Innovus: Timing issues for hold:"
+
+	if [[ $issues != '0' ]]; then
 
 		errors=1
-	else
-		echo "ISPD23 -- Innovus: Timing issues for hold: 0" >> reports/checks_summary.rpt
+		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
 	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 	#
 	# evaluate criticality of issues
