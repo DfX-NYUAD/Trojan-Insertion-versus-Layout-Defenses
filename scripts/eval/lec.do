@@ -25,7 +25,7 @@ analyze retiming
 // Map key points automatically
 map key points
 
-// NOTE on comparing of assets
+// NOTE INTERNAL ONLY: On comparing of assets
 //
 // Option: after auto-map, add assets explicitly as points -- but, works only for DFFs for cell assets, not
 //  combinational ones.	And, DFFs are already added automatically, at least for those layouts I've tried; not sure
@@ -72,7 +72,7 @@ echo >> reports/check_equivalence.rpt
 report unmapped points >> reports/check_equivalence.rpt
 echo >> reports/check_equivalence.rpt
 report compare data >> reports/check_equivalence.rpt
-// NOTE redundant report but helps for parsing
+// NOTE redundant but helps for internal parsing
 report unmapped points > reports/check_equivalence.rpt.unmapped
 
 // mark done; exit

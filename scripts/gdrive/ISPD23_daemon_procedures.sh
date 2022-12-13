@@ -410,7 +410,7 @@ check_eval() {
 							errors=$(grep -m 1000 -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
 							if [[ $errors != "" ]]; then
 
-								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for Innovus design check. Trying to kill process ..."
+								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for Innovus design checks. Trying to kill process ..."
 
 								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- $errors" >> reports/errors.rpt
 
@@ -432,7 +432,7 @@ check_eval() {
 									break
 								fi
 
-								echo -e "\nISPD23 -- 2)  $id_run:  Innovus design check got interrupted. Abort processing ..."
+								echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks got interrupted. Abort processing ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- INTERRUPT" >> reports/errors.rpt
 
 								date > FAILED.design_checks
@@ -481,7 +481,7 @@ check_eval() {
 							if [[ $errors != "" ]]; then
 
 								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
-								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for LEC design check. Trying to kill process ..."
+								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for LEC design checks. Trying to kill process ..."
 
 								echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> reports/errors.rpt
 
@@ -503,7 +503,7 @@ check_eval() {
 									break
 								fi
 
-								echo -e "\nISPD23 -- 2)  $id_run:  LEC design check got interrupted. Abort processing ..."
+								echo -e "\nISPD23 -- 2)  $id_run:  LEC design checks got interrupted. Abort processing ..."
 								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> reports/errors.rpt
 
 								date > FAILED.lec
