@@ -1311,7 +1311,7 @@ start_eval() {
 				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
 				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
 
-				text="The processing of your latest submission has started. You will receive another email once results are ready\n\nMD5 and name of files processed are as follows:\n"
+				text="The processing of your latest submission has started. You will receive another email once results are ready.\n\nNote: you have currently $count_parallel_runs run(s) ongoing and would be allowed to start $((max_parallel_runs - $count_parallel_runs)) more concurrent run(s) -- you can upload as many submissions as you like, but start of processing is subject to these run limits.\n\nMD5 hash and name of files processed in this latest submission are as follows:\n"
 
 				# NOTE cd to the directory such that paths are not revealed/included into email, only filenames
 				cd $downloads_folder/$folder > /dev/null
