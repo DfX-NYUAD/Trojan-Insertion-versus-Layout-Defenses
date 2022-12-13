@@ -14,6 +14,8 @@ check_interval="60"
 max_parallel_runs="6"
 ## max uploads allowed to be started in parallel; based on experience of load behaviour w/ Google drive
 max_parallel_uploads="10"
+## margin/tolerance for soft constraints to be classified as errors
+issues_margin="10"
 
 ## folders
 ##
