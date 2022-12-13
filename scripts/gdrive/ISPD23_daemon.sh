@@ -55,8 +55,11 @@ innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as error though for design checks
 # NOTE 'IMPPP' errors are related to the check_design command, which is no reason to kill; should be reported as error though for design checks
-# NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain keywords like ERROR etc
+# NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked
+# since comments can contain keywords like ERROR etc -- could be dropped now that CDS_STYLUS_SOURCE_VERBOSE=0 is used
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file"
+# NOTE use to disable verbose copying of script commands and comments into log file
+export CDS_STYLUS_SOURCE_VERBOSE=0
 
 ## LEC
 ##

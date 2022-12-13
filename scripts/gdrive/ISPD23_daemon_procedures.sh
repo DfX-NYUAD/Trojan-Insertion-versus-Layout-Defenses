@@ -600,19 +600,16 @@ check_eval() {
 				# NOTE only mute regular stdout, but keep stderr
 				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
 
-#				# NOTE deprecated
-#				# also include lec.log
-#				zip $uploads_folder/reports.zip lec.log > /dev/null
-
 				# also include detailed timing reports
+				# NOTE only mute regular stdout, but keep stderr
 				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
 
-				# (TODO) only for dev tree, we should also upload log files
+				# also share log files
 				# NOTE only mute regular stdout, but keep stderr
 				zip $uploads_folder/logs.zip *.log* > /dev/null
 
 #				# NOTE deprecated
-#				## put processed files into uploads folder
+#				## put processed files again into uploads folder
 #				echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 #				mv processed_files.zip $uploads_folder/ #2> /dev/null
 
@@ -1341,6 +1338,7 @@ start_eval() {
 					md5sum $file >> processed_files_MD5.rpt
 
 #					# NOTE deprecated
+#					# pack processed files again, to be shared again to teams for double-checking
 #					# NOTE only mute regular stdout, but keep stderr
 #					zip processed_files.zip $file > /dev/null
 				done
