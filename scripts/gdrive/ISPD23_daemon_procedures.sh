@@ -891,6 +891,7 @@ link_work_dir() {
 	return $errors
 }
 
+# TODO declare any other issues as error as well the moment its value exceeds (baseline + 10)
 parse_lec_checks() {
 
 	errors=0
@@ -929,6 +930,8 @@ parse_lec_checks() {
 	#
 	# unreachable issues
 	#
+	## NOTE failure on those considered as error/constraint violation
+	#
 # NOTE such line is only present if errors/issues found at all
 # NOTE multiple, differently formated occurrence of "Unreachable" -- use that from "report unmapped points" command, at end of related rpt file
 #
@@ -943,8 +946,10 @@ parse_lec_checks() {
 	issues=$(tail -n 2 reports/check_equivalence.rpt.unmapped | grep "Unreachable" | awk '{print $NF}')
 	if [[ $issues != "" ]]; then
 
-		echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unreachable points issues; see check_equivalence.rpt for more details." >> reports/warnings.rpt
+		echo "ISPD23 -- ERROR: LEC design checks failure -- $issues unreachable points issues; see check_equivalence.rpt for more details." >> reports/errors.rpt
 		echo "ISPD23 -- LEC: Unreachable points issues: $issues" >> reports/checks_summary.rpt
+
+		errors=1
 	else
 		echo "ISPD23 -- LEC: Unreachable points issues: 0" >> reports/checks_summary.rpt
 	fi
@@ -1068,7 +1073,6 @@ parse_lec_checks() {
 	#
 	# evaluate criticality of issues
 	#
-# (TODO) declare any other issues aside from non-eq as errors as well?
 	if [[ $errors == 1 ]]; then
 
 		echo -e "\nISPD23 -- 2)  $id_run:  Some critical LEC design check(s) failed."
@@ -1083,6 +1087,7 @@ parse_lec_checks() {
 	fi
 }
 
+# TODO declare any other issues as error as well the moment its value exceeds (baseline + 10)
 parse_design_checks() {
 
 	errors=0
@@ -1238,7 +1243,6 @@ parse_design_checks() {
 	#
 	# evaluate criticality of issues
 	#
-# (TODO) declare any other issues aside from DRC, timing as errors as well?
 	if [[ $errors == 1 ]]; then
 
 		echo -e "\nISPD23 -- 2)  $id_run:  Some critical Innovus design check(s) failed."
