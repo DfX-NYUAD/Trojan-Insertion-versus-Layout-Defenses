@@ -2,8 +2,8 @@
 
 while true; do
 
-	# kill any remaining daemon
-	killall ISPD23_daemon.sh 2> /dev/null
+#	# kill any remaining daemon
+#	killall ISPD23_daemon.sh 2> /dev/null
 
 	# move latest log (from prior run) to the back of set of log files
 	logs=$(ls -t ISPD23.log* 2> /dev/null | head -n 2 | tail -n 1)
