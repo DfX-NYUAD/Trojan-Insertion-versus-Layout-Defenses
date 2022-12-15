@@ -64,7 +64,7 @@ initialize() {
 
 	while read -r a b; do
 		google_team_folders[$a]=$b
-	# NOTE use this for testing, to work on _test folders only
+	# NOTE use this for testing, to work on *_test* folders only
 	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and (name contains '_test')" | awk '{print $1" "$2}')
 	## NOTE use this for actual runs
 	#done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and not (name contains '_test')" | awk '{print $1" "$2}')
@@ -438,7 +438,7 @@ check_eval() {
 							if [[ -e FAILED.lec_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, LEC design checks failed. Also abort Innovus design checks ..."
-								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- LEC design checks failure" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to LEC design checks failure" >> reports/errors.rpt
 
 								errors=1
 							fi
@@ -527,7 +527,7 @@ check_eval() {
 							if [[ -e FAILED.inv_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus design checks failed. Also abort LEC design checks ..."
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- Innovus design checks failure" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to Innovus design checks failure" >> reports/errors.rpt
 
 								errors=1
 							fi
