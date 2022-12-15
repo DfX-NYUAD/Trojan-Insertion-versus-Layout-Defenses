@@ -384,9 +384,9 @@ check_eval() {
 					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
 				 	# NOTE ignore errors for cat, in case PID file not existing yet; for ps, ignore
 					# related file errors and others errors and also drop output, just keep status/exit code
-					running=$(ps --pid $(cat PID.monitor.design_checks 2> /dev/null) > /dev/null 2>&1; echo $?)
+					running=$(ps --pid $(cat PID.monitor.inv_checks 2> /dev/null) > /dev/null 2>&1; echo $?)
 					if [[ $running != 0 ]]; then
-						echo $$ > PID.monitor.design_checks
+						echo $$ > PID.monitor.inv_checks
 					else
 						exit 2
 					fi
@@ -400,42 +400,61 @@ check_eval() {
 
 					while true; do
 
-						if [[ -e DONE.design_checks ]]; then
+						if [[ -e DONE.inv_checks ]]; then
 							break
 						else
-							# check for any errors; if found, try to kill and return
-							#
-							# NOTE limit to 1k errors since tools may flood log files w/
-							# INTERRUPT messages etc, which would then stall grep
-							errors=$(grep -m 1000 -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
-							if [[ $errors != "" ]]; then
+							errors=0
 
-								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for Innovus design checks. Trying to kill process ..."
+							# check for any errors
+							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
+							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
+							if [[ $errors_run != "" ]]; then
 
-								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- $errors" >> reports/errors.rpt
+								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
+								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for Innovus design checks."
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- $errors_run" >> reports/errors.rpt
 
-								cat PID.design_checks | xargs kill #2> /dev/null
-
-								date > FAILED.design_checks
-								exit 1
+								errors=1
 							fi
 						
-							# also check for interrupts; if triggered, abort processing
-							#
-							errors_interrupt=$(ps --pid $(cat PID.design_checks) > /dev/null; echo $?)
+							# also check for interrupts
+							errors_interrupt=$(ps --pid $(cat PID.inv_checks) > /dev/null; echo $?)
 							if [[ $errors_interrupt != 0 ]]; then
 
 								# NOTE also check again for DONE flag file, to avoid race condition where
 								# process just finished but DONE did not write out yet
 								sleep 1s
-								if [[ -e DONE.design_checks ]]; then
+								if [[ -e DONE.inv_checks ]]; then
 									break
 								fi
 
-								echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks got interrupted. Abort processing ..."
+								echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks got interrupted."
 								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- INTERRUPT" >> reports/errors.rpt
 
-								date > FAILED.design_checks
+								errors=1
+							fi
+
+							# also check process state/evaluation outcome of other process(es)
+							if [[ -e FAILED.lec_checks ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, LEC design checks failed. Also abort Innovus design checks ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- LEC design checks failure" >> reports/errors.rpt
+
+								errors=1
+							fi
+
+							# for any errors, try killing the process and mark as failed
+							if [[ $errors != '0' ]]; then
+
+								# NOTE not all cases/conditions require killing, but for simplicity this is unified here; trying again to kill wont hurt
+								cat PID.inv_checks | xargs kill 2> /dev/null
+								date > FAILED.inv_checks
+
+								# NOTE as this important eval process failed, the other eval process(es) should be killed as well
+								# NOTE not all cases/conditions require killing again, but for simplicity this is unified here; trying to kill again wont hurt
+								# NOTE do not set FAILED file for the other process(es) here; this is covered by the other monitoring subshell(s)
+								cat PID.lec_checks | xargs kill 2> /dev/null
+
 								exit 1
 							fi
 						fi
@@ -446,7 +465,7 @@ check_eval() {
 					## parse rpt, log files for failures
 					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
 					## set/mark status via PASSED/FAILED files
-					parse_design_checks
+					parse_inv_checks
 				) &
 
 				# LEC design checks
@@ -454,9 +473,9 @@ check_eval() {
 					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
 				 	# NOTE ignore errors for cat, in case PID file not existing yet; for ps, ignore
 					# related file errors and others errors and also drop output, just keep status/exit code
-					running=$(ps --pid $(cat PID.monitor.lec 2> /dev/null) > /dev/null 2>&1; echo $?)
+					running=$(ps --pid $(cat PID.monitor.lec_checks 2> /dev/null) > /dev/null 2>&1; echo $?)
 					if [[ $running != 0 ]]; then
-						echo $$ > PID.monitor.lec
+						echo $$ > PID.monitor.lec_checks
 					else
 						exit 2
 					fi
@@ -470,43 +489,61 @@ check_eval() {
 
 					while true; do
 
-						if [[ -e DONE.lec ]]; then
+						if [[ -e DONE.lec_checks ]]; then
 							break
 						else
-							# check for any errors; if found, try to kill and return
-							#
-							# NOTE limit to 1k errors since tools may flood log files w/
-							# INTERRUPT messages etc, which would then stall grep
-							errors=$(grep -m 1000 -E "$lec_errors_for_checking" lec.log)
-							if [[ $errors != "" ]]; then
+							errors=0
+
+							# check for any errors
+							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
+							errors_run=$(grep -m 1000 -E "$lec_errors_for_checking" lec.log)
+							if [[ $errors_run != "" ]]; then
 
 								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
-								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for LEC design checks. Trying to kill process ..."
+								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for LEC design checks."
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors_run" >> reports/errors.rpt
 
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> reports/errors.rpt
-
-								cat PID.lec | xargs kill #2> /dev/null
-
-								date > FAILED.lec
-								exit 1
+								errors=1
 							fi
 						
-							# also check for interrupts; if triggered, abort processing
-							#
-							errors_interrupt=$(ps --pid $(cat PID.lec) > /dev/null; echo $?)
+							# also check for interrupts
+							errors_interrupt=$(ps --pid $(cat PID.lec_checks) > /dev/null; echo $?)
 							if [[ $errors_interrupt != 0 ]]; then
 
 								# NOTE also check again for DONE flag file, to avoid race condition where
 								# process just finished but DONE did not write out yet
 								sleep 1s
-								if [[ -e DONE.lec ]]; then
+								if [[ -e DONE.lec_checks ]]; then
 									break
 								fi
 
-								echo -e "\nISPD23 -- 2)  $id_run:  LEC design checks got interrupted. Abort processing ..."
+								echo -e "\nISPD23 -- 2)  $id_run:  LEC design checks got interrupted."
 								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> reports/errors.rpt
 
-								date > FAILED.lec
+								errors=1
+							fi
+
+							# also check process state/evaluation outcome of other process(es)
+							if [[ -e FAILED.inv_checks ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus design checks failed. Also abort LEC design checks ..."
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- Innovus design checks failure" >> reports/errors.rpt
+
+								errors=1
+							fi
+
+							# for any errors, try killing the process and mark as failed
+							if [[ $errors != '0' ]]; then
+
+								# NOTE not all cases/conditions require killing, but for simplicity this is unified here; trying again to kill wont hurt
+								cat PID.lec_checks | xargs kill 2> /dev/null
+								date > FAILED.lec_checks
+
+								# NOTE as this important eval process failed, the other eval process(es) should be killed as well
+								# NOTE not all cases/conditions require killing again, but for simplicity this is unified here; trying to kill again wont hurt
+								# NOTE do not set FAILED file for the other process(es) here; this is covered by the other monitoring subshell(s)
+								cat PID.inv_checks | xargs kill 2> /dev/null
+
 								exit 1
 							fi
 						fi
@@ -541,7 +578,7 @@ check_eval() {
 					status[design_checks]=1
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: done"
 
-				elif [[ -e FAILED.design_checks ]]; then
+				elif [[ -e FAILED.inv_checks ]]; then
 					status[design_checks]=2
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: failed"
 
@@ -555,11 +592,11 @@ check_eval() {
 				fi
 
 				## LEC design checks
-				if [[ -e PASSED.lec ]]; then
+				if [[ -e PASSED.lec_checks ]]; then
 					status[lec]=1
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: done"
 
-				elif [[ -e FAILED.lec ]]; then
+				elif [[ -e FAILED.lec_checks ]]; then
 					status[lec]=2
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: failed"
 
@@ -1153,17 +1190,17 @@ parse_lec_checks() {
 
 		echo -e "\nISPD23 -- 2)  $id_run:  Some critical LEC design check(s) failed."
 
-		date > FAILED.lec
+		date > FAILED.lec_checks
 		exit 1
 	else
 		echo -e "\nISPD23 -- 2)  $id_run:  LEC design checks done; all passed."
 
-		date > PASSED.lec
+		date > PASSED.lec_checks
 		exit 0
 	fi
 }
 
-parse_design_checks() {
+parse_inv_checks() {
 
 	errors=0
 
@@ -1394,7 +1431,7 @@ parse_design_checks() {
 
 		echo -e "\nISPD23 -- 2)  $id_run:  Some critical Innovus design check(s) failed."
 
-		date > FAILED.design_checks
+		date > FAILED.inv_checks
 		exit 1
 	else
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks done; all passed."
@@ -1542,17 +1579,17 @@ start_eval() {
 				echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
 #				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
 #				note for the related syntax
-#				bash -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
+#				bash -c 'echo $$ > PID.lec_checks; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
 				lec_64 -nogui -xl -dofile scripts/lec.do > lec.log &
-				echo $! > PID.lec
+				echo $! > PID.lec_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
 #				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
 #				note for the related syntax
-#				bash -c 'echo $$ > PID.design_checks; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
+#				bash -c 'echo $$ > PID.inv_checks; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 				innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null &
-				echo $! > PID.design_checks
+				echo $! > PID.inv_checks
 
 				# 5) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null

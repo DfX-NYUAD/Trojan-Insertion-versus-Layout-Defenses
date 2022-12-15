@@ -76,5 +76,5 @@ report compare data >> reports/check_equivalence.rpt
 report unmapped points > reports/check_equivalence.rpt.unmapped
 
 // mark done; exit
-date > DONE.lec
+date > DONE.lec_checks
 exit -force
