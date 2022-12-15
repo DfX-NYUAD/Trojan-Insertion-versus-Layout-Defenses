@@ -8,6 +8,50 @@ google_check_fix_json() {
 	sed 's/}}/}/g' -i $google_json_file
 }
 
+send_email() {
+	local text=$1
+	local subject=$2
+	local emails=$3
+
+	# unroll emails explicitly; use of ${emails[@]} won't work within larger string
+	local emails_string=""
+	for email in $emails; do
+		emails_string="$emails_string $email"
+	done
+
+	# NOTE suppress warnings for certificate issue not recognized (won't fail email sending, more like a warning)
+	# but keep any others
+	echo -e "$text" | mailx -A ispd23contest -s "$subject" $emails_string 2>&1 | grep -v "Error in certificate: Peer's certificate issuer is not recognized."
+}
+
+# https://unix.stackexchange.com/a/415450
+progress_bar() {
+	local w=1 p=$1;  shift
+	# create a string of spaces, then change them to dots
+	printf -v dots "%*s" "$(( $p * $w ))" ""; dots=${dots// /.}
+	# print those dots on a fixed-width space plus the percentage etc. 
+	printf "\r\e[K|%-*s| %3d %% %s" "$w" "$dots" "$p" "$*" #>&2 ## use to write to stderr
+}
+
+sleeping() {
+
+	local sleep_interval=$1
+
+	# init; minor delay to allow other regular logs to complete, so as to avoid intermixing of sleeping and regular logs
+	sleep 1s
+	progress_bar 0
+
+	for ((i=0; i<$sleep_interval; i++)); do
+
+		sleep 1s
+
+		progress_bar $(( 100 * (i+1)/sleep_interval ))
+	done
+
+	# final newline to finish progress bar
+	echo ""
+}
+
 initialize() {
 	
 	## query drive for root folder, extract columns 1 and 2 from response
@@ -27,7 +71,7 @@ initialize() {
 	
 	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} team folders:"
 	for team in "${google_team_folders[@]}"; do
-		echo "ISPD23 -- 0)    $team"
+		echo "ISPD23 -- 0)    \"$team\""
 	done
 	echo "ISPD23 -- 0)"
 	
@@ -47,7 +91,7 @@ initialize() {
 	
 		for benchmark in $benchmarks; do
 	
-			id_internal="$team:$benchmark"
+			id_internal="$team --- $benchmark"
 
 			# obtain drive references per benchmark
 			google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
@@ -105,49 +149,6 @@ initialize() {
 	done
 }
 
-send_email() {
-	local text=$1
-	local subject=$2
-	local emails=$3
-
-	# unroll emails explicitly; use of ${emails[@]} won't work within larger string
-	local emails_string=""
-	for email in $emails; do
-		emails_string="$emails_string $email"
-	done
-
-# TODO setup on new dfx server for new account; ~/.mailrc and ~/.certs
-#	ssh dfx "echo '$text' | mailx -A gmail -s '$subject' $emails_string" #> /dev/null 2>&1
-}
-
-# https://unix.stackexchange.com/a/415450
-progress_bar() {
-	local w=1 p=$1;  shift
-	# create a string of spaces, then change them to dots
-	printf -v dots "%*s" "$(( $p * $w ))" ""; dots=${dots// /.}
-	# print those dots on a fixed-width space plus the percentage etc. 
-	printf "\r\e[K|%-*s| %3d %% %s" "$w" "$dots" "$p" "$*" #>&2 ## use to write to stderr
-}
-
-sleeping() {
-
-	local sleep_interval=$1
-
-	# init; minor delay to allow other regular logs to complete, so as to avoid intermixing of sleeping and regular logs
-	sleep 1s
-	progress_bar 0
-
-	for ((i=0; i<$sleep_interval; i++)); do
-
-		sleep 1s
-
-		progress_bar $(( 100 * (i+1)/sleep_interval ))
-	done
-
-	# final newline to finish progress bar
-	echo ""
-}
-
 google_downloads() {
 
 	## check and fix, if needed, the json file for current session in json file
@@ -164,7 +165,7 @@ google_downloads() {
 		for benchmark in $benchmarks; do
 
 		(
-			id_internal="$team:$benchmark"
+			id_internal="$team --- $benchmark"
 			google_benchmark_folder=${google_benchmark_folders[$id_internal]}
 
 			## NOTE relatively verbose; could be turned off
@@ -182,7 +183,7 @@ google_downloads() {
 				google_folder_files[$a]=$b
 				google_folder_files_type[$a]=$c
 			# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
-				## ISPD23 -- 1)   Download new submission file "to" (Google file ID "Failed") into dedicated folder
+				## ISPD23 -- 1)  Download new submission file "to" (Google file ID "Failed") into dedicated folder
 				## Failed to get file: googleapi: Error 404: File not found: Failed., notFound
 				##
 				## ISPD23_daemon_procedures.sh: line 168: google_folder_files[$a]: bad array subscript
@@ -248,7 +249,7 @@ google_downloads() {
 					#echo "ISPD23 -- existing downloads_folder_: $downloads_folder_"
 				fi
 
-				echo "ISPD23 -- 1)   Download new submission file \"$actual_file_name\" (Google file ID \"$file\") into dedicated folder \"$downloads_folder_\" ..."
+				echo "ISPD23 -- 1)  Download new submission file \"$actual_file_name\" (Google file ID \"$file\") into dedicated folder \"$downloads_folder_\" ..."
 				./gdrive download -f --path $downloads_folder_ $file #> /dev/null 2>&1
 
 				# memorize to not download again, but only if the download succeeded
@@ -276,6 +277,7 @@ google_downloads() {
 		done
 	done
 
+	# wait for all parallel runs to finish
 	wait
 }
 
@@ -292,9 +294,7 @@ google_uploads() {
 		for benchmark in $benchmarks; do
 
 			team=${google_team_folders[$google_team_folder]}
-
-			id_internal="$team:$benchmark"
-
+			id_internal="$team --- $benchmark"
 			uploads_folder="$teams_root_folder/$team/$benchmark/uploads"
 
 			# handle all the uploads folders that might have accumulated through batch processing
@@ -305,23 +305,13 @@ google_uploads() {
 					break 3
 				fi
 
-				## 0) only proceed for non-empty folder
-				if [[ $(ls $uploads_folder/$folder/ | wc -l) == '0' ]]; then
-
-					continue
-
-					# NOTE don't delete here any empty upload folders; should still be under processing
-				fi
-
 				## 1) count parallel uploads (i.e., uploads started within the same cycle)
 				((count_parallel_uploads = count_parallel_uploads + 1))
 
-			# begin parallel processing
+				## 2) begin parallel uploads
 
 				# NOTE init vars once, before parallel runs start
-
 				google_benchmark_folder=${google_benchmark_folders[$id_internal]}
-
 				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
 				team_=$(printf "%-"$teams_string_max_length"s" $team)
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
@@ -332,7 +322,7 @@ google_uploads() {
 				## cleanup locally, but only if upload succeeded
 				if [[ $? -ne 0 ]]; then
 					# NOTE use exit, not contine, as we are at the main level in a subshell here now
-					exit
+					exit 1
 				fi
 
 				rm -rf $uploads_folder/$folder
@@ -343,9 +333,10 @@ google_uploads() {
 				# NOTE errors could be suppressed here, but they can also just be sent out. In case it fails, these might be helpful and can be checked from the sent mailbox
 				#google_uploaded_folder=$(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and name = '$folder'" 2> /dev/null | awk '{print $1}')
 				google_uploaded_folder=$(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and name = '$folder'" | awk '{print $1}')
-#TODO use $id_run for email subject and text
-				text="The evaluation results for your latest $round round submission, benchmark $benchmark, are available in your corresponding Google Drive folder, within subfolder \"$folder\".\n\nDirect link: https://drive.google.com/drive/folders/$google_uploaded_folder"
-				subject="[ISPD23] Results ready for $round round, benchmark $benchmark, run $folder"
+
+				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
+				subject="Re: [ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
+				text="The results for your latest submission are ready in your corresponding Google Drive folder.\n\nDirect link: https://drive.google.com/drive/folders/$google_uploaded_folder"
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 			) &
@@ -354,6 +345,7 @@ google_uploads() {
 		done
 	done
 
+	# wait for all parallel runs to finish
 	wait
 }
 
@@ -375,79 +367,213 @@ check_eval() {
 				team_=$(printf "%-"$teams_string_max_length"s" $team)
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
 
-				echo "ISPD23 -- 3)"
-				echo "ISPD23 -- 3)  $id_run: Checking work folder \"$work_folder/$folder\""
-				# (related uploads folder: \"$uploads_folder\") ..."
-
-				## create related upload folder, w/ same timestamp as work and download folder
-				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
-
-				# NOTE suppress warnings for folder already existing, but keep any others
-				mkdir $uploads_folder 2>&1 | grep -v "File exists"
-
-				## enter work folder silently
+				## 0) enter work folder silently
 				cd $work_folder/$folder > /dev/null
 
-				## check status of processes
+				echo "ISPD23 -- 3)"
+				echo "ISPD23 -- 3)  $id_run: Checking work folder \"$work_folder/$folder\""
+
+				## 0) start parallel subshells to continuously monitor the actual evaluation processes
+				#
+				# NOTE we need this double subshell to avoid stalling further processing; otherwise, I
+				# think, the two inner subshells would be locking into the next wait command, even
+				# from any other procedure
+			(
+				# Innovus design checks
+				(
+					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
+				 	# NOTE ignore errors for cat, in case PID file not existing yet; for ps, ignore
+					# related file errors and others errors and also drop output, just keep status/exit code
+					running=$(ps --pid $(cat PID.monitor.design_checks 2> /dev/null) > /dev/null 2>&1; echo $?)
+					if [[ $running != 0 ]]; then
+						echo $$ > PID.monitor.design_checks
+					else
+						exit 2
+					fi
+
+#					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for Innovus design checks"
+
+					# sleep a little to avoid immediate but useless errors concerning log file not
+					# found; is only relevant for the very first run just following right after
+					# starting the process, but should still be employed here as fail-safe measure
+					sleep 1s
+
+					while true; do
+
+						if [[ -e DONE.design_checks ]]; then
+							break
+						else
+							# check for any errors; if found, try to kill and return
+							#
+							# NOTE limit to 1k errors since tools may flood log files w/
+							# INTERRUPT messages etc, which would then stall grep
+							errors=$(grep -m 1000 -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
+							if [[ $errors != "" ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for Innovus design checks. Trying to kill process ..."
+
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- $errors" >> reports/errors.rpt
+
+								cat PID.design_checks | xargs kill #2> /dev/null
+
+								date > FAILED.design_checks
+								exit 1
+							fi
+						
+							# also check for interrupts; if triggered, abort processing
+							#
+							errors_interrupt=$(ps --pid $(cat PID.design_checks) > /dev/null; echo $?)
+							if [[ $errors_interrupt != 0 ]]; then
+
+								# NOTE also check again for DONE flag file, to avoid race condition where
+								# process just finished but DONE did not write out yet
+								sleep 1s
+								if [[ -e DONE.design_checks ]]; then
+									break
+								fi
+
+								echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks got interrupted. Abort processing ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- INTERRUPT" >> reports/errors.rpt
+
+								date > FAILED.design_checks
+								exit 1
+							fi
+						fi
+
+						sleep 1s
+					done
+
+					## parse rpt, log files for failures
+					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
+					## set/mark status via PASSED/FAILED files
+					parse_design_checks
+				) &
+
+				# LEC design checks
+				(
+					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
+				 	# NOTE ignore errors for cat, in case PID file not existing yet; for ps, ignore
+					# related file errors and others errors and also drop output, just keep status/exit code
+					running=$(ps --pid $(cat PID.monitor.lec 2> /dev/null) > /dev/null 2>&1; echo $?)
+					if [[ $running != 0 ]]; then
+						echo $$ > PID.monitor.lec
+					else
+						exit 2
+					fi
+
+#					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for LEC design checks ..."
+
+					# sleep a little to avoid immediate but useless errors concerning log file not
+					# found; is only relevant for the very first run just following right after
+					# starting the process, but should still be employed here as fail-safe measure
+					sleep 1s
+
+					while true; do
+
+						if [[ -e DONE.lec ]]; then
+							break
+						else
+							# check for any errors; if found, try to kill and return
+							#
+							# NOTE limit to 1k errors since tools may flood log files w/
+							# INTERRUPT messages etc, which would then stall grep
+							errors=$(grep -m 1000 -E "$lec_errors_for_checking" lec.log)
+							if [[ $errors != "" ]]; then
+
+								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
+								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for LEC design checks. Trying to kill process ..."
+
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> reports/errors.rpt
+
+								cat PID.lec | xargs kill #2> /dev/null
+
+								date > FAILED.lec
+								exit 1
+							fi
+						
+							# also check for interrupts; if triggered, abort processing
+							#
+							errors_interrupt=$(ps --pid $(cat PID.lec) > /dev/null; echo $?)
+							if [[ $errors_interrupt != 0 ]]; then
+
+								# NOTE also check again for DONE flag file, to avoid race condition where
+								# process just finished but DONE did not write out yet
+								sleep 1s
+								if [[ -e DONE.lec ]]; then
+									break
+								fi
+
+								echo -e "\nISPD23 -- 2)  $id_run:  LEC design checks got interrupted. Abort processing ..."
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> reports/errors.rpt
+
+								date > FAILED.lec
+								exit 1
+							fi
+						fi
+
+						sleep 1s
+					done
+
+					## parse rpt, log files for failures
+					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
+					## set/mark status via PASSED/FAILED files
+					parse_lec_checks
+				) &
+
+			) &
+
+				## 1) check status of processes
 				#
 				# notation: 0 -- still running; 1 -- done; 2 -- error
 				declare -A status=()
 
-				## exploit eval
-				#
-				if [[ -e DONE.exploit_eval ]]; then
-					echo "ISPD23 -- 3)  $id_run:  Exploitable regions: done"
-					status[exploit_eval]=1
+				# check init steps for fails; does not matter which one failed
+				if [[ -e FAILED.link_work_dir ]]; then
+					status[init]=2
+				elif [[ -e FAILED.check_submission ]]; then
+					status[init]=2
 				else
-					echo "ISPD23 -- 3)  $id_run:  Exploitable regions: still working ..."
-					status[exploit_eval]=0
+					status[init]=1
 				fi
-#				## for dbg only (e.g., manual re-upload of work folders just moved from backup_up to work again)
-#				#status[exploit_eval]=1
-#				#
-#				# also check for any errors; if found, mark to kill and proceed
-#				# note the * for the log files, to make sure to check all log files for iterative runs w/ threshold adapted
-### NOTE suppress warnings for file not existing yet, but keep any others
-##errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -v "No such file or directory" | grep -Ev "$innovus_errors_excluded_for_checking")
-#				errors=$(grep -E "$innovus_errors_for_checking" exploit_eval.log* 2>&1 | grep -Ev "$innovus_errors_excluded_for_checking")
-#				if [[ $errors != "" ]]; then
-#
-#					echo "ISPD23 -- 3)  $id_run:   Exploitable regions: some error occurred for Innovus run ..."
-#					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- $errors" >> reports/errors.rpt
-#
-#					status[exploit_eval]=2
-#				fi
-#				#
-# TODO streamline w/ interrupt handling from basic checks
-#				# NOTE interrupt errors will be triggered in massive numbers, resulting in string allocation errors here after some time -- handle manually
-#				# NOTE handling here is to keep only single error message
-#				# NOTE memorize status in var as to skip log files for zip archive later on
-#				#
-### NOTE suppress warnings for file not existing yet, but keep any others
-##errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1 | grep -v "No such file or directory"; echo $?)
-#				# NOTE check for 0 as successful return code for grep for the INTERRUPT keyword
-#				errors_interrupt=$(grep -q "INTERRUPT" exploit_eval.log* 2>&1; echo $?)
-#				if [[ $errors_interrupt == 0 ]]; then
-#
-#					echo "ISPD23 -- 3)  $id_run:   Exploitable regions: Innovus run got interrupted ..."
-#					echo "ISPD23 -- ERROR: process failed for evaluation of exploitable regions -- INTERRUPT" >> reports/errors.rpt
-#
-#					status[exploit_eval]=2
-#				fi
-			
-				## if there's any error, kill all the processes; only runs w/o any errors should be kept going
-				if [[ ${status[exploit_eval]} == 2 ]]; then
 
-					echo "ISPD23 -- 3)  $id_run:   Kill all processes, as some error occurred, and move on ..."
+				## design checks
+				if [[ -e PASSED.designs_checks ]]; then
+					status[design_checks]=1
+					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: done"
 
-					cat PID.exploit_eval | xargs kill #2> /dev/null 
-					# also memorize that the exploit eval process was killed; required to break exploit_eval.sh inner loop
-					date > KILLED.exploit_eval
+				elif [[ -e FAILED.design_checks ]]; then
+					status[design_checks]=2
+					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: failed"
 
-					cat PID.summarize_assets | xargs kill #2> /dev/null
+				# in case init steps failed, this check is not running at all -- mark as failed but
+				# don't report on status
+				elif [[ ${status[init]} == 2 ]]; then
+					status[design_checks]=2
+				else
+					status[design_checks]=0
+					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: still working ..."
+				fi
 
-				## if no error, and not done yet, then just continue
-				elif ! [[ ${status[exploit_eval]} == 1 ]]; then
+				## LEC design checks
+				if [[ -e PASSED.lec ]]; then
+					status[lec]=1
+					echo "ISPD23 -- 3)  $id_run:  LEC design checks: done"
+
+				elif [[ -e FAILED.lec ]]; then
+					status[lec]=2
+					echo "ISPD23 -- 3)  $id_run:  LEC design checks: failed"
+
+				# in case init steps failed, this check is not running at all -- mark as failed but
+				# don't report on status
+				elif [[ ${status[init]} == 2 ]]; then
+					status[lec]=2
+				else
+					status[lec]=0
+					echo "ISPD23 -- 3)  $id_run:  LEC design checks: still working ..."
+				fi
+
+				## 2) if not done yet (implies no error), then continue, i.e., skip the further processing for now
+				if [[ ${status[design_checks]} == 0 || ${status[lec]} == 0 ]]; then
 					
 					# first return to previous main dir silently
 					cd - > /dev/null
@@ -455,61 +581,52 @@ check_eval() {
 					continue
 				fi
 
-# TODO scripts/design_cost.sh -- here, or in basic checks, or directly in scores.sh
-
 # TODO activate once 1st order sec metrics are done
 #
-#				## compute scores
-#				if ! [[ -e reports/errors.rpt ]]; then
-#					echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
-#				else
-#					# NOTE not really skipping the script itself; scores.sh is called in any case to track the related errors, if any, in errors.rpt as well
-#					echo "ISPD23 -- 3)  $id_run:  Skipping scores, as there were some errors ..."
-#				fi
+#				## 3) compute scores
+#				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
 #				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 #				scripts/scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
 
-				## pack and results files into uploads folder
-				echo "ISPD23 -- 3)  $id_run:  Copying results files to uploads folder \"$uploads_folder\" ..."
+				## 4) create related upload folder, w/ same timestamp as work and download folder
+				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
+				mkdir $uploads_folder
+
+				## 5) pack and results files into uploads folder
+				echo "ISPD23 -- 3)  $id_run:  Packing results files into uploads folder \"$uploads_folder\" ..."
 
 				# -j means to smash reports/ folder; just put files into zip archive directly
 				# include regular rpt files, not others (like, *.rpt.extended files)
 				# NOTE only mute regular stdout, but keep stderr
 				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
-				# also include lec.log
-				zip $uploads_folder/reports.zip lec.log > /dev/null
+
 				# also include detailed timing reports
+				# NOTE only mute regular stdout, but keep stderr
 				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
-				# NOTE only for dev tree, we should also upload log files
+
+				# also share log files
 				# NOTE only mute regular stdout, but keep stderr
 				zip $uploads_folder/logs.zip *.log* > /dev/null
 
 #				# NOTE deprecated
-#				## put processed files into uploads folder
+#				## put processed files again into uploads folder
 #				echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 #				mv processed_files.zip $uploads_folder/ #2> /dev/null
 
-				## backup work dir
+				## 6) backup work dir
 				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
 				mv $work_folder/$folder $backup_work_folder/
 
-				# return to previous main dir silently
+				# return to previous main dir silently; goes together with the final 'cd -' command at the end
 				cd - > /dev/null
 
-				## compress backup
+				# compress backup
 				cd $backup_work_folder > /dev/null
 
-#				# NOTE deprecated; better to keep the log file, but only in zip, do not unpack again
-#				# for interrupts, delete the probably excessively large log files before zipping
-#				if [[ $errors_interrupt == 0 ]]; then
-#				       rm $folder/exploit_eval.log*
-#				       rm $folder/summarize_assets.log*
-#				fi
-
-				# cleanup of rpt files lingering around in main folder
+				# silent cleanup of rpt files lingering around in main folder
 				# NOTE As of now, only a 0-byte power.rpt file occurs here (the proper file is in reports/power.rpt). Not sure why this happens
 				# though. Also, instead of deleting, moving to reports/ would be an option -- but, not for that 0-byte power.rpt file
-				rm $folder/*.rpt
+				rm $folder/*.rpt > /dev/null 2>&1
 
 				# NOTE only mute regular stdout, but keep stderr
 				zip -y -r $folder'.zip' $folder/ > /dev/null #2>&1
@@ -530,27 +647,28 @@ check_eval() {
 
 check_submission() {
 
-	##
-	## check for assets maintained in DEF
-	##
-
-	## NOTE trivial checks for matching of names -- could be easily cheated on, e.g,., by swapping names w/ some less complex assets, or even just putting the asset names in some comment.
-	## However, subsequent LEC run does check for equivalence of all FF assets.
-	## Further, the evaluation scripts would fail if the assets are missing.
-	## So, this here is really only an initial quick check to short-cut further efforts if needed.
-
 	# NOTE id_run is passed through from calling function, start_eval()
-	echo "ISPD23 -- 2)  $id_run:   Quick check whether assets are maintained ..."
-
-	## consider versions of assets fiels w/ extended escape of special chars, so that grep later on can match
-	# NOTE escaping is handled in benchmarks/_release/scripts/4_mod_files
-	readarray -t design_assets < design.assets
-	readarray -t escaped_design_assets < design.assets.escaped
+	echo "ISPD23 -- 2)  $id_run:  Basic checks ..."
 
 	status=0
 
+	##
+	## check for assets maintained in DEF
+	##
+	#
+	# NOTE trivial checks for matching of names -- could be easily cheated on, e.g,., by swapping names w/ some less complex assets, or even just putting the asset names in some comment.
+	# However, subsequent LEC design check does check for equivalence of all FF assets.
+	# Further, the evaluation scripts would fail if the assets are missing.
+	# So, this here is really only an initial quick check to short-cut further efforts if needed.
+
 	(
-		error=0
+		echo "ISPD23 -- 2)  $id_run:   Assets check ..."
+
+		## consider versions of assets w/ extended escape of special chars, so that grep later on can match
+		# NOTE escaping is handled in benchmarks/_release/scripts/init.sh
+		readarray -t design_assets < design.assets
+		readarray -t escaped_design_assets < design.assets.escaped
+		errors=0
 
 		for ((i=0; i<${#design_assets[@]}; i++)); do
 			asset=${design_assets[$i]}
@@ -561,36 +679,26 @@ check_submission() {
 
 			if [[ $? == 1 ]]; then
 
-				error=1
+				errors=1
 				
 				echo "ISPD23 -- ERROR: the asset \"$asset\" is not maintained in the DEF." >> reports/errors.rpt
 			fi
 		done
 
-		exit $error
+		if [[ $errors == 0 ]]; then
+			echo "ISPD23 -- 2)  $id_run:   Assets check passed."
+		else
+			echo "ISPD23 -- 2)  $id_run:   Assets check failed."
+		fi
+
+		exit $errors
 	) &
 	pid_assets=$!
 
-	# wait for subshells and memorize their exit code in case it's non-zero
-	## NOTE subshells currently not really needed, as there's only one check conducted here. We used to check also
-	## for net assets in the prior contest.
-	## If any other, early checks should be conducted before designs checkes, they should be added here.
-	wait $pid_assets || status=$?
-
-	if [[ $status != 0 ]]; then
-
-		echo "ISPD23 -- 2)  $id_run:   Some asset(s) is/are missing. Skipping other checks ..."
-
-		return 1
-	else
-		echo "ISPD23 -- 2)  $id_run:   Assets check passed."
-	fi
-
-	# reset status (not needed really as non-zero status would render this code skipped)
-	status=0
-
 # TODO revise checks; currently off: pins, PDN
-
+# TODO should be done as simple scripts, ideally w/o need for loading DEF, or least just loading DEF and then quick
+# checks. Otherwise, long Innovus design checks should be move to related subshells in the start_eval() procedure
+#
 #	##
 #	## pins checks
 #	##
@@ -607,7 +715,6 @@ check_submission() {
 #		if [[ $errors == 0 ]]; then
 #
 #			echo "ISPD23 -- ERROR: For pins design check -- see check_pins.rpt for more details." >> errors.rpt
-#			echo "ISPD23 -- 2)  $id_run:    Some pins design check(s) failed."
 #
 #			exit 1
 #		fi
@@ -623,11 +730,10 @@ check_submission() {
 #	##
 #
 #	(
-# 		# TODO update w/ progress symbol
 #		echo "ISPD23 -- 2)  $id_run:   PDN checks ..."
 #
 #		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#		sh -c 'echo $$ > PID.pg; exec innovus -nowin -files scripts/pg.tcl -log pg > /dev/null' &
+#		bash -c 'echo $$ > PID.pg; exec innovus -nowin -files scripts/pg.tcl -log pg > /dev/null' &
 #
 #		# sleep a little to avoid immediate but useless errors concerning log file not found
 #		sleep 1s
@@ -643,7 +749,7 @@ check_submission() {
 #				errors=$(grep -E "$innovus_errors_for_checking" pg.log* | grep -Ev "$innovus_errors_excluded_for_checking")
 #				if [[ $errors != "" ]]; then
 #
-#					echo "ISPD23 -- 2)  $id_run:   Some error occurred for PDN checks. Killing process ..."
+#					echo "ISPD23 -- 2)  $id_run:   Some error occurred for PDN checks. Trying to kill process ..."
 #
 #					echo "ISPD23 -- ERROR: process failed for PDN design checks -- $errors" >> reports/errors.rpt
 #
@@ -652,7 +758,7 @@ check_submission() {
 #					exit 1
 #				fi
 #
-#				# TODO add checking for INTERRUPT, as in basic checks
+#				# TODO add checking for INTERRUPT, as in design checks
 #			fi
 #
 #			sleep 1s
@@ -667,7 +773,7 @@ check_submission() {
 #		errors=$(grep -q "ERROR: For PG check" reports/errors.rpt; echo $?)
 #		if [[ $errors == 0 ]]; then
 #
-#			echo "ISPD23 -- 2)  $id_run:    Some failure occurred during PDN design checks."
+#			echo "ISPD23 -- 2)  $id_run:   Some failure occurred during PDN design checks."
 #
 #			exit 1
 #		fi
@@ -677,7 +783,7 @@ check_submission() {
 #		if [[ $errors == 0 ]]; then
 #
 #			echo "ISPD23 -- ERROR: For PG check -- see pg_metals_eval.rpt for more details." >> reports/errors.rpt
-#			echo "ISPD23 -- 2)  $id_run:    Some PDN design check(s) failed."
+#			echo "ISPD23 -- 2)  $id_run:   Some PDN design check(s) failed."
 #
 #			exit 1
 #		fi
@@ -688,513 +794,25 @@ check_submission() {
 #	) &
 #	pid_PDN_checks=$!
 
-	##
-	## LEC checks
-	##
-
-	(
-		echo "ISPD23 -- 2)  $id_run:   LEC design checks -- progress symbol: '.' ..."
-
-		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		sh -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
-
-		# sleep a little to avoid immediate but useless errors concerning log file not found
-		sleep 1s
-
-		while true; do
-
-			echo -n "."
-
-			if [[ -e DONE.lec ]]; then
-
-				echo ""
-
-				break
-			else
-				# check for any errors; if found, try to kill and return
-				#
-				errors=$(grep -E "$lec_errors_for_checking" lec.log)
-				if [[ $errors != "" ]]; then
-
-					echo ""
-
-					echo "ISPD23 -- 2)  $id_run:   Some error occurred for LEC run. Killing process ..."
-
-					echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors" >> reports/errors.rpt
-
-					cat PID.lec | xargs kill #2> /dev/null
-
-					exit 1
-				fi
-			
-				# also check for interrupts; if triggered, abort processing
-				#
-				errors_interrupt=$(ps --pid $(cat PID.lec) > /dev/null; echo $?)
-				if [[ $errors_interrupt != 0 ]]; then
-
-					echo ""
-
-					# NOTE also check again for DONE flag file, to avoid race condition where
-					# process just finished but DONE did not write out yet
-					if [[ -e DONE.lec ]]; then
-						break
-					fi
-
-					echo "ISPD23 -- 2)  $id_run:   LEC run got interrupted. Abort processing ..."
-					echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> reports/errors.rpt
-
-					exit 1
-				fi
-			fi
-
-			sleep 1s
-		done
-
-		##
-		## parse rpt, log files for errors
-		## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
-		##
-
-		# reset errors flag
-		errors=0
-
-		#
-		# non-equivalence issues
-		#
-		## NOTE failure on those considered as error/constraint violation
-		#
-# NOTE such line is only present if errors/issues found at all
-# NOTE multiple, differently formated occurrence of "Non-equivalent" -- use that from "report compare data" command, at end of rpt file
-#
-# Example 1:
-##Compared points      PO     DFF       Total   
-##--------------------------------------------------------------------------------
-##Equivalent           66     147       213     
-##--------------------------------------------------------------------------------
-##Non-equivalent       0      6         6       
-# Example 2:
-##Compared points      PO     DFF    DLAT      Total
-##--------------------------------------------------------------------------------
-##Equivalent           136    732    3         871
-##--------------------------------------------------------------------------------
-##Non-equivalent       0      2      0         2
-		issues=$(tail -n 2 reports/check_equivalence.rpt | grep "Non-equivalent" | awk '{print $NF}')
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- ERROR: LEC design checks failure -- $issues equivalence issues; see check_equivalence.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- LEC: Equivalence issues: $issues" >> reports/checks_summary.rpt
-
-			errors=1
-		else
-			echo "ISPD23 -- LEC: Equivalence issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		#
-		# unreachable issues
-		#
-# NOTE such line is only present if errors/issues found at all
-# NOTE multiple, differently formated occurrence of "Unreachable" -- use that from "report unmapped points" command, at end of related rpt file
-#
-# Example 1:
-##Unmapped points   DFF    Z         Total   
-##--------------------------------------------------------------------------------
-##Unreachable       1      3         4       
-# Example 2:
-##Unmapped points   DLAT      Total
-##--------------------------------------------------------------------------------
-##Unreachable       31        31
-		issues=$(tail -n 2 reports/check_equivalence.rpt.unmapped | grep "Unreachable" | awk '{print $NF}')
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unreachable points issues; see check_equivalence.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Unreachable points issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Unreachable points issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		#
-		# different connectivity issues during parsing
-		#
-		## NOTE these are hinting on cells used as dummy fillers
-		#
-
-# Example:
-#// Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting (occurrence:7) 
-# NOTE such line is only present if errors/issues found at all
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting" lec.log | awk '{print $18}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unassigned nets issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Unassigned nets issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Unassigned nets issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example:
-#// Warning: (RTL2.13) Undriven pin is detected (occurrence:3)
-#
-# NOTE such line is only present if errors/issues found at all
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (RTL2.13) Undriven pin is detected" lec.log | awk '{print $8}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues undriven pins issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Undriven pins issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Undriven pins issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example:
-#// Warning: (RTL14) Signal has input but it has no output (occurrence:2632)
-#
-# NOTE such line is only present if errors/issues found at all
-# NOTE such issues often occur for baseline layouts as well. These checks here are the only warnings related to cells
-# inserted and connected to inputs but otherwise useless (no output), so we need to keep that check
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (RTL14) Signal has input but it has no output" lec.log | awk '{print $12}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues net output floating issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Net output floating issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Net output floating issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example for two related issues:
-#// Warning: (HRC3.5a) Open input/inout port connection is detected (occurrence:3)
-#// Note: (HRC3.5b) Open output port connection is detected (occurrence:139)
-#
-# NOTE such lines are only present if errors/issues found at all
-# NOTE such lines, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues_a=$(grep "Warning: (HRC3.5a) Open input/inout port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
-		issues_b=$(grep "Note: (HRC3.5b) Open output port connection is detected" lec.log | awk '{print $10}' | awk 'NR==2')
-		issues_a=${issues_a##*:}
-		issues_a=${issues_a%*)}
-		issues_b=${issues_b##*:}
-		issues_b=${issues_b%*)}
-
-		issues=0
-		if [[ $issues_a != "" ]]; then
-			((issues = issues + issues_a))
-		fi
-		if [[ $issues_b != "" ]]; then
-			((issues = issues + issues_b))
-		fi
-		
-		if [[ $issues != 0 ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues open ports issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Open ports issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Open ports issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example:
-#// Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module (occurrence:674)
-#
-# NOTE such line is only present if errors/issues found at all
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module" lec.log | awk '{print $18}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues input port not fully used issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Input port not fully used issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Input port not fully used issues: 0" >> reports/checks_summary.rpt
-		fi
-
-# Example:
-#// Warning: (HRC3.16) A wire is declared, but not used in the module (occurrence:1)
-#
-# NOTE such line is only present if errors/issues found at all
-# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
-		issues=$(grep "Warning: (HRC3.16) A wire is declared, but not used in the module" lec.log | awk '{print $14}' | awk 'NR==2')
-		issues=${issues##*:}
-		issues=${issues%*)}
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: LEC design checks failure -- $issues unused wire issues" >> reports/warnings.rpt
-			echo "ISPD23 -- LEC: Unused wire issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- LEC: Unused wire issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		#
-		# evaluate criticality of issues
-		#
-# TODO declare any other issues aside from non-eq as errors as well?
-		if [[ $errors == 1 ]]; then
-
-			echo "ISPD23 -- 2)  $id_run:   Some critical LEC design check(s) failed."
-			exit 1
-		else
-			echo "ISPD23 -- 2)  $id_run:   LEC design checks done; all passed."
-			exit 0
-		fi
-
-	) &
-	pid_LEC_checks=$!
-
-	##
-	## basic design checks
-	##
-
-	(
-		echo "ISPD23 -- 2)  $id_run:   Innovus design checks -- progress symbol: ':' ..."
-
-		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-		sh -c 'echo $$ > PID.check; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
-
-		# sleep a little to avoid immediate but useless errors concerning log file not found
-		sleep 1s
-
-		while true; do
-
-			echo -n ":"
-
-			if [[ -e DONE.check ]]; then
-
-				echo ""
-
-				break
-			else
-				# check for any errors; if found, try to kill and return
-				#
-				errors=$(grep -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
-				if [[ $errors != "" ]]; then
-
-					echo ""
-
-					echo "ISPD23 -- 2)  $id_run:   Some error occurred for Innovus run. Killing process ..."
-
-					echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- $errors" >> reports/errors.rpt
-
-					cat PID.check | xargs kill #2> /dev/null
-
-					exit 1
-				fi
-			
-				# also check for interrupts; if triggered, abort processing
-				#
-				errors_interrupt=$(ps --pid $(cat PID.check) > /dev/null; echo $?)
-				if [[ $errors_interrupt != 0 ]]; then
-
-					echo ""
-
-					# NOTE also check again for DONE flag file, to avoid race condition where
-					# process just finished but DONE did not write out yet
-					if [[ -e DONE.check ]]; then
-						break
-					fi
-
-					echo "ISPD23 -- 2)  $id_run:   Innovus run got interrupted. Abort processing ..."
-					echo "ISPD23 -- ERROR: process failed for Innovus basic design checks -- INTERRUPT" >> reports/errors.rpt
-
-					exit 1
-				fi
-			fi
-
-			sleep 1s
-		done
-
-		##
-		## parse rpt files for failures
-		##
-		## put issues into warnings.rpt; also report into checks_summary.rpt
-		##
-
-		# reset errors flag
-		errors=0
-
-		# routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt -- we need "*" for file since name is defined by module name, not the verilog file name
-# Example:
-#    5 total info(s) created.
-# NOTE such line is only present if errors/issues found at all
-		issues=$(grep "total info(s) created" reports/*.conn.rpt | awk '{print $1}')
-
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues basic routing issues; see *.conn.rpt and floating_signals.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Innovus: Basic routing issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- Innovus: Basic routing issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		# IO pins; check *.checkPin.rpt for illegal and unplaced pins from summary
-# Example:
-#	====================================================================================================================================
-#	                                                     checkPinAssignment Summary
-#	====================================================================================================================================
-#	Partition            | pads  | pins   | legal  | illegal | internal | internal illegal | FT     | FT illegal | constant | unplaced |
-#	====================================================================================================================================
-#	present_encryption   |     0 |    213 |    212 |       0 |        0 |                0 |      0 |          0 |        0 |        1 |
-#	====================================================================================================================================
-#	TOTAL                |     0 |    213 |    212 |       0 |        0 |                0 |      0 |          0 |        0 |        1 |
-#	====================================================================================================================================
-		issues=$(grep "TOTAL" reports/*.checkPin.rpt | awk '{ sum = $9 + $13 + $17 + $21; print sum }')
-		if [[ $issues != '0' ]]; then
-
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues module pin issues; see *.checkPin.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Innovus: Module pin issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- Innovus: Module pin issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		# placement and routing; check check_route.rpt file for unplaced components as well as for summary
-# Example:
-#	**INFO: Identified 0 error(s) and 1 warning(s) during 'check_design -type {route}'.
-		issues=$(grep "**INFO: Identified" reports/check_route.rpt | awk '{ sum = $3 + $6; print sum }')
-		if [[ $issues != '0' ]]; then
-
-			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues placement and/or routing issues; see check_route.rpt for more details." >> reports/warnings.rpt
-			echo "ISPD23 -- Innovus: Placement and/or routing issues: $issues" >> reports/checks_summary.rpt
-		else
-			echo "ISPD23 -- Innovus: Placement and/or routing issues: 0" >> reports/checks_summary.rpt
-		fi
-
-## NOTE deprecated, deactivated for now
-#
-#		# noise issues; check noise.rpt for summary
-## Example:
-## Glitch Violations Summary :
-## --------------------------
-## Number of DC tolerance violations (VH + VL) =  35
-## Number of Receiver Output Peak violations (VH + VL) =  0
-## Number of total problem noise nets =  12
-#
-#		issues=$(grep "Number of DC tolerance violations" reports/noise.rpt | awk '{print $10}')
-#		if [[ $issues != '0' ]]; then
-#
-#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues DC tolerance issues; see noise.rpt for more details." >> reports/warnings.rpt
-#			echo "ISPD23 -- Innovus: DC tolerance issues: $issues" >> reports/checks_summary.rpt
-#		else
-#			echo "ISPD23 -- Innovus: DC tolerance issues: 0" >> reports/checks_summary.rpt
-#		fi
-#
-#		issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $11}')
-#		if [[ $issues != '0' ]]; then
-#
-#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues receiver output peak issues; see noise.rpt for more details." >> reports/warnings.rpt
-#			echo "ISPD23 -- Innovus: Receiver output peak issues: $issues" >> reports/checks_summary.rpt
-#		else
-#			echo "ISPD23 -- Innovus: Receiver output peak issues: 0" >> reports/checks_summary.rpt
-#		fi
-#
-#		issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $8}')
-#		if [[ $issues != '0' ]]; then
-#
-#			echo "ISPD23 -- WARNING: Innovus design checks failure -- $issues noise net issues; see noise.rpt for more details." >> reports/warnings.rpt
-#			echo "ISPD23 -- Innovus: Noise net issues: $issues" >> reports/checks_summary.rpt
-#		else
-#			echo "ISPD23 -- Innovus: Noise net issues: 0" >> reports/checks_summary.rpt
-#		fi
-
-		# DRC routing issues; check *.geom.rpt for "Total Violations"
-		#
-		## NOTE failure on those considered as error/constraint violation
-		#
-# Example:
-#  Total Violations : 2 Viols.
-# NOTE such line is only present if errors/issues found at all
-		issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $4}')
-		if [[ $issues != "" ]]; then
-
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues DRC issues; see *.geom.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- Innovus: DRC issues: $issues" >> reports/checks_summary.rpt
-
-			errors=1
-		else
-			echo "ISPD23 -- Innovus: DRC issues: 0" >> reports/checks_summary.rpt
-		fi
-
-		# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
-		#
-		## NOTE failure on those considered as error/constraint violation
-		#
-
-		# setup 
-# Example:
-## SETUP                  WNS    TNS   FEP   
-##------------------------------------------
-# View : ALL           16.703  0.000     0  
-#    Group : in2out       N/A    N/A     0  
-#    Group : reg2out   16.703  0.000     0  
-#    Group : in2reg   151.422    0.0     0  
-#    Group : reg2reg  149.277    0.0     0  
-		issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $6}' | awk 'NR==1')
-		if [[ $issues != "0" ]]; then
-
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for setup; see timing.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- Innovus: Timing issues for setup: $issues" >> reports/checks_summary.rpt
-
-			errors=1
-		else
-			echo "ISPD23 -- Innovus: Timing issues for setup: 0" >> reports/checks_summary.rpt
-		fi
-
-		# hold 
-# Example:
-## HOLD                   WNS    TNS   FEP   
-##------------------------------------------
-# View : ALL           17.732  0.000     0  
-#    Group : in2out       N/A    N/A     0  
-#    Group : reg2out  305.300  0.000     0  
-#    Group : in2reg    17.732    0.0     0  
-#    Group : reg2reg  188.440    0.0     0  
-		issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $6}' | awk 'NR==2')
-		if [[ $issues != "0" ]]; then
-
-			echo "ISPD23 -- ERROR: Innovus design checks failure -- $issues timing issues for hold; see timing.rpt for more details." >> reports/errors.rpt
-			echo "ISPD23 -- Innovus: Timing issues for hold: $issues" >> reports/checks_summary.rpt
-
-			errors=1
-		else
-			echo "ISPD23 -- Innovus: Timing issues for hold: 0" >> reports/checks_summary.rpt
-		fi
-
-# TODO bring in PG checks here:
-#		start w/ stuff from pg.tcl, refactor into check.tcl as well
-#		consider violations as error, like w/ DRC and timing
-
-		#
-		# evaluate criticality of issues
-		#
-# TODO declare any other issues aside from DRC, timing as errors as well?
-		if [[ $errors == 1 ]]; then
-
-			echo "ISPD23 -- 2)  $id_run:   Some critical Innovus design check(s) failed."
-			exit 1
-		else
-			echo "ISPD23 -- 2)  $id_run:   Innovus design checks done; all passed."
-			exit 0
-		fi
-	) &
-	pid_basic_checks=$!
-
 	# wait for subshells and memorize their exit code in case it's non-zero
+	wait $pid_assets || status=$?
 # TODO revise checks; currently off: pins, PDN
 #	wait $pid_pins_checks || status=$?
 #	wait $pid_PDN_checks || status=$?
-	wait $pid_LEC_checks || status=$?
-	wait $pid_basic_checks || status=$?
 
-	echo "ISPD23 -- 2)  $id_run:  All checks done"
+	if [[ $status != 0 ]]; then
+
+		echo "ISPD23 -- 2)  $id_run:  Some basic check(s) failed."
+	else
+		echo "ISPD23 -- 2)  $id_run:  All basic checks passed."
+	fi
 
 	return $status
 }
 
 link_work_dir() {
 
-	error=0
+	errors=0
 
 	##
 	## link submission files to common names used by scripts
@@ -1206,7 +824,7 @@ link_work_dir() {
 
 		echo "ISPD23 -- ERROR: there are $def_files DEF files in the submission's work directory, which shouldn't happen." >> reports/errors.rpt
 
-		error=1
+		errors=1
 	fi
 	## NOTE don't force here, to avoid circular links from design.def to design.def itself, in case the submitted file's name is already the same
 	## NOTE suppress stderr for 'File exists' -- happens when submission uses same name already -- but keep all others
@@ -1218,7 +836,7 @@ link_work_dir() {
 
 		echo "ISPD23 -- ERROR: there are $netlist_files netlist files in the submission's work directory, which shouldn't happen." >> reports/errors.rpt
 
-		error=1
+		errors=1
 	fi
 	## NOTE don't force here, to avoid circular links from design.v to itself, in case the submitted file's name is already the same
 	## NOTE suppress stderr for 'File exists' -- happens when submission uses same name already -- but keep all others
@@ -1265,7 +883,525 @@ link_work_dir() {
 
 	cd - > /dev/null
 
-	return $error
+	if [[ $errors != 0 ]]; then
+
+		echo "ISPD23 -- 2)  $id_run:  Error occurred during init of submission files."
+	fi
+
+	return $errors
+}
+
+parse_lec_checks() {
+
+	errors=0
+
+	#
+	# non-equivalence issues
+	#
+	## NOTE failure on those considered as error/constraint violation
+	#
+# NOTE such line is only present if errors/issues found at all
+# NOTE multiple, differently formated occurrence of "Non-equivalent" -- use that from "report compare data" command, at end of rpt file
+#
+# Example 1:
+##Compared points      PO     DFF       Total   
+##--------------------------------------------------------------------------------
+##Equivalent           66     147       213     
+##--------------------------------------------------------------------------------
+##Non-equivalent       0      6         6       
+# Example 2:
+##Compared points      PO     DFF    DLAT      Total
+##--------------------------------------------------------------------------------
+##Equivalent           136    732    3         871
+##--------------------------------------------------------------------------------
+##Non-equivalent       0      2      0         2
+
+	issues=$(tail -n 2 reports/check_equivalence.rpt | grep "Non-equivalent" | awk '{print $NF}')
+	string="LEC: Equivalence issues:"
+
+	if [[ $issues != "" ]]; then
+
+		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see check_equivalence.rpt for more details." >> reports/errors.rpt
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	#
+	# unreachable issues
+	#
+	## NOTE failure on those considered as error/constraint violation
+	#
+# NOTE such line is only present if errors/issues found at all
+# NOTE multiple, differently formated occurrence of "Unreachable" -- use that from "report unmapped points" command, at end of related rpt file
+#
+# Example 1:
+##Unmapped points   DFF    Z         Total   
+##--------------------------------------------------------------------------------
+##Unreachable       1      3         4       
+# Example 2:
+##Unmapped points   DLAT      Total
+##--------------------------------------------------------------------------------
+##Unreachable       31        31
+
+	issues=$(tail -n 2 reports/check_equivalence.rpt.unmapped | grep "Unreachable" | awk '{print $NF}')
+	string="LEC: Unreachable points issues:"
+
+	if [[ $issues != "" ]]; then
+
+		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see check_equivalence.rpt for more details." >> reports/errors.rpt
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	#
+	# different connectivity issues during parsing
+	#
+	## NOTE these are hinting on cells used as dummy fillers
+	#
+
+# Example:
+#// Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting (occurrence:7) 
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+
+	issues=$(grep "Warning: (RTL2.5) Net is referenced without an assignment. Design verification will be based on set_undriven_signal setting" lec.log | awk '{print $NF}' | awk 'NR==2')
+	issues=${issues##*:}
+	issues=${issues%*)}
+	string="LEC: Unassigned nets issues:"
+
+	if [[ $issues != "" ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+# Example:
+#// Warning: (RTL2.13) Undriven pin is detected (occurrence:3)
+#
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+
+	issues=$(grep "Warning: (RTL2.13) Undriven pin is detected" lec.log | awk '{print $NF}' | awk 'NR==2')
+	issues=${issues##*:}
+	issues=${issues%*)}
+	string="LEC: Undriven pins issues:"
+
+	if [[ $issues != "" ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+# Example:
+#// Warning: (RTL14) Signal has input but it has no output (occurrence:2632)
+#
+# NOTE such line is only present if errors/issues found at all
+# NOTE such issues often occur for baseline layouts as well. These checks here are the only warnings related to cells
+# inserted and connected to inputs but otherwise useless (no output), so we need to keep that check
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+
+	issues=$(grep "Warning: (RTL14) Signal has input but it has no output" lec.log | awk '{print $NF}' | awk 'NR==2')
+	issues=${issues##*:}
+	issues=${issues%*)}
+	string="LEC: Net output floating issues:"
+
+	if [[ $issues != "" ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+# Example for two related issues:
+#// Warning: (HRC3.5a) Open input/inout port connection is detected (occurrence:3)
+#// Note: (HRC3.5b) Open output port connection is detected (occurrence:139)
+#
+# NOTE such lines are only present if errors/issues found at all
+# NOTE such lines, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+
+	issues_a=$(grep "Warning: (HRC3.5a) Open input/inout port connection is detected" lec.log | awk '{print $NF}' | awk 'NR==2')
+	issues_b=$(grep "Note: (HRC3.5b) Open output port connection is detected" lec.log | awk '{print $NF}' | awk 'NR==2')
+	issues_a=${issues_a##*:}
+	issues_a=${issues_a%*)}
+	issues_b=${issues_b##*:}
+	issues_b=${issues_b%*)}
+	issues=0
+	string="LEC: Open ports issues:"
+
+	if [[ $issues_a != "" ]]; then
+		((issues = issues + issues_a))
+	fi
+	if [[ $issues_b != "" ]]; then
+		((issues = issues + issues_b))
+	fi
+	
+	if [[ $issues != 0 ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+# Example:
+#// Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module (occurrence:674)
+#
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+
+	issues=$(grep "Warning: (HRC3.10a) An input port is declared, but it is not completely used in the module" lec.log | awk '{print $NF}' | awk 'NR==2')
+	issues=${issues##*:}
+	issues=${issues%*)}
+	string="LEC: Input port not fully used issues:"
+
+	if [[ $issues != "" ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+# Example:
+#// Warning: (HRC3.16) A wire is declared, but not used in the module (occurrence:1)
+#
+# NOTE such line is only present if errors/issues found at all
+# NOTE such line, if present, may well be present for both golden and revised; the string post-processing keeps only the relevant number, namely for the revised design
+
+	issues=$(grep "Warning: (HRC3.16) A wire is declared, but not used in the module" lec.log | awk '{print $NF}' | awk 'NR==2')
+	issues=${issues##*:}
+	issues=${issues%*)}
+	string="LEC: Unused wire issues:"
+
+	if [[ $issues != "" ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	#
+	# evaluate criticality of issues
+	#
+	if [[ $errors == 1 ]]; then
+
+		echo -e "\nISPD23 -- 2)  $id_run:  Some critical LEC design check(s) failed."
+
+		date > FAILED.lec
+		exit 1
+	else
+		echo -e "\nISPD23 -- 2)  $id_run:  LEC design checks done; all passed."
+
+		date > PASSED.lec
+		exit 0
+	fi
+}
+
+parse_design_checks() {
+
+	errors=0
+
+	# routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt -- we need "*" for file since name is defined by module name, not the verilog file name
+	# NOTE the related file floating_signals.rpt does not have to be parsed; it just provides more details but metrics/values are already covered in the lec.log file
+# Example:
+#    5 total info(s) created.
+# NOTE such line is only present if errors/issues found at all
+
+	issues=$(grep "total info(s) created" reports/*.conn.rpt | awk '{print $1}')
+       string="Innovus: Basic routing issues:"
+
+	if [[ $issues != "" ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see *.conn.rpt and floating_signals.rpt for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see *.conn.rpt and floating_signals.rpt for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	# IO pins; check *.checkPin.rpt for illegal and unplaced pins from summary
+# Example:
+#	====================================================================================================================================
+#	                                                     checkPinAssignment Summary
+#	====================================================================================================================================
+#	Partition            | pads  | pins   | legal  | illegal | internal | internal illegal | FT     | FT illegal | constant | unplaced |
+#	====================================================================================================================================
+#	present_encryption   |     0 |    213 |    212 |       0 |        0 |                0 |      0 |          0 |        0 |        1 |
+#	====================================================================================================================================
+#	TOTAL                |     0 |    213 |    212 |       0 |        0 |                0 |      0 |          0 |        0 |        1 |
+#	====================================================================================================================================
+
+	issues=$(grep "TOTAL" reports/*.checkPin.rpt | awk '{ sum = $9 + $13 + $17 + $21; print sum }')
+	string="Innovus: Module pin issues:"
+
+	if [[ $issues != '0' ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see *.checkPin.rpt for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see *.checkPin.rpt for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	# placement and routing; check check_design.rpt file for summary
+# Example:
+#	**INFO: Identified 21 error(s) and 0 warning(s) during 'check_design -type {place cts route}'.
+
+	issues=$(grep "**INFO: Identified" reports/check_design.rpt | awk '{ sum = $3 + $6; print sum }')
+	string="Innovus: Placement and/or routing issues:"
+
+	if [[ $issues != '0' ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see check_design.rpt and check.logv for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see check_design.rpt and check.logv for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+## (TODO) deactivated for now
+#
+#	# noise issues; check noise.rpt for summary
+## Example:
+## Glitch Violations Summary :
+## --------------------------
+## Number of DC tolerance violations (VH + VL) =  35
+## Number of Receiver Output Peak violations (VH + VL) =  0
+## Number of total problem noise nets =  12
+#
+#	issues=$(grep "Number of DC tolerance violations" reports/noise.rpt | awk '{print $NF}')
+#	string="Innovus: DC tolerance issues:"
+#
+#	if [[ $issues != '0' ]]; then
+#
+#		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+#
+#		if (( issues > (issues_baseline + issues_margin) )); then
+#
+#			errors=1
+#			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see noise.rpt for more details." >> reports/errors.rpt
+#		else
+#			echo "ISPD23 -- WARNING: $string $issues -- see noise.rpt for more details." >> reports/warnings.rpt
+#		fi
+#	else
+#		issues=0
+#	fi
+#
+#	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
+#
+#	issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $NF}')
+#	string="Innovus: Receiver output peak issues:"
+#
+#	if [[ $issues != '0' ]]; then
+#
+#		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+#
+#		if (( issues > (issues_baseline + issues_margin) )); then
+#
+#			errors=1
+#			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see noise.rpt for more details." >> reports/errors.rpt
+#		else
+#			echo "ISPD23 -- WARNING: $string $issues -- see noise.rpt for more details." >> reports/warnings.rpt
+#		fi
+#	else
+#		issues=0
+#	fi
+#
+#	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
+#
+#	issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $NF}')
+#	string="Innovus: Noise net issues:"
+#
+#	if [[ $issues != '0' ]]; then
+#
+#		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+#
+#		if (( issues > (issues_baseline + issues_margin) )); then
+#
+#			errors=1
+#			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see noise.rpt for more details." >> reports/errors.rpt
+#		else
+#			echo "ISPD23 -- WARNING: $string $issues -- see noise.rpt for more details." >> reports/warnings.rpt
+#		fi
+#	else
+#		issues=0
+#	fi
+#
+#	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
+
+	# DRC routing issues; check *.geom.rpt for "Total Violations"
+	#
+	## NOTE failure on those considered as error/constraint violation
+	#
+# Example:
+#  Total Violations : 2 Viols.
+# NOTE such line is only present if errors/issues found at all
+
+	issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $4}')
+	string="Innovus: DRC issues:"
+
+	if [[ $issues != "" ]]; then
+
+		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see *.geom.rpt for more details." >> reports/errors.rpt
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
+	#
+	## NOTE failure on those considered as error/constraint violation
+	#
+
+	# setup 
+# Example:
+## SETUP                  WNS    TNS   FEP   
+##------------------------------------------
+# View : ALL           16.703  0.000     0  
+#    Group : in2out       N/A    N/A     0  
+#    Group : reg2out   16.703  0.000     0  
+#    Group : in2reg   151.422    0.0     0  
+#    Group : reg2reg  149.277    0.0     0  
+
+	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==1')
+	string="Innovus: Timing issues for setup:"
+
+	if [[ $issues != '0' ]]; then
+
+		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	# hold 
+# Example:
+## HOLD                   WNS    TNS   FEP   
+##------------------------------------------
+# View : ALL           17.732  0.000     0  
+#    Group : in2out       N/A    N/A     0  
+#    Group : reg2out  305.300  0.000     0  
+#    Group : in2reg    17.732    0.0     0  
+#    Group : reg2reg  188.440    0.0     0  
+
+	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==2')
+	string="Innovus: Timing issues for hold:"
+
+	if [[ $issues != '0' ]]; then
+
+		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	#
+	# evaluate criticality of issues
+	#
+	if [[ $errors == 1 ]]; then
+
+		echo -e "\nISPD23 -- 2)  $id_run:  Some critical Innovus design check(s) failed."
+
+		date > FAILED.design_checks
+		exit 1
+	else
+		echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks done; all passed."
+
+		date > PASSED.designs_checks
+		exit 0
+	fi
 }
 
 start_eval() {
@@ -1274,26 +1410,26 @@ start_eval() {
 	for google_team_folder in "${!google_team_folders[@]}"; do
 
 		team="${google_team_folders[$google_team_folder]}"
+		team_=$(printf "%-"$teams_string_max_length"s" $team)
 
-		count_parallel_runs=0
+		# NOTE init the current ongoing runs from the work folder of all benchmarks; ignore errors for
+		# ls, which are probably only due to empy folders
+		count_parallel_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
+		echo "ISPD23 -- 2)  [ $team_ ]: Currently $count_parallel_runs run(s) ongoing; allowed to start $((max_parallel_runs - $count_parallel_runs)) more run(s) ..."
 
 		for benchmark in $benchmarks; do
 
 			downloads_folder="$teams_root_folder/$team/$benchmark/downloads"
 			work_folder="$teams_root_folder/$team/$benchmark/work"
+			benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
 
 			# handle all downloads folders
 			for folder in $(ls $downloads_folder); do
 
-				# TODO use id_run also for other eval processes, like exploit_regions etc
-				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
-				team_=$(printf "%-"$teams_string_max_length"s" $team)
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
 
-				# TODO not started per iteration/call to start_eval but in total; just requires to keep track of current ongoing runs, which would also be great to log within the main loop
-
-				## 0)  only max_runs runs in parallel should be started at once per team
-				if [[ "$count_parallel_runs" == "$max_parallel_runs" ]]; then
+				## 0)  only max_runs runs in parallel should be running at once per team
+				if [[ $count_parallel_runs -ge $max_parallel_runs ]]; then
 					break 2
 				fi
 
@@ -1310,24 +1446,26 @@ start_eval() {
 
 				echo "ISPD23 -- 2)  $id_run: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
 
-				## 1) count parallel runs (i.e., runs started within the same cycle)
+				## 0) count parallel runs (i.e., runs started within the same cycle)
 				((count_parallel_runs = count_parallel_runs + 1))
 
-			## start parallel processing
+			## start frame of code to be run in parallel
+			## https://unix.stackexchange.com/a/103921
 			(
 				## 1) send out email notification of start 
 				#
 				echo "ISPD23 -- 2)  $id_run:  Send out email about processing start ..."
 
-				text="The evaluation for your latest $round round submission, benchmark $benchmark, has started. You will receive another email once results are available.\n\nMD5 and name of files processed in this run are:\n"
+				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
+				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
 
-				# NOTE cd to the directory such that paths are not revealed/included into email, only filenames; remain silent for this "quick thing"
+				text="The processing of your latest submission has started. You will receive another email once results are ready.\n\nNote: you have currently $count_parallel_runs run(s) ongoing and would be allowed to start $((max_parallel_runs - $count_parallel_runs)) more concurrent run(s) -- you can upload as many submissions as you like, but start of processing is subject to these run limits.\n\nMD5 hash and name of files processed in this latest submission are as follows:\n"
+
+				# NOTE cd to the directory such that paths are not revealed/included into email, only filenames
 				cd $downloads_folder/$folder > /dev/null
 				for file in $(ls); do
 					text+=$(md5sum $file 2> /dev/null)"\n"
 				done
-#TODO use $id_run for email subject and text
-				subject="[ISPD23] Processing started for $round round, benchmark $benchmark, internal reference: ${folder##*_}"
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 
@@ -1351,20 +1489,21 @@ start_eval() {
 					md5sum $file >> processed_files_MD5.rpt
 
 #					# NOTE deprecated
+#					# pack processed files again, to be shared again to teams for double-checking
 #					# NOTE only mute regular stdout, but keep stderr
 #					zip processed_files.zip $file > /dev/null
 				done
 
 				## link scripts and design files needed for evaluation
+
 				link_work_dir
 
 				if [[ $? != 0 ]]; then
 
-					echo "ISPD23 -- 2)  $id_run:   Error occurred during file init."
+					echo "ISPD23 -- 2)  $id_run:  Abort further processing ..."
 
-					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# TODO add other files here as needed for other evaluation steps
-					date > DONE.exploit_eval
+					# mark as failed, via file, to allow check_eval to clear and prepare to upload this run
+					date > FAILED.link_work_dir
 
 					# also return to previous main dir
 					cd - > /dev/null
@@ -1372,23 +1511,20 @@ start_eval() {
 					# cleanup downloads dir, to avoid processing again; do so even considering it failed, because it would likely fail again then anyway unless we are fixing things
 					rm -r $downloads_folder/$folder
 
-					# NOTE replace continue w/ exit, as we are at the main level in a subshell here now
-					##continue
-					exit
+					# exit subshell for processing of this submission
+					exit 1
 				fi
 
-				# 3) check submission
-				echo "ISPD23 -- 2)  $id_run:  Check submission files ..."
+				# 3) check submission; simple checks
 
 				check_submission
 
 				if [[ $? != 0 ]]; then
 
-					echo "ISPD23 -- 2)  $id_run:   Submission is not valid/legal."
+					echo "ISPD23 -- 2)  $id_run:  Abort further processing ..."
 
-					# also mark all evaluation steps as done in case of an error, to allow check_eval to clear and prepare to upload this run
-					# TODO add other files here as needed for other evaluation steps
-					date > DONE.exploit_eval
+					# mark as failed, via file, to allow check_eval to clear and prepare to upload this run
+					date > FAILED.check_submission
 
 					# also return to previous main dir
 					cd - > /dev/null
@@ -1397,57 +1533,26 @@ start_eval() {
 					# because it would likely fail again then anyway unless we are fixing things
 					rm -r $downloads_folder/$folder
 
-					# NOTE replace continue w/ exit, as we are at the main level in a subshell here now
-					##continue
-					exit
+					# exit subshell for processing of this submission
+					exit 1
 				fi
 
-				### done w/ init files within work folder, switch back to previous dir
-				###
-				cd - > /dev/null
-
-				# 4) actual processing
+				# 4) start processing for actual checks
 			
-				## exploit_eval
-				##
-				## start frame of code to be run in parallel
-				## https://unix.stackexchange.com/a/103921
-				(
-					cd $work_folder/$folder > /dev/null
+				echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
+#				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
+#				note for the related syntax
+#				bash -c 'echo $$ > PID.lec; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
+				lec_64 -nogui -xl -dofile scripts/lec.do > lec.log &
+				echo $! > PID.lec
 
-# TODO current hack to bypass this check
-date > DONE.exploit_eval
-
-# TODO streamline into one; fix code
-#					# prepare scripts
-#					if [[ "$benchmarks_10_metal_layers" == *"$benchmark"* ]]; then
-#
-#						echo "ISPD23 -- 2)  $id_run:  Exploitable regions: start background run for script version considering 10 metal layers..."
-#
-#						# cleanup scripts not needed
-#						rm exploit_regions_metal1--metal6.tcl
-#
-#					elif [[ "$benchmarks_6_metal_layers" == *"$benchmark"* ]]; then
-#
-#						echo "ISPD23 -- 2)  $id_run:  Exploitable regions: start background run for script version considering 6 metal layers..."
-#
-#						rm exploit_regions.tcl
-#						ln -s exploit_regions_metal1--metal6.tcl exploit_regions.tcl
-#					else
-#						echo "ISPD23 -- ERROR: benchmark cannot be matched to some exploit-regions script version, which shouldn't happen." >> reports/errors.rpt
-#
-#						# also mark as done in case of an error, to allow check_eval to clear and prepare to upload this run
-#						date > DONE.exploit_eval
-#
-#						return
-#					fi
-#
-#					# runs scripts wrapper
-#					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#					scripts/exploit_eval.sh > /dev/null #2>&1
-#
-#				## end frame of code to be run in parallel
-				) &
+				echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
+#				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
+#				note for the related syntax
+#				bash -c 'echo $$ > PID.design_checks; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
+				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+				innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null &
+				echo $! > PID.design_checks
 
 				# 5) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null
@@ -1457,5 +1562,6 @@ date > DONE.exploit_eval
 		done
 	done
 
+	# wait for all parallel runs to finish
 	wait
 }

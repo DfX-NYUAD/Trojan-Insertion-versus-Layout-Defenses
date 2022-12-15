@@ -13,19 +13,22 @@ err_rpt=reports/errors.rpt
 rm -f $rpt
 error=0
 
+## 1) check for any other errors that might have occurred during actual processing
+if [[ -e $err_rpt ]]; then
+	echo "ERROR: cannot compute scores -- evaluation had some errors" | tee -a $err_rpt
+	error=1
+fi
+
 ## 1) parameter checks
 if [[ $scale == "" ]]; then
 	echo "ERROR: cannot compute scores -- 1st parameter, scale, is not provided." | tee -a $err_rpt
 	error=1
 fi
+
 ## 1) folder check
 if ! [[ -d $baseline ]]; then
 	echo "ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder." | tee -a $err_rpt
 	error=1
-fi
-## exit for errors
-if [[ $error == 1 ]]; then
-	exit
 fi
 
 ## 1) files check
@@ -41,17 +44,14 @@ for file in $files; do
 		error=1
 	fi
 done
-## exit for errors
-if [[ $error == 1 ]]; then
-	exit
-fi
 
 ## 1) check for any other errors that might have occurred during actual processing
 if [[ -e $err_rpt ]]; then
 	echo "ERROR: cannot compute scores -- evaluation had some errors" | tee -a $err_rpt
 	error=1
 fi
-## exit for errors
+
+## 1) exit for errors
 if [[ $error == 1 ]]; then
 	exit
 fi

@@ -11,9 +11,11 @@ round="alpha"
 ## wait b/w cycles [s]
 check_interval="60"
 ## max runs allowed in parallel per team
-max_parallel_runs="10"
+max_parallel_runs="6"
 ## max uploads allowed to be started in parallel; based on experience of load behaviour w/ Google drive
 max_parallel_uploads="10"
+## margin/tolerance for soft constraints to be classified as errors
+issues_margin="10"
 
 ## folders
 ##
@@ -45,18 +47,21 @@ teams_string_max_length="0"
 ##
 ## NOTE use pipe as separator!
 ## NOTE at least one email must be given (otherwise grep -Ev used below will exclude all)
-emails_excluded_for_notification="ispd23contest.drive@gmail.com"
+emails_excluded_for_notification="ispd23contest.drive@gmail.com|jk176@nyu.edu"
 
 ## Innovus
 ##
 # NOTE as above, use pipe as separate and provide at least one term
-# NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
-# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as
-# error though for basic checks
-# NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain keywords like ERROR etc
-innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|@file"
+innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
 # NOTE as above, use pipe as separate and provide at least one term
-innovus_errors_for_checking="ERROR|StackTrace"
+# NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
+# NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as error though for design checks
+# NOTE 'IMPPP' errors are related to the check_design command, which is no reason to kill; should be reported as error though for design checks
+# NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked
+# since comments can contain keywords like ERROR etc -- could be dropped now that CDS_STYLUS_SOURCE_VERBOSE=0 is used
+innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file"
+# NOTE use to disable verbose copying of script commands and comments into log file
+export CDS_STYLUS_SOURCE_VERBOSE=0
 
 ## LEC
 ##
@@ -66,9 +71,7 @@ lec_errors_for_checking="Error|StackTrace|License check failed!"
 ## benchmarks and file handlers
 ##
 ## NOTE only to be changed if you know what you're doing
-#TODO fix once related scripts are updated
-scripts_sec_first_order="exploit_eval.tcl exploit_eval.sh exploit_regions.tcl exploit_regions_metal1--metal6.tcl post_process_exploit_regions.sh"
-scripts_sec_first_order=""
+scripts_sec_first_order="exploitable_regions.bin exploitable_regions.tcl"
 scripts_des="check.tcl mmmc.tcl lec.do design_cost.sh scores.sh check_pins.sh check_pg.sh pg.tcl pg_procedures.tcl summarize_assets.tcl"
 scripts_des="check.tcl mmmc.tcl lec.do"
 scripts="$scripts_sec_first_order $scripts_des"
@@ -78,13 +81,14 @@ scripts="$scripts_sec_first_order $scripts_des"
 
 ## main data structures
 
-# key: google IDs; value: team names
+# key: Google ID; value: team name
 declare -A google_team_folders
 
-# syntax for key: "$team:$benchmark"
+# key: internal id; value: Google ID
+# syntax for key: team --- benchmark
 declare -A google_benchmark_folders
 
-# key: $team
+# key: team name; value: emails of all accounts having shared access to the team folder
 declare -A google_share_emails
 
 echo "ISPD23 -- 0)"
@@ -130,6 +134,7 @@ while true; do
 
 		#(TODO) log how many started, how many passed checks, how many running detailed eval
 
+		echo "ISPD23 -- 2)"
 		echo "ISPD23 -- 2) Done"
 		echo "ISPD23 -- "
 

@@ -6,7 +6,7 @@ while true; do
 	killall ISPD23_daemon.sh 2> /dev/null
 
 	# move latest log (from prior run) to the back of set of log files
-	logs=$(ls ISPD23.log* 2> /dev/null | tail -n 1)
+	logs=$(ls -t ISPD23.log* 2> /dev/null | head -n 2 | tail -n 1)
 	logs=${logs##*log}
 	logs=$((logs + 1))
 	mv ISPD23.log ISPD23.log$logs 2> /dev/null
