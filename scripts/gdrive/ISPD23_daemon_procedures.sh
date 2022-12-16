@@ -91,7 +91,7 @@ initialize() {
 	
 		for benchmark in $benchmarks; do
 	
-			id_internal="$team --- $benchmark"
+			id_internal="$team---$benchmark"
 
 			# obtain drive references per benchmark
 			google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
@@ -165,7 +165,7 @@ google_downloads() {
 		for benchmark in $benchmarks; do
 
 		(
-			id_internal="$team --- $benchmark"
+			id_internal="$team---$benchmark"
 			google_benchmark_folder=${google_benchmark_folders[$id_internal]}
 
 			## NOTE relatively verbose; could be turned off
@@ -291,10 +291,12 @@ google_uploads() {
 	## iterate over keys / google IDs
 	for google_team_folder in "${!google_team_folders[@]}"; do
 
+		team=${google_team_folders[$google_team_folder]}
+		ongoing_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
+
 		for benchmark in $benchmarks; do
 
-			team=${google_team_folders[$google_team_folder]}
-			id_internal="$team --- $benchmark"
+			id_internal="$team---$benchmark"
 			uploads_folder="$teams_root_folder/$team/$benchmark/uploads"
 
 			# handle all the uploads folders that might have accumulated through batch processing
@@ -336,7 +338,18 @@ google_uploads() {
 
 				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
 				subject="Re: [ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
-				text="The results for your latest submission are ready in your corresponding Google Drive folder.\n\nDirect link: https://drive.google.com/drive/folders/$google_uploaded_folder"
+
+				text="The results for your latest submission are ready in your corresponding Google Drive folder."
+				text+="\n"
+				text+="Direct link: https://drive.google.com/drive/folders/$google_uploaded_folder"
+				text+="\n\n"
+				text+="Note: you have currently $ongoing_runs remaining run(s) ongoing and would be allowed to start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s)."
+				text+=" "
+				text+="You can upload as many submissions as you like, but start of processing is subject to these run limits."
+
+# TODO also report queued runs
+# TODO report ongoing and queued runs also in main loop w/in ISPD23_daemon.sh
+# TODO print scores.rpt directly into email
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 			) &
@@ -1449,8 +1462,8 @@ start_eval() {
 
 		# NOTE init the current ongoing runs from the work folder of all benchmarks; ignore errors for
 		# ls, which are probably only due to empy folders
-		count_parallel_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
-		echo "ISPD23 -- 2)  [ $team_ ]: Currently $count_parallel_runs run(s) ongoing; allowed to start $((max_parallel_runs - $count_parallel_runs)) more run(s) ..."
+		ongoing_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
+		echo "ISPD23 -- 2)  [ $team_ ]: Currently $ongoing_runs run(s) ongoing; allowed to start $((max_parallel_runs - $ongoing_runs)) more run(s) ..."
 
 		for benchmark in $benchmarks; do
 
@@ -1464,7 +1477,7 @@ start_eval() {
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
 
 				## 0)  only max_runs runs in parallel should be running at once per team
-				if [[ $count_parallel_runs -ge $max_parallel_runs ]]; then
+				if [[ $ongoing_runs -ge $max_parallel_runs ]]; then
 					break 2
 				fi
 
@@ -1482,7 +1495,7 @@ start_eval() {
 				echo "ISPD23 -- 2)  $id_run: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
 
 				## 0) count parallel runs (i.e., runs started within the same cycle)
-				((count_parallel_runs = count_parallel_runs + 1))
+				((ongoing_runs = ongoing_runs + 1))
 
 			## start frame of code to be run in parallel
 			## https://unix.stackexchange.com/a/103921
@@ -1494,7 +1507,15 @@ start_eval() {
 				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
 				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
 
-				text="The processing of your latest submission has started. You will receive another email once results are ready.\n\nNote: you have currently $count_parallel_runs run(s) ongoing and would be allowed to start $((max_parallel_runs - $count_parallel_runs)) more concurrent run(s) -- you can upload as many submissions as you like, but start of processing is subject to these run limits.\n\nMD5 hash and name of files processed in this latest submission are as follows:\n"
+				text="The processing of your latest submission has started. You will receive another email once results are ready."
+				text+="\n\n"
+				text+="Note: you have currently $ongoing_runs run(s) ongoing and would be allowed to start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s)."
+				text+=" "
+				text+="You can upload as many submissions as you like, but start of processing is subject to these run limits."
+				text+="\n\n"
+				text+="MD5 hash and name of files processed in this latest submission are as follows:"
+				text+="\n"
+# TODO also report queued runs
 
 				# NOTE cd to the directory such that paths are not revealed/included into email, only filenames
 				cd $downloads_folder/$folder > /dev/null

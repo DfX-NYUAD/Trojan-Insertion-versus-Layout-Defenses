@@ -85,7 +85,7 @@ scripts="$scripts_sec_first_order $scripts_des"
 declare -A google_team_folders
 
 # key: internal id; value: Google ID
-# syntax for key: team --- benchmark
+# syntax for key: team---benchmark
 declare -A google_benchmark_folders
 
 # key: team name; value: emails of all accounts having shared access to the team folder
