@@ -91,6 +91,10 @@ declare -A google_benchmark_folders
 # key: team name; value: emails of all accounts having shared access to the team folder
 declare -A google_share_emails
 
+# key: internal id; value: queued runs
+# syntax for key: team---benchmark
+declare -A runs_queued
+
 echo "ISPD23 -- 0)"
 echo "ISPD23 -- 0) Initialize work on round \"$round\" ..."
 
@@ -118,8 +122,6 @@ while true; do
 
 		google_downloads
 
-		#(TODO) log how many downloaded, how many failed
-
 		echo "ISPD23 -- 1)"
 		echo "ISPD23 -- 1) Done"
 		echo "ISPD23 -- "
@@ -131,8 +133,6 @@ while true; do
 		echo "ISPD23 -- 2)"
 
 		start_eval
-
-		#(TODO) log how many started, how many passed checks, how many running detailed eval
 
 		echo "ISPD23 -- 2)"
 		echo "ISPD23 -- 2) Done"
@@ -150,8 +150,6 @@ while true; do
 
 	check_eval
 
-	#(TODO) log how many still running, how many done
-
 	echo "ISPD23 -- 3)"
 	echo "ISPD23 -- 3) Done"
 	echo "ISPD23 -- "
@@ -163,8 +161,6 @@ while true; do
 	echo "ISPD23 -- 4)"
 
 	google_uploads
-
-	#(TODO) log how many uploads, how many failed
 
 	echo "ISPD23 -- 4) Done"
 	echo "ISPD23 -- "

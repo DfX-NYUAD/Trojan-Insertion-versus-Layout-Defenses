@@ -283,7 +283,7 @@ google_downloads() {
 
 google_uploads() {
 
-	count_parallel_uploads=0
+	parallel_uploads=0
 
 	## check and fix, if needed, the json file for current session in json file
 	google_check_fix_json
@@ -303,12 +303,12 @@ google_uploads() {
 			for folder in $(ls $uploads_folder); do
 
 				## 0)  only max_parallel_uploads should be triggered at once
-				if [[ "$count_parallel_uploads" == "$max_parallel_uploads" ]]; then
+				if [[ "$parallel_uploads" == "$max_parallel_uploads" ]]; then
 					break 3
 				fi
 
 				## 1) count parallel uploads (i.e., uploads started within the same cycle)
-				((count_parallel_uploads = count_parallel_uploads + 1))
+				((parallel_uploads = parallel_uploads + 1))
 
 				## 2) begin parallel uploads
 
@@ -343,12 +343,12 @@ google_uploads() {
 				text+="\n"
 				text+="Direct link: https://drive.google.com/drive/folders/$google_uploaded_folder"
 				text+="\n\n"
-				text+="Note: you have currently $ongoing_runs remaining run(s) ongoing and would be allowed to start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s)."
+				text+="Notes: You have currently $ongoing_runs run(s) ongoing in total, and ${runs_queued[$id_internal]} more run(s) queued for this particular benchmark."
 				text+=" "
-				text+="You can upload as many submissions as you like, but start of processing is subject to these run limits."
+				text+="At this point, the evaluation server may start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
+				text+=" "
+				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
 
-# TODO also report queued runs
-# TODO report ongoing and queued runs also in main loop w/in ISPD23_daemon.sh
 # TODO print scores.rpt directly into email
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
@@ -1460,42 +1460,70 @@ start_eval() {
 		team="${google_team_folders[$google_team_folder]}"
 		team_=$(printf "%-"$teams_string_max_length"s" $team)
 
-		# NOTE init the current ongoing runs from the work folder of all benchmarks; ignore errors for
-		# ls, which are probably only due to empy folders
+		queued_runs_sum=0
+		# NOTE init the current runs from all work folders of all benchmarks; ignore errors for ls, which are probably only due to empty folders
 		ongoing_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
-		echo "ISPD23 -- 2)  [ $team_ ]: Currently $ongoing_runs run(s) ongoing; allowed to start $((max_parallel_runs - $ongoing_runs)) more run(s) ..."
 
 		for benchmark in $benchmarks; do
 
+			id_internal="$team---$benchmark"
 			downloads_folder="$teams_root_folder/$team/$benchmark/downloads"
 			work_folder="$teams_root_folder/$team/$benchmark/work"
 			benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
 
+			# NOTE handle folders in array, as this allows to go over and exclude files first (after reverting the order obtained by ls --group-directories-first below;
+			# there is no counterpart option --group-files-first), which helps to get a more accurate number for queued runs
+			folders_=( $(ls $downloads_folder/* -d --group-directories-first 2> /dev/null) )
+			queued_runs=${#folders_[@]}
+
+			idx=${#folders_[@]}
+			unset folders
+			for e in "${folders_[@]}"; do
+				folders[--idx]="$e"
+			done
+
 			# handle all downloads folders
-			for folder in $(ls $downloads_folder); do
+			for folder_ in "${folders[@]}"; do
+
+				folder=${folder_##*/}
 
 				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
 
-				## 0)  only max_runs runs in parallel should be running at once per team
-				if [[ $ongoing_runs -ge $max_parallel_runs ]]; then
-					break 2
-				fi
-
-				## 0) only consider actual folders; ignore files
+				## 0) skip files
 				if ! [[ -d $downloads_folder/$folder ]]; then
+
+					((queued_runs = queued_runs - 1))
+
+					# also delete any other file than dl_history
+					if [[ $folder != "dl_history" ]]; then
+						rm $downloads_folder/$folder
+					fi
+
 					continue
 				fi
 
-				## 0) folders might be empty (when download of submission files failed at that time) -- just delete empty folders and move on
+				## 0) folders might be empty, namely when download of submission files failed -- delete empty folders
 				if [[ $(ls $downloads_folder/$folder/ | wc -l) == '0' ]]; then
+
+					((queued_runs = queued_runs - 1))
 					rmdir $downloads_folder/$folder
+
 					continue
 				fi
+
+				## 0) only max_runs runs in parallel should be running at once per team
+				if [[ $ongoing_runs -ge $max_parallel_runs ]]; then
+
+#					# NOTE do not break, only continue, to continue evaluating queued runs for all benchmarks
+#					break 2
+					continue
+				fi
+
+				## 0) start process, and update run counts
+				((queued_runs = queued_runs - 1))
+				((ongoing_runs = ongoing_runs + 1))
 
 				echo "ISPD23 -- 2)  $id_run: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
-
-				## 0) count parallel runs (i.e., runs started within the same cycle)
-				((ongoing_runs = ongoing_runs + 1))
 
 			## start frame of code to be run in parallel
 			## https://unix.stackexchange.com/a/103921
@@ -1509,13 +1537,15 @@ start_eval() {
 
 				text="The processing of your latest submission has started. You will receive another email once results are ready."
 				text+="\n\n"
-				text+="Note: you have currently $ongoing_runs run(s) ongoing and would be allowed to start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s)."
+				# NOTE the number for queued runs is more accurate here, but still does not account for empty folders that are not yet processed
+				text+="Notes: You have currently $ongoing_runs run(s) ongoing in total, and $queued_runs more run(s) queued for this particular benchmark."
 				text+=" "
-				text+="You can upload as many submissions as you like, but start of processing is subject to these run limits."
+				text+="At this point, the evaluation server may start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
+				text+=" "
+				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
 				text+="\n\n"
 				text+="MD5 hash and name of files processed in this latest submission are as follows:"
 				text+="\n"
-# TODO also report queued runs
 
 				# NOTE cd to the directory such that paths are not revealed/included into email, only filenames
 				cd $downloads_folder/$folder > /dev/null
@@ -1615,7 +1645,15 @@ start_eval() {
 			) &
 
 			done
+
+		# once all folders are processed, we should have the exact number of still queued runs for this benchmark
+		runs_queued[$id_internal]=$queued_runs
+		((queued_runs_sum = queued_runs_sum + queued_runs))
+
 		done
+
+	echo "ISPD23 -- 2)  [ $team_ ]: Currently $ongoing_runs run(s) ongoing, $queued_runs_sum more run(s) queued, and would be allowed to start $((max_parallel_runs - $ongoing_runs)) more run(s)."
+
 	done
 
 	# wait for all parallel runs to finish
