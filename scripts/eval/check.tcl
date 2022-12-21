@@ -14,7 +14,7 @@ set_db design_process_node 7
 set_db design_tech_node N7
 
 set mmmc_path scripts/mmmc.tcl
-set lef_path "ASAP7/asap7_tech_4x_201209.lef ASAP7/asap7sc7p5t_28_L_4x_220121a.lef ASAP7/asap7sc7p5t_28_R_4x_220121a.lef ASAP7/asap7sc7p5t_28_SL_4x_220121a.lef"
+set lef_path "ASAP7/asap7_tech_4x_201209.lef ASAP7/asap7sc7p5t_28_L_4x_220121a.lef ASAP7/asap7sc7p5t_28_SL_4x_220121a.lef"
 set def_path design.def
 set netlist_path design.v
 
