@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# TODO update for new checks
-
-## constant settings; not to be modified
+## fixed settings; not to be modified
+## NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark
 scale=$1
 baseline=$2
-files="exploit_regions.rpt cells_ea.rpt nets_ea.rpt design_cost.rpt checks_summary.rpt"
+files="reports/exploitable_regions.rpt reports/track_utilization.rpt reports/area.rpt reports/power.rpt reports/timing.rpt"
 rpt=reports/scores.rpt
 err_rpt=reports/errors.rpt
 
@@ -15,7 +14,7 @@ error=0
 
 ## 1) check for any other errors that might have occurred during actual processing
 if [[ -e $err_rpt ]]; then
-	echo "ERROR: cannot compute scores -- evaluation had some errors" | tee -a $err_rpt
+	echo "ERROR: cannot compute scores -- some evaluation step had some errors." | tee -a $err_rpt
 	error=1
 fi
 
@@ -29,6 +28,11 @@ fi
 if ! [[ -d $baseline ]]; then
 	echo "ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder." | tee -a $err_rpt
 	error=1
+fi
+
+## 1) exit for errors
+if [[ $error == 1 ]]; then
+	exit 1
 fi
 
 ## 1) files check
@@ -45,87 +49,68 @@ for file in $files; do
 	fi
 done
 
-## 1) check for any other errors that might have occurred during actual processing
-if [[ -e $err_rpt ]]; then
-	echo "ERROR: cannot compute scores -- evaluation had some errors" | tee -a $err_rpt
-	error=1
-fi
-
 ## 1) exit for errors
 if [[ $error == 1 ]]; then
-	exit
+	exit 1
 fi
 
-## 1) only now, if run calculation can proceed, then init weights
+## 1) only now, if run calculation can proceed, we start with init procedures
+
+### helper for log formating
+
+score_components="sec sec_ti sec_ti_sts sec_ti_sts_sum sec_ti_sts_max sec_ti_sts_med sec_ti_fts sec_ti_fts_sum des des_pwr des_pwr_tot des_prf des_prf_WNS_set des_prf_WNS_hld des_ara des_ara_die OVERALL"
+cmp_max_length="0"
+
+for cmp in $score_components; do
+
+	if [[ ${#cmp} -gt $cmp_max_length ]]; then
+		cmp_max_length=${#cmp}
+	fi
+done
+
+### weights
+
 declare -A weights=()
-####
-#
-# Trojan insertion
-weights[ti_sts]="0.5"
-weights[ti_fts]="0.5"
-## placement sites of exploitable regions
-weights[ti_sts_total]="0.5"
-weights[ti_sts_max]="(1/3)"
-weights[ti_sts_avg]="(1/6)"
-## routing resources (free tracks) of exploitable regions
-weights[ti_fts_total]="0.5"
-weights[ti_fts_max]="(1/3)"
-weights[ti_fts_avg]="(1/6)"
-#
-# Frontside probing and fault injection
-weights[fsp_fi_ea_c]="0.5"
-weights[fsp_fi_ea_n]="0.5"
-## exposed area of standard cell assets
-weights[fsp_fi_ea_c_total]="0.5"
-weights[fsp_fi_ea_c_max]="(1/3)"
-weights[fsp_fi_ea_c_avg]="(1/6)"
-## exposed area of net assets
-weights[fsp_fi_ea_n_total]="0.5"
-weights[fsp_fi_ea_n_max]="(1/3)"
-weights[fsp_fi_ea_n_avg]="(1/6)"
-#
-# Design quality
-## power
-weights[des_p_total]="0.25"
-## performance
-weights[des_perf]="0.25"
-weights[des_perf_setup_TNS]="0.5"
-weights[des_perf_setup_WNS]="(1/3)"
-weights[des_perf_setup_FEP]="(1/6)"
-## area
-weights[des_area]="0.25"
-## layout checks
-weights[des_issues]="0.25"
-#
-####
-echo "Weights:" | tee -a $rpt
-for weight in "${!weights[@]}"; do
-	value="${weights[$weight]}"
-	echo "	$weight:		$value" | tee -a $rpt
-done
-echo "" | tee -a $rpt
 
-## 1) only now, if run calculation can proceed, then init constraints
-declare -A constraints=()
-####
-# Design quality
-## power
-constraints[des_p_total]="10"
-## performance
-constraints[des_perf]="20"
-## area
-constraints[des_area]="3"
-## layout checks
-constraints[des_issues]="2"
-####
-echo "Constraints:" | tee -a $rpt
-for constraint in "${!constraints[@]}"; do
-	value="${constraints[$constraint]}"
-	echo "	$constraint:		$value" | tee -a $rpt
-done
-echo "" | tee -a $rpt
+### security
+#
+weights[sec]="0.5"
+#
+## Trojan insertion
+weights[sec_ti]="1.0"
+# placement sites of exploitable regions
+weights[sec_ti_sts]="0.5"
+weights[sec_ti_sts_sum]="(1/3)"
+weights[sec_ti_sts_max]="(1/3)"
+weights[sec_ti_sts_med]="(1/3)"
+# routing resources (free tracks) of whole layout
+weights[sec_ti_fts]="0.5"
+weights[sec_ti_fts_sum]="1.0"
 
-## 1) also init rounding bit, depending on scale
+### Design quality
+#
+weights[des]="0.5"
+#
+## power
+weights[des_pwr]="(1/3)"
+weights[des_pwr_tot]="1.0"
+## performance
+weights[des_prf]="(1/3)"
+weights[des_prf_WNS_set]="0.5"
+weights[des_prf_WNS_hld]="0.5"
+## area
+weights[des_ara]="(1/3)"
+weights[des_ara_die]="1.0"
+
+#echo "Metrics' weights:" | tee -a $rpt
+#for weight in "${!weights[@]}"; do
+#	value="${weights[$weight]}"
+#	echo "	$weight:		$value" | tee -a $rpt
+#done
+#echo "" | tee -a $rpt
+
+## init rounding, depending on scale
+
 calc_string_rounding=" + 0."
 for (( i=0; i<$scale; i++)); do
 	calc_string_rounding+="0"
@@ -133,288 +118,162 @@ done
 calc_string_rounding+="5"
 
 ## 2) parsing
+
 declare -A metrics_baseline=()
 declare -A metrics_submission=()
-####
-#
+
 ## placement sites of exploitable regions
-  metrics_baseline[ti_sts_total]=$(grep "Total sites across regions:" $baseline/exploit_regions.rpt 2> /dev/null | awk '{print $5}')
-  metrics_baseline[ti_sts_max]=$(grep "Max sites across regions:" $baseline/exploit_regions.rpt 2> /dev/null | awk '{print $5}')
-  metrics_baseline[ti_sts_avg]=$(grep "Avg sites across regions:" $baseline/exploit_regions.rpt 2> /dev/null | awk '{print $5}')
-metrics_submission[ti_sts_total]=$(grep "Total sites across regions:" exploit_regions.rpt 2> /dev/null | awk '{print $5}')
-metrics_submission[ti_sts_max]=$(grep "Max sites across regions:" exploit_regions.rpt 2> /dev/null | awk '{print $5}')
-metrics_submission[ti_sts_avg]=$(grep "Avg sites across regions:" exploit_regions.rpt 2> /dev/null | awk '{print $5}')
-## routing resources (free tracks) of exploitable regions
-  metrics_baseline[ti_fts_total]=$(grep "Total free tracks across regions:" $baseline/exploit_regions.rpt 2> /dev/null | awk '{print $6}')
-  metrics_baseline[ti_fts_max]=$(grep "Max free tracks across regions:" $baseline/exploit_regions.rpt 2> /dev/null | awk '{print $6}')
-  metrics_baseline[ti_fts_avg]=$(grep "Avg free tracks across regions:" $baseline/exploit_regions.rpt 2> /dev/null | awk '{print $6}')
-metrics_submission[ti_fts_total]=$(grep "Total free tracks across regions:" exploit_regions.rpt 2> /dev/null | awk '{print $6}')
-metrics_submission[ti_fts_max]=$(grep "Max free tracks across regions:" exploit_regions.rpt 2> /dev/null | awk '{print $6}')
-metrics_submission[ti_fts_avg]=$(grep "Avg free tracks across regions:" exploit_regions.rpt 2> /dev/null | awk '{print $6}')
-## exposed area of standard cell assets
-  metrics_baseline[fsp_fi_ea_c_total]=$(grep "Total exposed area across cell assets:" $baseline/cells_ea.rpt 2> /dev/null | awk '{print $7}')
-  metrics_baseline[fsp_fi_ea_c_max]=$(grep "Max exposure \[%\] across cell assets:" $baseline/cells_ea.rpt 2> /dev/null | awk '{print $7}')
-  metrics_baseline[fsp_fi_ea_c_avg]=$(grep "Avg exposure \[%\] across cell assets:" $baseline/cells_ea.rpt 2> /dev/null | awk '{print $7}')
-metrics_submission[fsp_fi_ea_c_total]=$(grep "Total exposed area across cell assets:" cells_ea.rpt 2> /dev/null | awk '{print $7}')
-metrics_submission[fsp_fi_ea_c_max]=$(grep "Max exposure \[%\] across cell assets:" cells_ea.rpt 2> /dev/null | awk '{print $7}')
-metrics_submission[fsp_fi_ea_c_avg]=$(grep "Avg exposure \[%\] across cell assets:" cells_ea.rpt 2> /dev/null | awk '{print $7}')
-## exposed area of net assets
-  metrics_baseline[fsp_fi_ea_n_total]=$(grep "Total exposed area across net assets:" $baseline/nets_ea.rpt 2> /dev/null | awk '{print $7}')
-  metrics_baseline[fsp_fi_ea_n_max]=$(grep "Max exposure \[%\] across net assets:" $baseline/nets_ea.rpt 2> /dev/null | awk '{print $7}')
-  metrics_baseline[fsp_fi_ea_n_avg]=$(grep "Avg exposure \[%\] across net assets:" $baseline/nets_ea.rpt 2> /dev/null | awk '{print $7}')
-metrics_submission[fsp_fi_ea_n_total]=$(grep "Total exposed area across net assets:" nets_ea.rpt 2> /dev/null | awk '{print $7}')
-metrics_submission[fsp_fi_ea_n_max]=$(grep "Max exposure \[%\] across net assets:" nets_ea.rpt 2> /dev/null | awk '{print $7}')
-metrics_submission[fsp_fi_ea_n_avg]=$(grep "Avg exposure \[%\] across net assets:" nets_ea.rpt 2> /dev/null | awk '{print $7}')
+# NOTE drop the thousands separator ',' as that's not supported by bc
+  metrics_baseline[sec_ti_sts_sum]=$(grep "Sum of sites across all regions:" $baseline/reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
+  metrics_baseline[sec_ti_sts_max]=$(grep "Max of sites across all regions:" $baseline/reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
+  metrics_baseline[sec_ti_sts_med]=$(grep "Median of sites across all regions:" $baseline/reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
+metrics_submission[sec_ti_sts_sum]=$(grep "Sum of sites across all regions:" reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
+metrics_submission[sec_ti_sts_max]=$(grep "Max of sites across all regions:" reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
+metrics_submission[sec_ti_sts_med]=$(grep "Median of sites across all regions:" reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
+## routing resources (free tracks) of whole layout
+  metrics_baseline[sec_ti_fts_sum]=$(grep "TOTAL" $baseline/reports/track_utilization.rpt | awk '{print $(NF-1)}')
+metrics_submission[sec_ti_fts_sum]=$(grep "TOTAL" reports/track_utilization.rpt | awk '{print $(NF-1)}')
 ## power
-  metrics_baseline[des_p_total]=$(grep "Total Power:" $baseline/design_cost.rpt 2> /dev/null | awk '{print $3}')
-metrics_submission[des_p_total]=$(grep "Total Power:" design_cost.rpt 2> /dev/null | awk '{print $3}')
+  metrics_baseline[des_pwr_tot]=$(grep "Total Power:" $baseline/reports/power.rpt | awk '{print $NF}')
+metrics_submission[des_pwr_tot]=$(grep "Total Power:" reports/power.rpt | awk '{print $NF}')
 ## performance
-  metrics_baseline[des_perf_setup_TNS]=$(grep "TNS for setup:" $baseline/design_cost.rpt 2> /dev/null | awk '{print $4}')
-  metrics_baseline[des_perf_setup_WNS]=$(grep "WNS for setup:" $baseline/design_cost.rpt 2> /dev/null | awk '{print $4}')
-  metrics_baseline[des_perf_setup_FEP]=$(grep "Failing endpoints for setup:" $baseline/design_cost.rpt 2> /dev/null | awk '{print $5}')
-metrics_submission[des_perf_setup_TNS]=$(grep "TNS for setup:" design_cost.rpt 2> /dev/null | awk '{print $4}')
-metrics_submission[des_perf_setup_WNS]=$(grep "WNS for setup:" design_cost.rpt 2> /dev/null | awk '{print $4}')
-metrics_submission[des_perf_setup_FEP]=$(grep "Failing endpoints for setup:" design_cost.rpt 2> /dev/null | awk '{print $5}')
+  metrics_baseline[des_prf_WNS_set]=$(grep "View : ALL" $baseline/reports/timing.rpt | awk 'NR==1' | awk '{print $(NF-2)}')
+  metrics_baseline[des_prf_WNS_hld]=$(grep "View : ALL" $baseline/reports/timing.rpt | awk 'NR==2' | awk '{print $(NF-2)}')
+metrics_submission[des_prf_WNS_set]=$(grep "View : ALL" reports/timing.rpt | awk 'NR==1' | awk '{print $(NF-2)}')
+metrics_submission[des_prf_WNS_hld]=$(grep "View : ALL" reports/timing.rpt | awk 'NR==2' | awk '{print $(NF-2)}')
 ## area
-  metrics_baseline[des_area]=$(grep "Die area:" $baseline/design_cost.rpt 2> /dev/null | awk '{print $3}')
-metrics_submission[des_area]=$(grep "Die area:" design_cost.rpt 2> /dev/null | awk '{print $3}')
-## layout checks
-calc_string=""
-calc_string+="$(grep "Basic routing issues:" $baseline/checks_summary.rpt 2> /dev/null | awk '{print $4}')"
-calc_string+=" + $(grep "Module pin issues:" $baseline/checks_summary.rpt 2> /dev/null | awk '{print $4}')"
-calc_string+=" + $(grep "Placement and/or routing issues:" $baseline/checks_summary.rpt 2> /dev/null | awk '{print $5}')"
-calc_string+=" + $(grep "DRC issues:" $baseline/checks_summary.rpt 2> /dev/null | awk '{print $3}')"
-calc_string+=" + $(grep "Unreachable points issues:" $baseline/checks_summary.rpt 2> /dev/null | awk '{print $4}')"
-calc_string+=" + $(grep "Undriven pins issues:" $baseline/checks_summary.rpt 2> /dev/null | awk '{print $4}')"
-calc_string+=" + $(grep "Open output ports issues:" $baseline/checks_summary.rpt 2> /dev/null | awk '{print $5}')"
-calc_string+=" + $(grep "Net output floating issues:" $baseline/checks_summary.rpt 2> /dev/null | awk '{print $5}')"
-  metrics_baseline[des_issues]=$(bc -l <<< "$calc_string")
-calc_string=""
-calc_string+="$(grep "Basic routing issues:" checks_summary.rpt 2> /dev/null | awk '{print $4}')"
-calc_string+=" + $(grep "Module pin issues:" checks_summary.rpt 2> /dev/null | awk '{print $4}')"
-calc_string+=" + $(grep "Placement and/or routing issues:" checks_summary.rpt 2> /dev/null | awk '{print $5}')"
-calc_string+=" + $(grep "DRC issues:" checks_summary.rpt 2> /dev/null | awk '{print $3}')"
-calc_string+=" + $(grep "Unreachable points issues:" checks_summary.rpt 2> /dev/null | awk '{print $4}')"
-calc_string+=" + $(grep "Undriven pins issues:" checks_summary.rpt 2> /dev/null | awk '{print $4}')"
-calc_string+=" + $(grep "Open output ports issues:" checks_summary.rpt 2> /dev/null | awk '{print $5}')"
-calc_string+=" + $(grep "Net output floating issues:" checks_summary.rpt 2> /dev/null | awk '{print $5}')"
-metrics_submission[des_issues]=$(bc -l <<< "$calc_string")
-#
-####
-echo "Baseline metrics:" | tee -a $rpt
+  metrics_baseline[des_ara_die]=$(cat $baseline/reports/area.rpt)
+metrics_submission[des_ara_die]=$(cat reports/area.rpt)
+
+echo "Baseline numbers (raw, not weighted yet):" | tee -a $rpt
 for metric in "${!metrics_baseline[@]}"; do
 	value="${metrics_baseline[$metric]}"
-	echo "	$metric:		$value" | tee -a $rpt
+	metric_=$(printf "%-"$cmp_max_length"s" $metric)
+	echo "	$metric_ : $value" | tee -a $rpt
 done
 echo "" | tee -a $rpt
-echo "Submission metrics:" | tee -a $rpt
+echo "Submission numbers (raw, not weighted yet):" | tee -a $rpt
 for metric in "${!metrics_submission[@]}"; do
 	value="${metrics_submission[$metric]}"
-	echo "	$metric:		$value" | tee -a $rpt
+	metric_=$(printf "%-"$cmp_max_length"s" $metric)
+	echo "	$metric_ : $value" | tee -a $rpt
 done
 echo "" | tee -a $rpt
 
+## 3) base score calculation
+
 declare -A base_scores=()
-####
+
+# NOTE metrics where the lower the better, thus calculate score as submission / baseline
 #
 ## placement sites of exploitable regions
-base_scores[ti_sts_total]=$(bc -l <<< "scale=$scale; (${metrics_submission[ti_sts_total]} / ${metrics_baseline[ti_sts_total]})")
-base_scores[ti_sts_max]=$(bc -l <<< "scale=$scale; (${metrics_submission[ti_sts_max]} / ${metrics_baseline[ti_sts_max]})")
-base_scores[ti_sts_avg]=$(bc -l <<< "scale=$scale; (${metrics_submission[ti_sts_avg]} / ${metrics_baseline[ti_sts_avg]})")
-## routing resources (free tracks) of exploitable regions
-base_scores[ti_fts_total]=$(bc -l <<< "scale=$scale; (${metrics_submission[ti_fts_total]} / ${metrics_baseline[ti_fts_total]})")
-base_scores[ti_fts_max]=$(bc -l <<< "scale=$scale; (${metrics_submission[ti_fts_max]} / ${metrics_baseline[ti_fts_max]})")
-base_scores[ti_fts_avg]=$(bc -l <<< "scale=$scale; (${metrics_submission[ti_fts_avg]} / ${metrics_baseline[ti_fts_avg]})")
-## exposed area of standard cell assets
-base_scores[fsp_fi_ea_c_total]=$(bc -l <<< "scale=$scale; (${metrics_submission[fsp_fi_ea_c_total]} / ${metrics_baseline[fsp_fi_ea_c_total]})")
-base_scores[fsp_fi_ea_c_max]=$(bc -l <<< "scale=$scale; (${metrics_submission[fsp_fi_ea_c_max]} / ${metrics_baseline[fsp_fi_ea_c_max]})")
-base_scores[fsp_fi_ea_c_avg]=$(bc -l <<< "scale=$scale; (${metrics_submission[fsp_fi_ea_c_avg]} / ${metrics_baseline[fsp_fi_ea_c_avg]})")
-## exposed area of net assets
-base_scores[fsp_fi_ea_n_total]=$(bc -l <<< "scale=$scale; (${metrics_submission[fsp_fi_ea_n_total]} / ${metrics_baseline[fsp_fi_ea_n_total]})")
-base_scores[fsp_fi_ea_n_max]=$(bc -l <<< "scale=$scale; (${metrics_submission[fsp_fi_ea_n_max]} / ${metrics_baseline[fsp_fi_ea_n_max]})")
-base_scores[fsp_fi_ea_n_avg]=$(bc -l <<< "scale=$scale; (${metrics_submission[fsp_fi_ea_n_avg]} / ${metrics_baseline[fsp_fi_ea_n_avg]})")
+base_scores[sec_ti_sts_sum]=$(bc -l <<< "scale=$scale; (${metrics_submission[sec_ti_sts_sum]} / ${metrics_baseline[sec_ti_sts_sum]})")
+base_scores[sec_ti_sts_max]=$(bc -l <<< "scale=$scale; (${metrics_submission[sec_ti_sts_max]} / ${metrics_baseline[sec_ti_sts_max]})")
+base_scores[sec_ti_sts_med]=$(bc -l <<< "scale=$scale; (${metrics_submission[sec_ti_sts_med]} / ${metrics_baseline[sec_ti_sts_med]})")
+## routing resources (free tracks) of whole layout
+base_scores[sec_ti_fts_sum]=$(bc -l <<< "scale=$scale; (${metrics_submission[sec_ti_fts_sum]} / ${metrics_baseline[sec_ti_fts_sum]})")
 ## power
-base_scores[des_p_total]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_p_total]} / ${metrics_baseline[des_p_total]})")
+base_scores[des_pwr_tot]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_pwr_tot]} / ${metrics_baseline[des_pwr_tot]})")
 ## area
-base_scores[des_area]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_area]} / ${metrics_baseline[des_area]})")
+base_scores[des_ara_die]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_ara_die]} / ${metrics_baseline[des_ara_die]})")
+
+# NOTE metrics where the higher the better, thus calculate score as baseline / submission 
+#
 ## performance
-#
-# TNS
-if (( $(echo "${metrics_baseline[des_perf_setup_TNS]} < 0" | bc -l) && $(echo "${metrics_submission[des_perf_setup_TNS]} < 0" | bc -l) )); then
+base_scores[des_prf_WNS_set]=$(bc -l <<< "scale=$scale; (${metrics_baseline[des_prf_WNS_set]} / ${metrics_submission[des_prf_WNS_set]})")
+base_scores[des_prf_WNS_hld]=$(bc -l <<< "scale=$scale; (${metrics_baseline[des_prf_WNS_hld]} / ${metrics_submission[des_prf_WNS_hld]})")
 
-	base_scores[des_perf_setup_TNS]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_perf_setup_TNS]} / ${metrics_baseline[des_perf_setup_TNS]})")
-
-elif (( $(echo "${metrics_baseline[des_perf_setup_TNS]} >= 0" | bc -l) && $(echo "${metrics_submission[des_perf_setup_TNS]} < 0" | bc -l) )); then
-
-	base_scores[des_perf_setup_TNS]="-(${metrics_submission[des_perf_setup_TNS]})"
-
-# else, i.e., metrics_submission[des_perf_setup_TNS] >= 0
-else
-	base_scores[des_perf_setup_TNS]=0
-fi
-#
-# WNS
-if (( $(echo "${metrics_baseline[des_perf_setup_WNS]} < 0" | bc -l) && $(echo "${metrics_submission[des_perf_setup_WNS]} < 0" | bc -l) )); then
-
-	base_scores[des_perf_setup_WNS]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_perf_setup_WNS]} / ${metrics_baseline[des_perf_setup_WNS]})")
-
-elif (( $(echo "${metrics_baseline[des_perf_setup_WNS]} >= 0" | bc -l) && $(echo "${metrics_submission[des_perf_setup_WNS]} < 0" | bc -l) )); then
-
-	base_scores[des_perf_setup_WNS]="-(${metrics_submission[des_perf_setup_WNS]})"
-
-# else, i.e., metrics_submission[des_perf_setup_WNS] >= 0
-else
-	base_scores[des_perf_setup_WNS]=0
-fi
-#
-# FEP
-if [[ ${metrics_baseline[des_perf_setup_FEP]} == 0 ]]; then
-
-	base_scores[des_perf_setup_FEP]=${metrics_submission[des_perf_setup_FEP]}
-
-# else we can divide, normalize over baseline
-else
-	base_scores[des_perf_setup_FEP]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_perf_setup_FEP]} / ${metrics_baseline[des_perf_setup_FEP]})")
-fi
-#
-## layout checks
-if [[ ${metrics_baseline[des_issues]} == 0 ]]; then
-
-	base_scores[des_issues]=${metrics_submission[des_issues]}
-
-# else we can divide, normalize over baseline
-else
-	base_scores[des_issues]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_issues]} / ${metrics_baseline[des_issues]})")
-fi
-#
-####
 echo "Base scores (non-weighted):" | tee -a $rpt
 for metric in "${!base_scores[@]}"; do
 	value="${base_scores[$metric]}"
-	echo "	$metric:		$value" | tee -a $rpt
+	metric_=$(printf "%-"$cmp_max_length"s" $metric)
+	echo "	$metric_ : $value" | tee -a $rpt
 done
 echo "" | tee -a $rpt
 
+## 3) weighted score calculation
+
 declare -A scores
-####
-#
-# Trojan insertion
+
+# NOTE rounding to be done separately for each additive calculation step, but not for simple weighted multiplication
+# of single metrics
+
 ## placement sites of exploitable regions
-calc_string="${weights[ti_sts_total]}*${base_scores[ti_sts_total]}"
-calc_string+=" + ${weights[ti_sts_max]}*${base_scores[ti_sts_max]}"
-calc_string+=" + ${weights[ti_sts_avg]}*${base_scores[ti_sts_avg]}"
-# NOTE add rounding for each calculation step
+calc_string="${weights[sec_ti_sts_sum]}*${base_scores[sec_ti_sts_sum]}"
+calc_string+=" + ${weights[sec_ti_sts_max]}*${base_scores[sec_ti_sts_max]}"
+calc_string+=" + ${weights[sec_ti_sts_med]}*${base_scores[sec_ti_sts_med]}"
 calc_string+=$calc_string_rounding
-scores[ti_sts]=$(bc -l <<< "scale=$scale; ($calc_string)")
-#echo "ti_sts: $calc_string"
-## routing resources (free tracks) of exploitable regions
-calc_string="${weights[ti_fts_total]}*${base_scores[ti_fts_total]}"
-calc_string+=" + ${weights[ti_fts_max]}*${base_scores[ti_fts_max]}"
-calc_string+=" + ${weights[ti_fts_avg]}*${base_scores[ti_fts_avg]}"
-calc_string+=$calc_string_rounding
-scores[ti_fts]=$(bc -l <<< "scale=$scale; ($calc_string)")
-#echo "ti_fts: $calc_string"
+scores[sec_ti_sts]=$(bc -l <<< "scale=$scale; ($calc_string)")
+#echo "sec_ti_sts: $calc_string"
+
+## routing resources (free tracks) of whole layout
+calc_string="${weights[sec_ti_fts_sum]}*${base_scores[sec_ti_fts_sum]}"
+scores[sec_ti_fts]=$(bc -l <<< "scale=$scale; ($calc_string)")
+#echo "sec_ti_fts: $calc_string"
+
 ## Trojan insertion, combined
-calc_string="${weights[ti_sts]}*${scores[ti_sts]}"
-calc_string+=" + ${weights[ti_fts]}*${scores[ti_fts]}"
+calc_string="${weights[sec_ti_sts]}*${scores[sec_ti_sts]}"
+calc_string+=" + ${weights[sec_ti_fts]}*${scores[sec_ti_fts]}"
 calc_string+=$calc_string_rounding
-scores[ti]=$(bc -l <<< "scale=$scale; ($calc_string)")
-#echo "ti: $calc_string"
-#
-# Frontside probing and fault injection
-## exposed area of standard cell assets
-calc_string="${weights[fsp_fi_ea_c_total]}*${base_scores[fsp_fi_ea_c_total]}"
-calc_string+=" + ${weights[fsp_fi_ea_c_max]}*${base_scores[fsp_fi_ea_c_max]}"
-calc_string+=" + ${weights[fsp_fi_ea_c_avg]}*${base_scores[fsp_fi_ea_c_avg]}"
-calc_string+=$calc_string_rounding
-scores[fsp_fi_ea_c]=$(bc -l <<< "scale=$scale; ($calc_string)")
-#echo "fsp_fi_ea_c: $calc_string"
-## exposed area of net assets
-calc_string="${weights[fsp_fi_ea_n_total]}*${base_scores[fsp_fi_ea_n_total]}"
-calc_string+=" + ${weights[fsp_fi_ea_n_max]}*${base_scores[fsp_fi_ea_n_max]}"
-calc_string+=" + ${weights[fsp_fi_ea_n_avg]}*${base_scores[fsp_fi_ea_n_avg]}"
-calc_string+=$calc_string_rounding
-scores[fsp_fi_ea_n]=$(bc -l <<< "scale=$scale; ($calc_string)")
-#echo "fsp_fi_ea_n: $calc_string"
-# Frontside probing and fault injection, combined
-calc_string="${weights[fsp_fi_ea_c]}*${scores[fsp_fi_ea_c]}"
-calc_string+=" + ${weights[fsp_fi_ea_n]}*${scores[fsp_fi_ea_n]}"
-calc_string+=$calc_string_rounding
-scores[fsp_fi]=$(bc -l <<< "scale=$scale; ($calc_string)")
-#echo "fsp_fi: $calc_string"
-#
-# Design quality
+scores[sec_ti]=$(bc -l <<< "scale=$scale; ($calc_string)")
+#echo "sec_ti: $calc_string"
+
+## security, combined
+calc_string="${weights[sec_ti]}*${scores[sec_ti]}"
+scores[sec]=$(bc -l <<< "scale=$scale; ($calc_string)")
+#echo "sec: $calc_string"
+
 ## power
-# NOTE no score components; will be put directly into combined score
-scores[des_p_total]=${base_scores[des_p_total]}
-#echo "des_p_total: $calc_string"
+calc_string="${weights[des_pwr_tot]}*${base_scores[des_pwr_tot]}"
+scores[des_pwr]=$(bc -l <<< "scale=$scale; ($calc_string)")
+#echo "des_pwr: $calc_string"
+
 ## performance
-calc_string="${weights[des_perf_setup_TNS]}*${base_scores[des_perf_setup_TNS]}"
-calc_string+=" + ${weights[des_perf_setup_WNS]}*${base_scores[des_perf_setup_WNS]}"
-calc_string+=" + ${weights[des_perf_setup_FEP]}*${base_scores[des_perf_setup_FEP]}"
+calc_string="${weights[des_prf_WNS_set]}*${base_scores[des_prf_WNS_set]}"
+calc_string+=" + ${weights[des_prf_WNS_hld]}*${base_scores[des_prf_WNS_hld]}"
 calc_string+=$calc_string_rounding
-scores[des_perf]=$(bc -l <<< "scale=$scale; ($calc_string)")
-#echo "des_perf: $calc_string"
+scores[des_prf]=$(bc -l <<< "scale=$scale; ($calc_string)")
+#echo "des_prf: $calc_string"
+
 ## area
-# NOTE no score components; will be put directly into combined score
-scores[des_area]=${base_scores[des_area]}
-#echo "des_area: $calc_string"
-## layout checks
-# NOTE no score components; will be put directly into combined score
-scores[des_issues]=${base_scores[des_issues]}
-#echo "des_issues: $calc_string"
-# Design quality, combined
-calc_string="${weights[des_p_total]}*${scores[des_p_total]}"
-calc_string+=" + ${weights[des_perf]}*${scores[des_perf]}"
-calc_string+=" + ${weights[des_area]}*${scores[des_area]}"
-calc_string+=" + ${weights[des_issues]}*${scores[des_issues]}"
+calc_string="${weights[des_ara_die]}*${base_scores[des_ara_die]}"
+scores[des_ara]=$(bc -l <<< "scale=$scale; ($calc_string)")
+#echo "des_ara: $calc_string"
+
+## design cost, combined
+calc_string="${weights[des_pwr]}*${scores[des_pwr]}"
+calc_string+=" + ${weights[des_prf]}*${scores[des_prf]}"
+calc_string+=" + ${weights[des_ara]}*${scores[des_ara]}"
 calc_string+=$calc_string_rounding
 scores[des]=$(bc -l <<< "scale=$scale; ($calc_string)")
 #echo "des: $calc_string"
-#
-# Overall score
-scores[OVERALL]=$(bc -l <<< "scale=$scale; ( 0.5*(${scores[ti]}+${scores[fsp_fi]}) * ${scores[des]} )")
 
-####
-# print scores; perform sanity checks
+## overall score: security and design combined
+calc_string="${weights[sec]}*${scores[sec]}"
+calc_string+=" + ${weights[des]}*${scores[des]}"
+calc_string+=$calc_string_rounding
+scores[OVERALL]=$(bc -l <<< "scale=$scale; ($calc_string)")
+#echo "OVERALL: $calc_string"
+
+## print scores; perform sanity checks
 error=0
+
 echo "Scores (weighted):" | tee -a $rpt
 for score in "${!scores[@]}"; do
 
 	if [[ "${scores[$score]}" == "" ]]; then
-		echo "ERROR: computation for score component \"$score\" failed" | tee -a $err_rpt $rpt
+		echo "ERROR: computation for score component \"$score\" failed." | tee -a $err_rpt 
 		error=1
 	fi
 
-	# cut digits going beyond scale, which result from rounding calculation above
+	# cut digits going beyond scale, which can result from rounding calculation above
 	value=$(echo ${scores[$score]} | awk '{printf "%.'$scale'f", $1}')
-	echo "	$score:		$value" | tee -a $rpt
+	score_=$(printf "%-"$cmp_max_length"s" $score)
+	echo "	$score_ : $value" | tee -a $rpt
 done
 echo "" | tee -a $rpt
 
-# eval sanity checks; move report such that it's not accounted for during ranking
+## eval sanity checks; move failed report such that it's not accounted for during ranking
 if [[ $error == 1 ]]; then
-	mv $rpt "failed_calc."$rpt
-fi
-
-####
-# perform constraints checks
-error=0
-echo "Constraints checks:" | tee -a $rpt
-for constraint in "${!constraints[@]}"; do
-
-	constraint_value=${constraints[$constraint]}
-
-	if (( $(echo "${scores[$constraint]} <= $constraint_value" | bc -l) )); then
-		echo "Check for score component \"$constraint\" passed." | tee -a $rpt
-	else
-		echo "ERROR: Check for score component \"$constraint\" failed." | tee -a $err_rpt $rpt
-		error=1
-	fi
-done
-echo "" | tee -a $rpt
-
-# eval constraints checks; move report such that it's not accounted for during ranking
-if [[ $error == 1 ]]; then
-	mv $rpt "failed_constraint."$rpt
+	mv $rpt $rpt".failed" 
 fi

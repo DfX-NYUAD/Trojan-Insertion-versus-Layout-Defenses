@@ -349,7 +349,7 @@ google_uploads() {
 				text+=" "
 				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
 
-# TODO print scores.rpt directly into email
+# TODO print scores.rpt directly into email; print only startin from line "Scores (weighted)" -- could be done via separate file generated from scores.sh
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 			) &
@@ -631,12 +631,10 @@ check_eval() {
 					continue
 				fi
 
-# TODO activate once 1st order sec metrics are done
-#
-#				## 3) compute scores
-#				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
-#				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#				scripts/scores.sh 6 $baselines_root_folder/$benchmark/reports > /dev/null
+				## 3) compute scores
+				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
+				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+				$scripts_folder/scores.sh 6 $baselines_root_folder/$benchmark > /dev/null
 
 				## 4) create related upload folder, w/ same timestamp as work and download folder
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
@@ -645,21 +643,29 @@ check_eval() {
 				## 5) pack and results files into uploads folder
 				echo "ISPD23 -- 3)  $id_run:  Packing results files into uploads folder \"$uploads_folder\" ..."
 
+				## report files
+				#
 				# -j means to smash reports/ folder; just put files into zip archive directly
 				# include regular rpt files, not others (like, *.rpt.extended files)
 				# NOTE only mute regular stdout, but keep stderr
 				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
-
 				# also include detailed timing reports
 				# NOTE only mute regular stdout, but keep stderr
 				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
 
-				# also share log files
+				## log files
+				#
 				# NOTE only mute regular stdout, but keep stderr
 				zip $uploads_folder/logs.zip *.log* > /dev/null
 
+				## scores file
+				#
+				# NOTE already included in reports.zip but still put it again into main folder, as txt file -- this way, it can be readily viewed in Google Drive
+				cp reports/scores.rpt $uploads_folder/scores.txt > /dev/null
+
+#				## processed files, share again
+#				#
 #				# NOTE deprecated
-#				## put processed files again into uploads folder
 #				echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 #				mv processed_files.zip $uploads_folder/ #2> /dev/null
 
