@@ -60,8 +60,9 @@ innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
 # NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked
 # since comments can contain keywords like ERROR etc -- could be dropped now that CDS_STYLUS_SOURCE_VERBOSE=0 is used
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file"
-# NOTE use to disable verbose copying of script commands and comments into log file
-export CDS_STYLUS_SOURCE_VERBOSE=0
+#
+## NOTE use to disable verbose copying of script commands and comments into log file
+#export CDS_STYLUS_SOURCE_VERBOSE=0
 
 ## LEC
 ##
