@@ -98,6 +98,9 @@ declare -A runs_queued
 
 echo "ISPD23 -- 0)"
 echo "ISPD23 -- 0) Initialize work on round \"$round\" ..."
+echo "ISPD23 -- 0)  Time: $(date)"
+echo "ISPD23 -- 0)  Time stamp: $(date +%s)"
+echo "ISPD23 -- 0)"
 
 # NOTE this expects the team folder in the Google root drive and, to begin with, an empty subfolder for the current
 # round. The related benchmark sub-subfolders will be initialized by this script
