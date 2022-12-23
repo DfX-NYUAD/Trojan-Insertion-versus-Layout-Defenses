@@ -298,6 +298,7 @@ google_uploads() {
 
 			id_internal="$team---$benchmark"
 			uploads_folder="$teams_root_folder/$team/$benchmark/uploads"
+			backup_work_folder="$teams_root_folder/$team/$benchmark/backup_work"
 
 			# handle all the uploads folders that might have accumulated through batch processing
 			for folder in $(ls $uploads_folder); do
@@ -314,19 +315,22 @@ google_uploads() {
 
 				# NOTE init vars once, before parallel runs start
 				google_benchmark_folder=${google_benchmark_folders[$id_internal]}
+				folder_=${folder##*_}
 				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
 				team_=$(printf "%-"$teams_string_max_length"s" $team)
-				id_run="[ $round -- $team_ -- $benchmark_ -- ${folder##*_} ]"
+				id_run="[ $round -- $team_ -- $benchmark_ -- $folder_ ]"
 			(
 				echo "ISPD23 -- 4)  $id_run: Upload results folder \"$uploads_folder/$folder\" (Google team folder ID \"$google_team_folder\", Google benchmark folder ID \"$google_benchmark_folder\") ..."
+
 				./gdrive upload -p $google_benchmark_folder -r $uploads_folder/$folder #> /dev/null 2>&1
 
-				## cleanup locally, but only if upload succeeded
+				## proceed only if upload succeeded
 				if [[ $? -ne 0 ]]; then
 					# NOTE use exit, not contine, as we are at the main level in a subshell here now
 					exit 1
 				fi
 
+				## cleanup
 				rm -rf $uploads_folder/$folder
 
 				## also send out email notification of successful upload
@@ -340,16 +344,45 @@ google_uploads() {
 				subject="Re: [ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
 
 				text="The results for your latest submission are ready in your corresponding Google Drive folder."
-				text+="\n"
+				text+="\n\n"
+
 				text+="Direct link: https://drive.google.com/drive/folders/$google_uploaded_folder"
 				text+="\n\n"
-				text+="Notes: You have currently $ongoing_runs run(s) ongoing in total, and ${runs_queued[$id_internal]} more run(s) queued for this particular benchmark."
+
+				rpt=$backup_work_folder/downloads_$folder_/reports/errors.rpt
+				if [[ -e $rpt ]]; then
+					# NOTE only indicate on errors, do not print out in email
+					#text+=$(cat $rpt)
+					text+="Errors: Some errors occurred -- see errors.txt for details. (Note: errors.txt is the same as reports.zip/errors.rpt; it is copied again into the main folder for convenience of direct access.)"
+					text+="\n\n"
+				else
+					text+="Errors: No errors occurred."
+					text+="\n\n"
+				fi
+
+				rpt=$backup_work_folder/downloads_$folder_/reports/warnings.rpt
+				if [[ -e $rpt ]]; then
+					# NOTE only indicate on warnings, do not print out in email
+					#text+=$(cat $rpt)
+					text+="Warnings: Some warnings occurred -- see warnings.txt for details. (Note: warnings.txt is the same as reports.zip/warnings.rpt; it is copied again into the main folder for convenience of direct access.)"
+					text+="\n\n"
+				else
+					text+="Warnings: No warnings occurred."
+					text+="\n\n"
+				fi
+
+				rpt=$backup_work_folder/downloads_$folder_/reports/scores.rpt.summary
+				if [[ -e $rpt ]]; then
+					# NOTE print out scores summary in email
+					text+=$(cat $rpt)
+					text+="\n\n"
+				fi
+
+				text+="Processing status: You have currently $ongoing_runs more run(s) ongoing in total, and ${runs_queued[$id_internal]} more run(s) queued for this particular benchmark."
 				text+=" "
 				text+="At this point, the evaluation server may start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
 				text+=" "
 				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
-
-# TODO print scores.rpt directly into email; print only startin from line "Scores (weighted)" -- could be done via separate file generated from scores.sh
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 			) &
@@ -386,14 +419,32 @@ check_eval() {
 				echo "ISPD23 -- 3)"
 				echo "ISPD23 -- 3)  $id_run: Checking work folder \"$work_folder/$folder\""
 
-				## 0) start parallel subshells to continuously monitor the actual evaluation processes
-				#
+				## 0) init to check status of processes
+				
+				# notation: 0 -- still running; 1 -- done; 2 -- error
+				declare -A status=()
+
+				# check init steps for fails; does not matter which one failed
+				if [[ -e FAILED.link_work_dir ]]; then
+					status[init]=2
+				elif [[ -e FAILED.check_submission ]]; then
+					status[init]=2
+				else
+					status[init]=1
+				fi
+
+				## 0) if there's no init error, start parallel subshells to continuously monitor the actual evaluation processes
+
+				if [[ ${status[init]} == 1 ]]; then
+				
 				# NOTE we need this double subshell to avoid stalling further processing; otherwise, I
 				# think, the two inner subshells would be locking into the next wait command, even
 				# from any other procedure
-			(
-				# Innovus design checks
 				(
+
+					# Innovus design checks
+					(
+
 					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
 				 	# NOTE ignore errors for cat, in case PID file not existing yet; for ps, ignore
 					# related file errors and others errors and also drop output, just keep status/exit code
@@ -479,10 +530,12 @@ check_eval() {
 					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
 					## set/mark status via PASSED/FAILED files
 					parse_inv_checks
-				) &
 
-				# LEC design checks
-				(
+					) &
+
+					# LEC design checks
+					(
+
 					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
 				 	# NOTE ignore errors for cat, in case PID file not existing yet; for ps, ignore
 					# related file errors and others errors and also drop output, just keep status/exit code
@@ -568,23 +621,14 @@ check_eval() {
 					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
 					## set/mark status via PASSED/FAILED files
 					parse_lec_checks
+
+					) &
+
 				) &
 
-			) &
-
-				## 1) check status of processes
-				#
-				# notation: 0 -- still running; 1 -- done; 2 -- error
-				declare -A status=()
-
-				# check init steps for fails; does not matter which one failed
-				if [[ -e FAILED.link_work_dir ]]; then
-					status[init]=2
-				elif [[ -e FAILED.check_submission ]]; then
-					status[init]=2
-				else
-					status[init]=1
 				fi
+
+				### check status of above processes
 
 				## design checks
 				if [[ -e PASSED.designs_checks ]]; then
@@ -622,7 +666,7 @@ check_eval() {
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: still working ..."
 				fi
 
-				## 2) if not done yet (implies no error), then continue, i.e., skip the further processing for now
+				## 2) if not done yet, and no error occurred, then continue, i.e., skip the further processing for now
 				if [[ ${status[design_checks]} == 0 || ${status[lec]} == 0 ]]; then
 					
 					# first return to previous main dir silently
@@ -658,10 +702,13 @@ check_eval() {
 				# NOTE only mute regular stdout, but keep stderr
 				zip $uploads_folder/logs.zip *.log* > /dev/null
 
-				## scores file
+				## status files
 				#
-				# NOTE already included in reports.zip but still put it again into main folder, as txt file -- this way, it can be readily viewed in Google Drive
-				cp reports/scores.rpt $uploads_folder/scores.txt > /dev/null
+				# NOTE files are already included in reports.zip but we put them still again into main folder, as txt file -- this way, it can be readily viewed in Google Drive
+				# NOTE mute stderr which occurs in case the files are not there
+				cp reports/errors.rpt $uploads_folder/errors.txt 2> /dev/null
+				cp reports/warnings.rpt $uploads_folder/warnings.txt 2> /dev/null
+				cp reports/scores.rpt $uploads_folder/scores.txt 2> /dev/null
 
 #				## processed files, share again
 #				#
@@ -1543,13 +1590,7 @@ start_eval() {
 
 				text="The processing of your latest submission has started. You will receive another email once results are ready."
 				text+="\n\n"
-				# NOTE the number for queued runs is more accurate here, but still does not account for empty folders that are not yet processed
-				text+="Notes: You have currently $ongoing_runs run(s) ongoing in total, and $queued_runs more run(s) queued for this particular benchmark."
-				text+=" "
-				text+="At this point, the evaluation server may start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
-				text+=" "
-				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
-				text+="\n\n"
+
 				text+="MD5 hash and name of files processed in this latest submission are as follows:"
 				text+="\n"
 
@@ -1558,11 +1599,19 @@ start_eval() {
 				for file in $(ls); do
 					text+=$(md5sum $file 2> /dev/null)"\n"
 				done
-
-				send_email "$text" "$subject" "${google_share_emails[$team]}"
+				text+="\n\n"
 
 				# return to previous main dir
 				cd - > /dev/null
+
+				# NOTE the number for queued runs is more accurate here, but still does not account for empty folders that are not yet processed
+				text+="Processing status: You have currently $ongoing_runs run(s) ongoing in total, and $queued_runs more run(s) queued for this particular benchmark."
+				text+=" "
+				text+="At this point, the evaluation server may start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
+				text+=" "
+				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
+
+				send_email "$text" "$subject" "${google_share_emails[$team]}"
 
 				# 2) init folder
 				echo "ISPD23 -- 2)  $id_run:  Init work folder ..."

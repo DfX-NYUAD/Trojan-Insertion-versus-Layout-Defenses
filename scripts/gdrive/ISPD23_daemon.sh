@@ -47,7 +47,7 @@ teams_string_max_length="0"
 ##
 ## NOTE use pipe as separator!
 ## NOTE at least one email must be given (otherwise grep -Ev used below will exclude all)
-emails_excluded_for_notification="ispd23contest.drive@gmail.com|jk176@nyu.edu"
+emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 
 ## Innovus
 ##
