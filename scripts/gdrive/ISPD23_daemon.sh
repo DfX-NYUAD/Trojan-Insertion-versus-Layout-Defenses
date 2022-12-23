@@ -5,19 +5,11 @@ source ISPD23_daemon_procedures.sh
 
 # initializing
 
-echo "ISPD23 -- 0)"
-echo "ISPD23 -- 0) Initialize work on round \"$round\" ..."
-echo "ISPD23 -- 0)  Time: $(date)"
-echo "ISPD23 -- 0)  Time stamp: $(date +%s)"
-echo "ISPD23 -- 0)"
-
+# use "testing" for testing versus "production" for production
+#
 # NOTE this expects the team folder in the Google root drive and, to begin with, an empty subfolder for the current
 # round. The related benchmark sub-subfolders will be initialized by this script
-initialize
-
-echo "ISPD23 -- 0)"
-echo "ISPD23 -- 0) Done"
-echo "ISPD23 -- "
+initialize "testing"
 
 ## continuous loop: file downloads, script runs, file uploads
 #

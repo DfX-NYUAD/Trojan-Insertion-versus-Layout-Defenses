@@ -53,6 +53,24 @@ sleeping() {
 }
 
 initialize() {
+
+	echo "ISPD23 -- 0)"
+
+	## sanity check for mode
+	if [[ "$1" == "testing" ]]; then
+		echo "ISPD23 -- 0) Working in \"$1\" mode ..."
+	elif [[ "$1" == "production" ]]; then
+		echo "ISPD23 -- 0) Working in \"$1\" mode ..."
+	else
+		echo "ISPD23 -- 0) ERROR: work mode \"$1\" is unrecognized; abort further processing ..."
+		exit 1
+	fi
+	echo "ISPD23 -- 0)"
+
+	echo "ISPD23 -- 0) Initialize work on round \"$round\" ..."
+	echo "ISPD23 -- 0)  Time: $(date)"
+	echo "ISPD23 -- 0)  Time stamp: $(date +%s)"
+	echo "ISPD23 -- 0)"
 	
 	## query drive for root folder, extract columns 1 and 2 from response
 	## store into associative array; key is google file/folder ID, value is actual file/folder name
@@ -62,12 +80,20 @@ initialize() {
 	## check and fix, if needed, the json file for current session in json file
 	google_check_fix_json
 
-	while read -r a b; do
-		google_team_folders[$a]=$b
-	# NOTE use this for testing, to work on *_test* folders only
-	done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and (name contains '_test')" | awk '{print $1" "$2}')
-	## NOTE use this for actual runs
-	#done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and not (name contains '_test')" | awk '{print $1" "$2}')
+	if [[ "$1" == "testing" ]]; then
+
+		while read -r a b; do
+			google_team_folders[$a]=$b
+		done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and (name contains '_test')" | awk '{print $1" "$2}')
+
+#	# NOTE that's the only remaining option, given the check done above, so a simple else suffices
+#	elif [[ "$1" == "production" ]]; then
+
+	else
+		while read -r a b; do
+			google_team_folders[$a]=$b
+		done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and not (name contains '_test')" | awk '{print $1" "$2}')
+	fi
 	
 	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} team folders:"
 	for team in "${google_team_folders[@]}"; do
@@ -147,6 +173,10 @@ initialize() {
 			benchmarks_string_max_length=${#benchmark}
 		fi
 	done
+
+	echo "ISPD23 -- 0)"
+	echo "ISPD23 -- 0) Done"
+	echo "ISPD23 -- "
 }
 
 google_downloads() {
