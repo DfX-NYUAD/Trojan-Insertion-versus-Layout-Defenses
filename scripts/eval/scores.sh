@@ -1,32 +1,34 @@
 #!/bin/bash
 
-## fixed settings; not to be modified
-## NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark
+## fixed settings; typically not to be modified
+#
+# NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark
 scale=$1
 baseline=$2
 files="reports/exploitable_regions.rpt reports/track_utilization.rpt reports/area.rpt reports/power.rpt reports/timing.rpt"
 rpt=reports/scores.rpt
+rpt_summ=reports/scores.rpt.summary
 err_rpt=reports/errors.rpt
 
 ## 1) init
-rm -f $rpt
+rm $rpt 2> /dev/null
 error=0
 
 ## 1) check for any other errors that might have occurred during actual processing
 if [[ -e $err_rpt ]]; then
-	echo "ERROR: cannot compute scores -- some evaluation step had some errors." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot compute scores -- some evaluation step had some errors." | tee -a $err_rpt
 	error=1
 fi
 
 ## 1) parameter checks
 if [[ $scale == "" ]]; then
-	echo "ERROR: cannot compute scores -- 1st parameter, scale, is not provided." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot compute scores -- 1st parameter, scale, is not provided." | tee -a $err_rpt
 	error=1
 fi
 
 ## 1) folder check
 if ! [[ -d $baseline ]]; then
-	echo "ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder." | tee -a $err_rpt
 	error=1
 fi
 
@@ -39,12 +41,12 @@ fi
 for file in $files; do
 
 	if ! [[ -e $baseline/$file ]]; then
-		echo "ERROR: cannot compute scores -- file \"$baseline/$file\" is missing." | tee -a $err_rpt
+		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$baseline/$file\" is missing." | tee -a $err_rpt
 		error=1
 	fi
 
 	if ! [[ -e $file ]]; then
-		echo "ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
+		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
 		error=1
 	fi
 done
@@ -80,9 +82,9 @@ weights[sec]="0.5"
 weights[sec_ti]="1.0"
 # placement sites of exploitable regions
 weights[sec_ti_sts]="0.5"
-weights[sec_ti_sts_sum]="(1/3)"
+weights[sec_ti_sts_sum]="0.5"
 weights[sec_ti_sts_max]="(1/3)"
-weights[sec_ti_sts_med]="(1/3)"
+weights[sec_ti_sts_med]="(1/6)"
 # routing resources (free tracks) of whole layout
 weights[sec_ti_fts]="0.5"
 weights[sec_ti_fts_sum]="1.0"
@@ -102,12 +104,13 @@ weights[des_prf_WNS_hld]="0.5"
 weights[des_ara]="(1/3)"
 weights[des_ara_die]="1.0"
 
-#echo "Metrics' weights:" | tee -a $rpt
-#for weight in "${!weights[@]}"; do
-#	value="${weights[$weight]}"
-#	echo "	$weight:		$value" | tee -a $rpt
-#done
-#echo "" | tee -a $rpt
+echo "Metrics' weights:" | tee -a $rpt
+for weight in "${!weights[@]}"; do
+	value="${weights[$weight]}"
+	weight_=$(printf "%-"$cmp_max_length"s" $weight)
+	echo "	$weight_ : $value" | tee -a $rpt
+done
+echo "" | tee -a $rpt
 
 ## init rounding, depending on scale
 
@@ -183,7 +186,7 @@ base_scores[des_ara_die]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_ar
 base_scores[des_prf_WNS_set]=$(bc -l <<< "scale=$scale; (${metrics_baseline[des_prf_WNS_set]} / ${metrics_submission[des_prf_WNS_set]})")
 base_scores[des_prf_WNS_hld]=$(bc -l <<< "scale=$scale; (${metrics_baseline[des_prf_WNS_hld]} / ${metrics_submission[des_prf_WNS_hld]})")
 
-echo "Base scores (non-weighted):" | tee -a $rpt
+echo "Score components (not weighted):" | tee -a $rpt
 for metric in "${!base_scores[@]}"; do
 	value="${base_scores[$metric]}"
 	metric_=$(printf "%-"$cmp_max_length"s" $metric)
@@ -258,22 +261,23 @@ scores[OVERALL]=$(bc -l <<< "scale=$scale; ($calc_string)")
 ## print scores; perform sanity checks
 error=0
 
-echo "Scores (weighted):" | tee -a $rpt
+echo "Scores (weighted; last digit subject to rounding):" | tee -a $rpt $rpt_summ
 for score in "${!scores[@]}"; do
 
 	if [[ "${scores[$score]}" == "" ]]; then
-		echo "ERROR: computation for score component \"$score\" failed." | tee -a $err_rpt 
+		echo "ISPD23 -- ERROR: computation for score component \"$score\" failed." | tee -a $err_rpt $rpt_summ
 		error=1
 	fi
 
 	# cut digits going beyond scale, which can result from rounding calculation above
 	value=$(echo ${scores[$score]} | awk '{printf "%.'$scale'f", $1}')
 	score_=$(printf "%-"$cmp_max_length"s" $score)
-	echo "	$score_ : $value" | tee -a $rpt
+	echo "	$score_ : $value" | tee -a $rpt $rpt_summ
 done
-echo "" | tee -a $rpt
+#echo "" | tee -a $rpt $rpt_summ
 
 ## eval sanity checks; move failed report such that it's not accounted for during ranking
+# NOTE do not move $rpt_summ as that should be always provided in the email, even when errors occurred
 if [[ $error == 1 ]]; then
 	mv $rpt $rpt".failed" 
 fi
