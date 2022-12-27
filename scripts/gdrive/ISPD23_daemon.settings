@@ -2,7 +2,9 @@
 ## misc key parameters
 ##
 round="alpha"
-## wait b/w cycles [s]
+## work mode
+mode="testing"
+## wait time b/w cycles [s]
 check_interval="60"
 ## max runs allowed in parallel per team
 max_parallel_runs="6"

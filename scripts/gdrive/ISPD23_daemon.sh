@@ -5,11 +5,9 @@ source ISPD23_daemon_procedures.sh
 
 # initializing
 
-# use "testing" for testing versus "production" for production
-#
 # NOTE this expects the team folder in the Google root drive and, to begin with, an empty subfolder for the current
 # round. The related benchmark sub-subfolders will be initialized by this script
-initialize "testing"
+initialize $mode
 
 ## continuous loop: file downloads, script runs, file uploads
 #
