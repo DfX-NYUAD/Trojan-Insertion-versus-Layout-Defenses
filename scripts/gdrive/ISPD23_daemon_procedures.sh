@@ -828,9 +828,7 @@ check_submission() {
 	) &
 	pid_assets=$!
 
-# TODO revise checks; currently off: pins, PDN
-# TODO should be done as simple scripts, ideally w/o need for loading DEF, or least just loading DEF and then quick
-# checks. Otherwise, long Innovus design checks should be move to related subshells in the start_eval() procedure
+# TODO revise checks; currently off: pins
 #
 #	##
 #	## pins checks
@@ -857,79 +855,11 @@ check_submission() {
 #		exit 0
 #	) &
 #	pid_pins_checks=$!
-#
-#	##
-#	## PDN checks
-#	##
-#				# (TODO) if implemented like this, using Innovus, streamline/unify as in other Innovus checks
-#	(
-#		echo "ISPD23 -- 2)  $id_run:   PDN checks ..."
-#
-#		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#		bash -c 'echo $$ > PID.pg; exec innovus -nowin -files scripts/pg.tcl -log pg > /dev/null' &
-#
-#		# sleep a little to avoid immediate but useless errors concerning log file not found
-#		sleep 1s
-#
-#		while true; do
-#
-#			if [[ -e DONE.pg ]]; then
-#
-#				break
-#			else
-#				# check for any errors; if found, try to kill and return
-#				#
-#				errors=$(grep -E "$innovus_errors_for_checking" pg.log* | grep -Ev "$innovus_errors_excluded_for_checking")
-#				if [[ $errors != "" ]]; then
-#
-#					echo "ISPD23 -- 2)  $id_run:   Some error occurred for PDN checks. Trying to kill process ..."
-#
-#					echo "ISPD23 -- ERROR: process failed for PDN design checks -- $errors" >> reports/errors.rpt
-#
-#					cat PID.pg | xargs kill #2> /dev/null
-#
-#					exit 1
-#				fi
-#			fi
-#
-#			sleep 1s
-#		done
-#
-#		# post-process reports
-#		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#		scripts/check_pg.sh $baselines_root_folder/$benchmark/reports > /dev/null
-#
-#		# parse errors.rpt for "ERROR: For PG check"
-#		##errors=$(grep -q "ERROR: For PG check" reports/errors.rpt 2> /dev/null; echo $?)
-#		errors=$(grep -q "ERROR: For PG check" reports/errors.rpt; echo $?)
-#		if [[ $errors == 0 ]]; then
-#
-#			echo "ISPD23 -- 2)  $id_run:   Some failure occurred during PDN design checks."
-#
-#			exit 1
-#		fi
-#		# also parse rpt for FAIL 
-#		##errors=$(grep -q "FAIL" reports/pg_metals_eval.rpt 2> /dev/null; echo $?)
-#		errors=$(grep -q "FAIL" reports/pg_metals_eval.rpt; echo $?)
-#		if [[ $errors == 0 ]]; then
-#
-#			echo "ISPD23 -- ERROR: For PG check -- see pg_metals_eval.rpt for more details." >> reports/errors.rpt
-#			echo "ISPD23 -- 2)  $id_run:   Some PDN design check(s) failed."
-#
-#			exit 1
-#		fi
-#
-#		echo "ISPD23 -- 2)  $id_run:   PDN checks passed."
-#
-#		exit 0
-#	) &
-#	pid_PDN_checks=$!
 
 	# wait for subshells and memorize their exit code in case it's non-zero
 	wait $pid_assets || status=$?
-# TODO revise checks; currently off: pins, PDN
+# TODO revise checks; currently off: pins
 #	wait $pid_pins_checks || status=$?
-#	wait $pid_PDN_checks || status=$?
 
 	if [[ $status != 0 ]]; then
 
@@ -1003,14 +933,6 @@ link_work_dir() {
 	for file in $(ls $baselines_root_folder/$benchmark/ASAP7); do
 		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
 	done
-## NOTE deprecated; handling of files separately and explicitly
-#	ln -sf $baselines_root_folder/$benchmark/ASAP7/$qrc_file .
-#	for file in $lib_files; do
-#		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
-#	done
-#	for file in $lef_files; do
-#		ln -sf $baselines_root_folder/$benchmark/ASAP7/$file .
-#	done
 
 	cd - > /dev/null
 
@@ -1381,6 +1303,8 @@ parse_inv_checks() {
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 ## (TODO) deactivated for now
+# TODO only parse peak noises; ignore violations as we have to use NLDM libs as CCS libs gave larger mismatch in timing
+# TODO make sure to differentiate b/w VH and VL peak noises correctly
 #
 #	# noise issues; check noise.rpt for summary
 ## Example:
@@ -1449,6 +1373,11 @@ parse_inv_checks() {
 #	fi
 #
 #	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
+
+	# TODO PDN checks; check TODO for TODO
+	#
+	## NOTE failure on those considered as error/constraint violation
+	#
 
 	# DRC routing issues; check *.geom.rpt for "Total Violations"
 	#

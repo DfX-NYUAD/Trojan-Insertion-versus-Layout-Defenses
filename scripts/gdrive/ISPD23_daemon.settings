@@ -23,13 +23,6 @@ teams_root_folder="$local_root_folder/data/$round"
 scripts_folder="$local_root_folder/scripts/eval"
 baselines_root_folder="$local_root_folder/benchmarks/_release/_$round"
 
-## library files
-##
-## NOTE no need to specificy separately; all files in $bench/ASAP7 folder are considered automatically
-#lib_files="asap7sc7p5t_AO_LVT_TT_nldm_211120.lib asap7sc7p5t_AO_SLVT_TT_nldm_211120.lib asap7sc7p5t_INVBUF_LVT_TT_nldm_220122.lib asap7sc7p5t_INVBUF_SLVT_TT_nldm_220122.lib asap7sc7p5t_OA_LVT_TT_nldm_211120.lib asap7sc7p5t_OA_SLVT_TT_nldm_211120.lib asap7sc7p5t_SEQ_LVT_TT_nldm_220123.lib asap7sc7p5t_SEQ_SLVT_TT_nldm_220123.lib asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120.lib asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120.lib"
-#lef_files="asap7_tech_4x_201209.lef asap7sc7p5t_28_L_4x_220121a.lef asap7sc7p5t_28_R_4x_220121a.lef asap7sc7p5t_28_SL_4x_220121a.lef"
-#qrc_file="qrcTechFile_typ03_scaled4xV06"
-
 ## benchmarks
 ##
 benchmarks="aes camellia cast misty seed sha256"
@@ -56,8 +49,8 @@ innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
 # NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked
 # since comments can contain keywords like ERROR etc -- could be dropped now that CDS_STYLUS_SOURCE_VERBOSE=0 is used
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file"
-#
 ## NOTE use to disable verbose copying of script commands and comments into log file
+## NOTE not used to maintain better insights for teams as to which command is run at what point
 #export CDS_STYLUS_SOURCE_VERBOSE=0
 
 ## LEC
@@ -69,7 +62,6 @@ lec_errors_for_checking="Error|StackTrace|License check failed!"
 ##
 ## NOTE only to be changed if you know what you're doing
 scripts_sec_first_order="exploitable_regions.bin exploitable_regions.tcl"
-scripts_des="check.tcl mmmc.tcl lec.do design_cost.sh scores.sh check_pins.sh check_pg.sh pg.tcl pg_procedures.tcl summarize_assets.tcl"
 scripts_des="check.tcl mmmc.tcl lec.do scores.sh"
 scripts="$scripts_sec_first_order $scripts_des"
 
