@@ -793,7 +793,6 @@ check_submission() {
 	# However, subsequent LEC design check does check for equivalence of all FF assets.
 	# Further, the evaluation scripts would fail if the assets are missing.
 	# So, this here is really only an initial quick check to short-cut further efforts if needed.
-
 	(
 		echo "ISPD23 -- 2)  $id_run:   Assets check ..."
 
@@ -826,40 +825,36 @@ check_submission() {
 
 		exit $errors
 	) &
-	pid_assets=$!
+	pid_check_assets=$!
 
-# TODO revise checks; currently off: pins
-#
-#	##
-#	## pins checks
-#	##
-#
-#	(
-#		echo "ISPD23 -- 2)  $id_run:   Pins design checks ..."
-#
-#		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#		scripts/check_pins.sh > /dev/null
-#
-#		# parse rpt for FAIL
-#		##errors=$(grep -q "FAIL" reports/check_pins.rpt 2> /dev/null; echo $?)
-#		errors=$(grep -q "FAIL" reports/check_pins.rpt; echo $?)
-#		if [[ $errors == 0 ]]; then
-#
-#			echo "ISPD23 -- ERROR: For pins design check -- see check_pins.rpt for more details." >> errors.rpt
-#
-#			exit 1
-#		fi
-#
-#		echo "ISPD23 -- 2)  $id_run:   Pins design checks passed."
-#
-#		exit 0
-#	) &
-#	pid_pins_checks=$!
+	##
+	## pins checks
+	##
+	(
+		echo "ISPD23 -- 2)  $id_run:   Pins check ..."
+
+		# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+		scripts/check_pins.sh > /dev/null
+
+		# parse rpt for FAIL or ERROR
+		errors=$(grep -q -E "FAIL|ERROR" reports/check_pins.rpt; echo $?)
+		if [[ $errors == 0 ]]; then
+
+			echo "ISPD23 -- ERROR: pins check failed -- see check_pins.rpt for more details." >> reports/errors.rpt
+			echo "ISPD23 -- 2)  $id_run:   Pins check failed."
+
+			exit 1
+		else
+
+			echo "ISPD23 -- 2)  $id_run:   Pins check passed."
+			exit 0
+		fi
+	) &
+	pid_check_pins=$!
 
 	# wait for subshells and memorize their exit code in case it's non-zero
-	wait $pid_assets || status=$?
-# TODO revise checks; currently off: pins
-#	wait $pid_pins_checks || status=$?
+	wait $pid_check_assets || status=$?
+	wait $pid_check_pins || status=$?
 
 	if [[ $status != 0 ]]; then
 
