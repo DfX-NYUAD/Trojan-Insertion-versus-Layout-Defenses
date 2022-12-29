@@ -4,7 +4,7 @@
 #
 ## files
 rpt="reports/check_pins.rpt"
-data_orig="check_pins.DEF_orig.data"
+data_orig="reports/check_pins.DEF_orig.data"
 DEF_sub="design.def"
 DEF_orig="design_original.def"
 ## math
