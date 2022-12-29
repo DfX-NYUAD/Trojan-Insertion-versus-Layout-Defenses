@@ -10,6 +10,7 @@ DEF_orig="design_original.def"
 ## math
 scale="6"
 margin="0.001"
+threshold="0.0"
 
 ## helper function
 ## required for correctly printing out and sourcing in associative arrays w/ special characters in bash 4.2
@@ -62,13 +63,19 @@ die_orig_y=$(grep -w 'DIEAREA' $DEF_orig | awk '{print $8}')
 die_ratio_x=$(bc -l <<< "scale=$scale; ($die_sub_x / $die_orig_x)" | awk '{printf "%f", $0}')
 die_ratio_y=$(bc -l <<< "scale=$scale; ($die_sub_y / $die_orig_y)" | awk '{printf "%f", $0}')
 
-## NOTE for x-coordinates, we do not allow for any offset for now, but have kept the code generic
+## NOTE for x-coordinates, we do not allow for any offset for now
+## the generic code is commented out
 die_ratio_x_lower=$(bc -l <<< "scale=$scale; $die_ratio_x" | awk '{printf "%f", $0}')
+#die_ratio_x_lower=$(bc -l <<< "scale=$scale; $die_ratio_x - $threshold" | awk '{printf "%f", $0}')
 die_ratio_x_upper=$(bc -l <<< "scale=$scale; $die_ratio_x" | awk '{printf "%f", $0}')
+#die_ratio_x_upper=$(bc -l <<< "scale=$scale; $die_ratio_x + $threshold" | awk '{printf "%f", $0}')
 
 ## NOTE for y-coordinates, we allow for the full height of the die as range for now (assuming LL corner is (0,0) )
+## the generic code is commented out
 die_ratio_y_lower=$(bc -l <<< "scale=$scale; 0" | awk '{printf "%f", $0}')
+#die_ratio_y_lower=$(bc -l <<< "scale=$scale; $die_ratio_y - $threshold" | awk '{printf "%f", $0}')
 die_ratio_y_upper=$(bc -l <<< "scale=$scale; $die_ratio_y" | awk '{printf "%f", $0}')
+#die_ratio_y_upper=$(bc -l <<< "scale=$scale; $die_ratio_y + $threshold" | awk '{printf "%f", $0}')
 
 ## NOTE only meaningful for ranges w/ offsets, thus not printed for now
 #echo "Ratio submission DEF / original DEF for x-coordinates: $die_ratio_x" | tee -a $rpt
@@ -232,6 +239,10 @@ if ! [[ -e $data_orig ]]; then
 #else, all data was already read in above
 fi
 
+## NOTE for y-coordinates, we allow for the full height of the die as range for now (assuming LL corner is (0,0) )
+y_pin_lower=$(bc -l <<< "scale=$scale; 0" | awk '{printf "%f", $0}')
+y_pin_upper=$(bc -l <<< "scale=$scale; $die_sub_y" | awk '{printf "%f", $0}')
+
 # cross-check pin coordinates
 #
 echo "Cross-check pin coordinates ..."
@@ -246,31 +257,36 @@ for curr_pin in "${!coords_x_orig[@]}"; do
 		continue
 	fi
 
-	# NOTE margin needed to avoid div by zero
-	# NOTE here be (little) dragons -- just assume that all four coords_x/y_sub/orig are initialized the moment
-	# coords_x_orig is there and the pin is found in both sub and orig DEF; should be fine, as some error would have
-	# occurred already above for assignment statements
-	pin_ratio_x=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} + $margin) / (${coords_x_orig[$curr_pin]} + $margin)" | awk '{printf "%f", $0}')
-	pin_ratio_y=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} + $margin) / (${coords_y_orig[$curr_pin]} + $margin)" | awk '{printf "%f", $0}')
-
+#	# NOTE margin needed to avoid div by zero
+#	# NOTE here be (little) dragons -- just assume that all four coords_x/y_sub/orig are initialized the moment
+#	# coords_x_orig is there and the pin is found in both sub and orig DEF; should be fine, as some error would have
+#	# occurred already above for assignment statements
+#	pin_ratio_x=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} + $margin) / (${coords_x_orig[$curr_pin]} + $margin)" | awk '{printf "%f", $0}')
+#	pin_ratio_y=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} + $margin) / (${coords_y_orig[$curr_pin]} + $margin)" | awk '{printf "%f", $0}')
+#
 #	echo "Curr pin: $curr_pin"
 #	echo " Ratio x-coords: $pin_ratio_x"
 #	echo " Ratio y-coords: $pin_ratio_y"
 
-	x_pin_lower=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} * $die_ratio_x_lower)" | awk '{printf "%f", $0}')
-	x_pin_upper=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} * $die_ratio_x_upper)" | awk '{printf "%f", $0}')
-	if (( $(echo "$x_pin_lower <= ${coords_x_sub[$curr_pin]}" | bc -l) && $(echo "$x_pin_upper >= ${coords_x_sub[$curr_pin]}" | bc -l) )); then
+	## NOTE for x-coordinates, we do not allow for any offset for now
+	## the generic code is commented out
+#	x_pin_lower=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} * $die_ratio_x_lower)" | awk '{printf "%f", $0}')
+#	x_pin_upper=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} * $die_ratio_x_upper)" | awk '{printf "%f", $0}')
+#	if (( $(echo "$x_pin_lower <= ${coords_x_sub[$curr_pin]}" | bc -l) && $(echo "$x_pin_upper >= ${coords_x_sub[$curr_pin]}" | bc -l) )); then
+	x_pin=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} * $die_ratio_x_upper)" | awk '{printf "%f", $0}')
+	if (( $(echo "$x_pin == ${coords_x_sub[$curr_pin]}" | bc -l) )); then
 
-		echo "PASS: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls within the allowed range ($x_pin_lower--$x_pin_upper)." | tee -a $rpt
+#		echo "PASS: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls within the allowed range ($x_pin_lower--$x_pin_upper)." | tee -a $rpt
+		echo "PASS: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls onto the allowed coordinate ($x_pin)." | tee -a $rpt
 	else
-		echo "FAIL: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls out of the allowed range ($x_pin_lower--$x_pin_upper)." | tee -a $rpt
+#		echo "FAIL: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls out of the allowed range ($x_pin_lower--$x_pin_upper)." | tee -a $rpt
+		echo "FAIL: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) does not fall onto the allowed coordinate ($x_pin)." | tee -a $rpt
 	fi
 
 	## NOTE for y-coordinates, we allow for the full height of the die as range for now (assuming LL corner is (0,0) )
-	#y_pin_lower=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} * $die_ratio_y_lower)" | awk '{printf "%f", $0}')
-	#y_pin_upper=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} * $die_ratio_y_upper)" | awk '{printf "%f", $0}')
-	y_pin_lower=$(bc -l <<< "scale=$scale; 0" | awk '{printf "%f", $0}')
-	y_pin_upper=$(bc -l <<< "scale=$scale; $die_sub_y" | awk '{printf "%f", $0}')
+	## NOTE static computation, sourced out of lopp
+#	y_pin_lower=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} * $die_ratio_y_lower)" | awk '{printf "%f", $0}')
+#	y_pin_upper=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} * $die_ratio_y_upper)" | awk '{printf "%f", $0}')
 	if (( $(echo "$y_pin_lower <= ${coords_y_sub[$curr_pin]}" | bc -l) && $(echo "$y_pin_upper >= ${coords_y_sub[$curr_pin]}" | bc -l) )); then
 
 		echo "PASS: For pin \"$curr_pin\" in the submitted DEF, the y-coordinate (${coords_y_sub[$curr_pin]}) falls within the allowed range ($y_pin_lower--$y_pin_upper)." | tee -a $rpt
