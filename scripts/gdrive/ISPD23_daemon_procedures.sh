@@ -1,5 +1,11 @@
 #!/bin/bash
 
+####
+#
+# Script for ISPD'23 contest. Johann Knechtel, NYUAD
+#
+####
+
 google_check_fix_json() {
 
 	## for some reason, probably race condition or other runtime conflict, the gdrive tool sometimes messes up the

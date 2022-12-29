@@ -1,5 +1,11 @@
 #!/bin/bash
 
+####
+#
+# Script for ISPD'23 contest. Johann Knechtel, NYUAD
+#
+####
+
 ## fixed settings; typically not to be modified
 #
 # NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark

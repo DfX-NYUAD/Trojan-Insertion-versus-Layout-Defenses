@@ -1,5 +1,11 @@
 #!/bin/bash
 
+####
+#
+# Script for ISPD'23 contest. Johann Knechtel, NYUAD
+#
+####
+
 source ISPD23_daemon.settings
 source ISPD23_daemon_procedures.sh
 

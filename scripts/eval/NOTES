@@ -56,3 +56,10 @@ report_noise -threshold 0.0 > reports/noise.rpt
 # TODO or report_noise first, and then only report_timing_summary -- see whether timing reports are the same then?
 # TODO for the first option, note that this is also recommended flow: timing first, then noise -- but, update_glitch
 # not covered
+
+mmmc.tcl TODO
+=======================
+
+## library_sets
+create_library_set -name TT_library_set \
+    -timing {ASAP7/asap7sc7p5t_AO_LVT_TT_ccsa_211120.lib ASAP7/asap7sc7p5t_AO_SLVT_TT_ccsa_211120.lib ASAP7/asap7sc7p5t_INVBUF_LVT_TT_ccsa_220122.lib ASAP7/asap7sc7p5t_INVBUF_SLVT_TT_ccsa_220122.lib ASAP7/asap7sc7p5t_OA_LVT_TT_ccsa_211120.lib ASAP7/asap7sc7p5t_OA_SLVT_TT_ccsa_211120.lib ASAP7/asap7sc7p5t_SEQ_LVT_TT_ccsa_220123.lib ASAP7/asap7sc7p5t_SEQ_SLVT_TT_ccsa_220123.lib ASAP7/asap7sc7p5t_SIMPLE_LVT_TT_ccsa_211120.lib ASAP7/asap7sc7p5t_SIMPLE_SLVT_TT_ccsa_211120.lib}
