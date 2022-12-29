@@ -1553,7 +1553,7 @@ start_eval() {
 				for file in $(ls); do
 					text+=$(md5sum $file 2> /dev/null)"\n"
 				done
-				text+="\n\n"
+				text+="\n"
 
 				# return to previous main dir
 				cd - > /dev/null
