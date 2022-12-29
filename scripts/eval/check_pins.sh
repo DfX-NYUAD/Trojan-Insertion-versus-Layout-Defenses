@@ -4,11 +4,41 @@
 #
 ## files
 rpt="reports/check_pins.rpt"
+data_orig="check_pins.DEF_orig.data"
 DEF_sub="design.def"
 DEF_orig="design_original.def"
 ## math
 scale="6"
 margin="0.001"
+
+## helper function
+## required for correctly printing out and sourcing in associative arrays w/ special characters in bash 4.2
+## obtained from https://stackoverflow.com/a/45665578
+
+function array2file {
+	# local variable for the keys
+	declare -a keys
+	
+	# check if the array exists, to protect against injection
+	# by passing a crafted string
+	declare -p "$1" >/dev/null || return 1;
+	
+	printf "declare -A %s\n" "$1"
+	
+	# create a string with all the keys so we can iterate
+	# because we can't use eval at for's declaration
+	# we do it this way to allow for spaces in the keys, since that's valid
+	eval "keys=(\"\${!$1[@]}\")"
+	
+	for k in "${keys[@]}"
+	do
+		printf "%s[\"${k//\"/\\\\\"}\"]=" "$1"
+		# the extra quoting here protects against spaces
+		# within the element's value - injection doesn't work here
+		# but we still need to make sure there's consistency
+		eval "printf \"\\\"%s\\\"\n\" \"\${$1[\"${k//\"/\\\"}\"]}\""
+	done
+}
 
 #######
 
@@ -32,14 +62,15 @@ die_orig_y=$(grep -w 'DIEAREA' $DEF_orig | awk '{print $8}')
 die_ratio_x=$(bc -l <<< "scale=$scale; ($die_sub_x / $die_orig_x)" | awk '{printf "%f", $0}')
 die_ratio_y=$(bc -l <<< "scale=$scale; ($die_sub_y / $die_orig_y)" | awk '{printf "%f", $0}')
 
-## NOTE for x-coordinates, we do not allow for any offset
+## NOTE for x-coordinates, we do not allow for any offset for now, but have kept the code generic
 die_ratio_x_lower=$(bc -l <<< "scale=$scale; $die_ratio_x" | awk '{printf "%f", $0}')
 die_ratio_x_upper=$(bc -l <<< "scale=$scale; $die_ratio_x" | awk '{printf "%f", $0}')
 
-## NOTE for y-coordinates, we allow for the full height of the die as range
+## NOTE for y-coordinates, we allow for the full height of the die as range for now (assuming LL corner is (0,0) )
 die_ratio_y_lower=$(bc -l <<< "scale=$scale; 0" | awk '{printf "%f", $0}')
 die_ratio_y_upper=$(bc -l <<< "scale=$scale; $die_ratio_y" | awk '{printf "%f", $0}')
 
+## NOTE only meaningful for ranges w/ offsets, thus not printed for now
 #echo "Ratio submission DEF / original DEF for x-coordinates: $die_ratio_x" | tee -a $rpt
 #echo " Allowed range for ratio for x-coordinates for pins: $die_ratio_x_lower--$die_ratio_x_upper" | tee -a $rpt
 #echo "Ratio submission DEF / original DEF for y-coordinates: $die_ratio_y" | tee -a $rpt
@@ -69,9 +100,9 @@ regex_middle="[^;]+"
 ## regex_end="(PLACED|FIXED) [(] ([0-9]+) ([0-9]+) [)] \S\s*[;]*"
 regex_end="(PLACED|FIXED) [(] ([0-9]+) ([0-9]+) [)] \S [;]"
 regex_full="$regex_start""$regex_middle""$regex_end"
+
 ## NOTE backslashes in string are properly escaped by readarray
 readarray -t lines_sub < <(grep -Pzo "$regex_full" $DEF_sub)
-readarray -t lines_orig < <(grep -Pzo "$regex_full" $DEF_orig)
 
 ## count parsed pins; cannot go by number of all lines but only by those w/ PLACED|FIX coord lines
 pins_sub_parsed=0
@@ -83,19 +114,34 @@ for ((i=0; i<${#lines_sub[@]}; i++)); do
 		pins_sub_parsed=$((pins_sub_parsed + 1))
 	fi
 done
-pins_orig_parsed=0
-for ((i=0; i<${#lines_orig[@]}; i++)); do
-
-	line=${lines_orig[$i]}
-
-	if [[ "$line" =~ $regex_end ]]; then
-		pins_orig_parsed=$((pins_orig_parsed + 1))
-	fi
-done
 
 ## extract pin counts from DEF headers
 pins_sub_DEF=$(grep -E '(PINS )[0-9]+' $DEF_sub | awk '{print $2}')
-pins_orig_DEF=$(grep -E '(PINS )[0-9]+' $DEF_orig | awk '{print $2}')
+
+## work on original DEF; parsing only required if data file is not present
+if ! [[ -e $data_orig ]]; then
+
+	readarray -t lines_orig < <(grep -Pzo "$regex_full" $DEF_orig)
+
+	pins_orig_parsed=0
+	for ((i=0; i<${#lines_orig[@]}; i++)); do
+
+		line=${lines_orig[$i]}
+
+		if [[ "$line" =~ $regex_end ]]; then
+			pins_orig_parsed=$((pins_orig_parsed + 1))
+		fi
+	done
+
+	pins_orig_DEF=$(grep -E '(PINS )[0-9]+' $DEF_orig | awk '{print $2}')
+
+	# NOTE store pins_orig_parsed and pins_orig_DEF only later on, not yet; this way, the check for file existence
+	# can still be used for process control
+
+# NOTE sourcing all data at this point
+else
+	source $data_orig
+fi
 
 ## cross-check pin counts
 ## NOTE mark mismatch for pin counts across submission and original DEF as error. Any mismatch in parsed versus
@@ -111,7 +157,7 @@ if [[ $pins_sub_parsed != $pins_orig_parsed ]]; then
 	echo "ERROR: There is a mismatch in number of parsed pins for the submission DEF ($pins_sub_parsed) versus the original DEF ($pins_orig_parsed)." | tee -a $rpt
 fi
 
-## build up arrays for of pin coordinates
+## build up arrays for pin coordinates
 ##
 
 ### submission DEF
@@ -146,35 +192,45 @@ done
 #declare -p coords_y_sub
 
 ### original DEF
-declare -A coords_x_orig
-declare -A coords_y_orig
-for ((i=0; i<${#lines_orig[@]}; i++)); do
+##
+## NOTE parsing only required if data file is not present
+if ! [[ -e $data_orig ]]; then
+	declare -A coords_x_orig
+	declare -A coords_y_orig
+	for ((i=0; i<${#lines_orig[@]}; i++)); do
 
-	line=${lines_orig[$i]}
+		line=${lines_orig[$i]}
 
-	if [[ "$line" =~ $regex_start ]]; then
+		if [[ "$line" =~ $regex_start ]]; then
 #		declare -p BASH_REMATCH
 
-		# sanity check: net strings should match
-		if [[ "${BASH_REMATCH[1]}" != "${BASH_REMATCH[2]}" ]]; then
-			echo "ERROR: For original DEF, string mismatch for net names in the following line: \"$line\""
-		fi
+			# sanity check: net strings should match
+			if [[ "${BASH_REMATCH[1]}" != "${BASH_REMATCH[2]}" ]]; then
+				echo "ERROR: For original DEF, string mismatch for net names in the following line: \"$line\""
+			fi
 
-		curr_pin=${BASH_REMATCH[1]}
-	fi
+			curr_pin=${BASH_REMATCH[1]}
+		fi
 
 #	echo $curr_pin
 #	echo $line
 
-	if [[ "$line" =~ $regex_end ]]; then
+		if [[ "$line" =~ $regex_end ]]; then
 #		declare -p BASH_REMATCH
 
-		coords_x_orig[$curr_pin]=${BASH_REMATCH[2]}
-		coords_y_orig[$curr_pin]=${BASH_REMATCH[3]}
-	fi
-done
-#declare -p coords_x_orig
-#declare -p coords_y_orig
+			coords_x_orig[$curr_pin]=${BASH_REMATCH[2]}
+			coords_y_orig[$curr_pin]=${BASH_REMATCH[3]}
+		fi
+	done
+
+	# store all results in data file
+	echo "pins_orig_parsed=$pins_orig_parsed" >> $data_orig
+	echo "pins_orig_DEF=$pins_orig_DEF" >> $data_orig
+	array2file coords_x_orig >> $data_orig
+	array2file coords_y_orig >> $data_orig
+
+#else, all data was already read in above
+fi
 
 # cross-check pin coordinates
 #
@@ -193,7 +249,7 @@ for curr_pin in "${!coords_x_orig[@]}"; do
 	# NOTE margin needed to avoid div by zero
 	# NOTE here be (little) dragons -- just assume that all four coords_x/y_sub/orig are initialized the moment
 	# coords_x_orig is there and the pin is found in both sub and orig DEF; should be fine, as some error would have
-	# occurred already above for assignment
+	# occurred already above for assignment statements
 	pin_ratio_x=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} + $margin) / (${coords_x_orig[$curr_pin]} + $margin)" | awk '{printf "%f", $0}')
 	pin_ratio_y=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} + $margin) / (${coords_y_orig[$curr_pin]} + $margin)" | awk '{printf "%f", $0}')
 
@@ -210,7 +266,7 @@ for curr_pin in "${!coords_x_orig[@]}"; do
 		echo "FAIL: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls out of the allowed range ($x_pin_lower--$x_pin_upper)." | tee -a $rpt
 	fi
 
-	# NOTE for y-coordinates, we allow for the full height of the die as range, assuming that LL corner is at (0,0)
+	## NOTE for y-coordinates, we allow for the full height of the die as range for now (assuming LL corner is (0,0) )
 	#y_pin_lower=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} * $die_ratio_y_lower)" | awk '{printf "%f", $0}')
 	#y_pin_upper=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} * $die_ratio_y_upper)" | awk '{printf "%f", $0}')
 	y_pin_lower=$(bc -l <<< "scale=$scale; 0" | awk '{printf "%f", $0}')
