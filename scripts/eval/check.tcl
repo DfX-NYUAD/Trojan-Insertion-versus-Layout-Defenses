@@ -29,6 +29,9 @@ read_def $def_path -preserve_shape
 
 init_design
 
+# required for proper power and SI analysis; default activity factor for PIs, 0.2, is not propagated automatically
+set_default_switching_activity -sequential_activity 0.2
+
 # delete all kinds of fillers (decaps, tap cells, filler cells)
 delete_filler -cells [ get_db -u [ get_db insts -if { .is_physical } ] .base_cell.name ]
 
@@ -54,15 +57,15 @@ mv *.geom.rpt reports/
 check_design -type {place route} > reports/check_design.rpt
 
 ####
-# settings for clock propagation, timing, power, SI
+# custom checks, reports
 ####
 
-# clock propagation
-# NOTE no differences in timing values w/ versus w/o these settings, because of 'time_desing -post_route' using the
-# clock propagation from SDC files; still kept here just to make sure and be consistent w/ earlier scripts
-set_interactive_constraint_modes [all_constraint_modes -active]
-reset_propagated_clock [all_clocks]
-set_propagated_clock [all_clocks]
+# exploitable regions
+source scripts/exploitable_regions.tcl
+
+####
+# timing the design
+####
 
 # removes clock pessimism
 set_db timing_analysis_cppr both
@@ -70,54 +73,32 @@ set_db timing_analysis_cppr both
 # on-chip variations to be considered
 set_db timing_analysis_type ocv
 
-# enables SI/noise reporting
-set_db si_delay_enable_report true
-set_db si_glitch_enable_report true
-set_db si_enable_glitch_propagation true
-
-# required for proper power and SI analysis; default activity factor for PIs, 0.2, is not propagated automatically
-set_default_switching_activity -sequential_activity 0.2
-
-#####
-## timing analysis
-#####
-
-### NOTE applicable for (faster) timing analysis, but not for subsequent ECO runs or so -- OK for our scope
-### NOTE also not suitable for SI reporting; thus only activated here
+# simultaneous setup, hold analysis
+# NOTE applicable for (faster) timing analysis, but not for subsequent ECO runs or so -- OK for our scope of DEF loading and evaluating
 set_db timing_enable_simultaneous_setup_hold_mode true
 
 # actual timing eval command
 time_design -post_route
 
-## NOTE provides setup, hold, DRV, clock checks all at once; requires simultaneous_setup_hold_mode
+####
+# design reports
+####
+
+# timing
+# NOTE can provide setup, hold, DRV, clock checks all at once if simultaneous_setup_hold_mode is true
 report_timing_summary > reports/timing.rpt
 
-####
 # die area
-####
-
 set out [open reports/area.rpt w]
 puts $out [get_db current_design .bbox.area]
 close $out
 
-####
 # power
-####
-
 report_power > reports/power.rpt
 
-####
 # routing track utilization
-####
-
 # NOTE M1 is skipped (even when explicitly setting "-layer 1:10") because M1 is not made available for routing in lib files
 report_route -include_regular_routes -track_utilization > reports/track_utilization.rpt
-
-####
-# exploitable regions
-####
-
-source scripts/exploitable_regions.tcl
 
 ####
 # mark done; exit
