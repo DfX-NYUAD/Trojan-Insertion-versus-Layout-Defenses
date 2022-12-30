@@ -813,9 +813,9 @@ check_submission() {
 			escaped_asset=${escaped_design_assets[$i]}
 
 			# for DEF format, each token/word is separated, so we can use -w here
+			# NOTE grep -q returing 0 means found, returning 1 means not found, returning 2 etc means other errors
 			grep -q -w $escaped_asset design.def
-
-			if [[ $? == 1 ]]; then
+			if [[ $? != 0 ]]; then
 
 				errors=1
 				
@@ -843,8 +843,9 @@ check_submission() {
 		scripts/check_pins.sh > /dev/null
 
 		# parse rpt for FAIL or ERROR
+		# NOTE grep -q returing 0 means found, returning 1 means not found, returning 2 etc means other errors
 		errors=$(grep -q -E "FAIL|ERROR" reports/check_pins.rpt; echo $?)
-		if [[ $errors == 0 ]]; then
+		if [[ $errors != 1 ]]; then
 
 			echo "ISPD23 -- ERROR: pins check failed -- see check_pins.rpt for more details." >> reports/errors.rpt
 			echo "ISPD23 -- 2)  $id_run:   Pins check failed."
@@ -953,7 +954,7 @@ parse_lec_checks() {
 	#
 	# non-equivalence issues
 	#
-	## NOTE failure on those considered as error/constraint violation
+	## NOTE failure on those is considered as error/constraint violation
 	#
 # NOTE such line is only present if errors/issues found at all
 # NOTE multiple, differently formated occurrence of "Non-equivalent" -- use that from "report compare data" command, at end of rpt file
@@ -987,7 +988,7 @@ parse_lec_checks() {
 	#
 	# unreachable issues
 	#
-	## NOTE failure on those considered as error/constraint violation
+	## NOTE failure on those is considered as error/constraint violation
 	#
 # NOTE such line is only present if errors/issues found at all
 # NOTE multiple, differently formated occurrence of "Unreachable" -- use that from "report unmapped points" command, at end of related rpt file
@@ -1305,8 +1306,8 @@ parse_inv_checks() {
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 ## (TODO) deactivated for now
-# TODO only parse peak noises; ignore violations as we have to use NLDM libs as CCS libs gave larger mismatch in timing
-# TODO make sure to differentiate b/w VH and VL peak noises correctly
+# NOTE only parse peak noises; ignore violations as we have to use NLDM libs as CCS libs gave larger mismatch in timing
+# NOTE make sure to differentiate b/w VH and VL peak noises correctly
 #
 #	# noise issues; check noise.rpt for summary
 ## Example:
@@ -1376,14 +1377,55 @@ parse_inv_checks() {
 #
 #	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
 
-	# TODO PDN checks; check TODO for TODO
+	# PDN stripes checks; check reports/check_stripes.rpt for false versus valid results
 	#
-	## NOTE failure on those considered as error/constraint violation
+	## NOTE failure on those is considered as error/constraint violation
 	#
+# Example:
+#PDN stripes checks
+#==================
+#Check by area
+#-------------
+#M2 ---- VDD  ---> valid
+#M2 ---- VSS  ---> valid
+#M3 ---- VDD  ---> valid
+#M3 ---- VSS  ---> valid
+# [...]
+#Final result: false
+#
+#Check by coordinates
+#--------------------
+#M2 ---- VDD  ---> valid ---- valid
+#M2 ---- VSS  ---> valid ---- valid
+# [...]
+#Final result: false
+#
+#Check by box width
+#------------------
+#M2 ---- VDD  ---> valid
+#M2 ---- VSS  ---> valid
+# [...]
+#Final result: valid
+
+	issues=$(grep "Final result: false" reports/check_stripes.rpt | wc -l)
+	string="Innovus: PDN stripes checks failures"
+
+	# NOTE for now, design is considered as failing only once all three checks fail
+	if [[ $issues == '3' ]]; then
+
+		errors=1
+		echo "ISPD23 -- ERROR: $string -- see check_stripes.rpt for more details." >> reports/errors.rpt
+
+	# if not failing altogether, still report any failing check
+	elif [[ $issues != '0' ]]; then
+		echo "ISPD23 -- WARNING: $string: $issues -- see check_stripes.rpt for more details." >> reports/warnings.rpt
+	fi
+
+	echo "ISPD23 -- $string: $issues" >> reports/checks_summary.rpt
 
 	# DRC routing issues; check *.geom.rpt for "Total Violations"
 	#
-	## NOTE failure on those considered as error/constraint violation
+	## NOTE failure on those is considered as error/constraint violation
 	#
 # Example:
 #  Total Violations : 2 Viols.
@@ -1404,7 +1446,7 @@ parse_inv_checks() {
 
 	# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
 	#
-	## NOTE failure on those considered as error/constraint violation
+	## NOTE failure on those is considered as error/constraint violation
 	#
 
 	# setup 

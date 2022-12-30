@@ -56,12 +56,14 @@ mv *.geom.rpt reports/
 # NOTE false positives for VDD, VSS vias at M4, M5, M6; report file has incomplete info, full details are in check.logv
 check_design -type {place route} > reports/check_design.rpt
 
-####
-# custom checks, reports
-####
-
-# exploitable regions
-source scripts/exploitable_regions.tcl
+# custom checks for PDN stripes
+set out [open reports/check_stripes.rpt w]
+puts $out "PDN stripes checks"
+puts $out "=================="
+close $out
+source scripts/check_stripes_area_stylus.tcl
+source scripts/check_stripes_coors_stylus.tcl
+source scripts/check_stripes_width_stylus.tcl
 
 ####
 # timing the design
@@ -81,7 +83,7 @@ set_db timing_enable_simultaneous_setup_hold_mode true
 time_design -post_route
 
 ####
-# design reports
+# design evaluation
 ####
 
 # timing
@@ -95,6 +97,13 @@ close $out
 
 # power
 report_power > reports/power.rpt
+
+####
+# security evaluation
+####
+
+# exploitable regions
+source scripts/exploitable_regions.tcl
 
 # routing track utilization
 # NOTE M1 is skipped (even when explicitly setting "-layer 1:10") because M1 is not made available for routing in lib files
