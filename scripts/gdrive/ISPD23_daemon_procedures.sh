@@ -916,6 +916,7 @@ link_work_dir() {
 	ln -sf $baselines_root_folder/$benchmark/design.v design_original.v
 	ln -sf $baselines_root_folder/$benchmark/design.def design_original.def
 	ln -sf $baselines_root_folder/$benchmark/reports/*.data reports/
+	ln -sf $baselines_root_folder/$benchmark/rc_model.bin .
 
 	## link scripts into work dir, using dedicated subfolder
 
