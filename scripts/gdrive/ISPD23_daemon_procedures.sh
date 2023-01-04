@@ -667,43 +667,43 @@ check_eval() {
 				### check status of above processes
 
 				## design checks
-				if [[ -e PASSED.designs_checks ]]; then
-					status[design_checks]=1
+				if [[ -e PASSED.inv_checks ]]; then
+					status[inv_checks]=1
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: done"
 
 				elif [[ -e FAILED.inv_checks ]]; then
-					status[design_checks]=2
+					status[inv_checks]=2
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: failed"
 
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
-					status[design_checks]=2
+					status[inv_checks]=2
 				else
-					status[design_checks]=0
+					status[inv_checks]=0
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: still working ..."
 				fi
 
 				## LEC design checks
 				if [[ -e PASSED.lec_checks ]]; then
-					status[lec]=1
+					status[lec_checks]=1
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: done"
 
 				elif [[ -e FAILED.lec_checks ]]; then
-					status[lec]=2
+					status[lec_checks]=2
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: failed"
 
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
-					status[lec]=2
+					status[lec_checks]=2
 				else
-					status[lec]=0
+					status[lec_checks]=0
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: still working ..."
 				fi
 
 				## 2) if not done yet, and no error occurred, then continue, i.e., skip the further processing for now
-				if [[ ${status[design_checks]} == 0 || ${status[lec]} == 0 ]]; then
+				if [[ ${status[inv_checks]} == 0 || ${status[lec_checks]} == 0 ]]; then
 					
 					# first return to previous main dir silently
 					cd - > /dev/null
@@ -1503,7 +1503,7 @@ parse_inv_checks() {
 	else
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks done; all passed."
 
-		date > PASSED.designs_checks
+		date > PASSED.inv_checks
 		exit 0
 	fi
 }
