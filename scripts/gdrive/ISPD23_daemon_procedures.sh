@@ -1389,14 +1389,14 @@ parse_inv_checks() {
 #M2 ---- VDD  ---> valid
 #M2 ---- VSS  ---> valid
 #M3 ---- VDD  ---> valid
-#M3 ---- VSS  ---> valid
+#M3 ---- VSS  ---> false
 # [...]
 #Final result: false
 #
 #Check by coordinates
 #--------------------
 #M2 ---- VDD  ---> valid ---- valid
-#M2 ---- VSS  ---> valid ---- valid
+#M2 ---- VSS  ---> valid ---- false
 # [...]
 #Final result: false
 #
@@ -1408,20 +1408,15 @@ parse_inv_checks() {
 #Final result: valid
 
 	issues=$(grep "Final result: false" reports/check_stripes.rpt | wc -l)
-	string="Innovus: PDN stripes checks failures"
+	string="Innovus: PDN stripes checks failures:"
 
-	# NOTE for now, design is considered as failing only once all three checks fail
-	if [[ $issues == '3' ]]; then
+	if [[ $issues != '0' ]]; then
 
 		errors=1
-		echo "ISPD23 -- ERROR: $string -- see check_stripes.rpt for more details." >> reports/errors.rpt
-
-	# if not failing altogether, still report any failing check
-	elif [[ $issues != '0' ]]; then
-		echo "ISPD23 -- WARNING: $string: $issues -- see check_stripes.rpt for more details." >> reports/warnings.rpt
+		echo "ISPD23 -- ERROR: $string $issues -- see check_stripes.rpt for more details." >> reports/errors.rpt
 	fi
 
-	echo "ISPD23 -- $string: $issues" >> reports/checks_summary.rpt
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
 	# DRC routing issues; check *.geom.rpt for "Total Violations"
 	#
