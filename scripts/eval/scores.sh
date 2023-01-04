@@ -66,7 +66,7 @@ fi
 
 ### helper for log formating
 
-score_components="sec sec_ti sec_ti_sts sec_ti_sts_sum sec_ti_sts_max sec_ti_sts_med sec_ti_fts sec_ti_fts_sum des des_pwr des_pwr_tot des_prf des_prf_WNS_set des_prf_WNS_hld des_ara des_ara_die OVERALL"
+score_components="sec sec_ti sec_ti_sts sec_ti_sts_sum sec_ti_sts_max sec_ti_sts_med sec_ti_fts sec_ti_fts_sum des des_pwr des_pwr_tot des_prf des_prf_WNS_set des_prf_WNS_hld des_area des_area_die OVERALL"
 cmp_max_length="0"
 
 for cmp in $score_components; do
@@ -107,8 +107,8 @@ weights[des_prf]="(1/3)"
 weights[des_prf_WNS_set]="0.5"
 weights[des_prf_WNS_hld]="0.5"
 ## area
-weights[des_ara]="(1/3)"
-weights[des_ara_die]="1.0"
+weights[des_area]="(1/3)"
+weights[des_area_die]="1.0"
 
 echo "Metrics' weights:" | tee -a $rpt
 for weight in "${!weights[@]}"; do
@@ -151,8 +151,8 @@ metrics_submission[des_pwr_tot]=$(grep "Total Power:" reports/power.rpt | awk '{
 metrics_submission[des_prf_WNS_set]=$(grep "View : ALL" reports/timing.rpt | awk 'NR==1' | awk '{print $(NF-2)}')
 metrics_submission[des_prf_WNS_hld]=$(grep "View : ALL" reports/timing.rpt | awk 'NR==2' | awk '{print $(NF-2)}')
 ## area
-  metrics_baseline[des_ara_die]=$(cat $baseline/reports/area.rpt)
-metrics_submission[des_ara_die]=$(cat reports/area.rpt)
+  metrics_baseline[des_area_die]=$(cat $baseline/reports/area.rpt)
+metrics_submission[des_area_die]=$(cat reports/area.rpt)
 
 echo "Baseline numbers (raw, not weighted yet):" | tee -a $rpt
 for metric in "${!metrics_baseline[@]}"; do
@@ -184,7 +184,7 @@ base_scores[sec_ti_fts_sum]=$(bc -l <<< "scale=$scale; (${metrics_submission[sec
 ## power
 base_scores[des_pwr_tot]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_pwr_tot]} / ${metrics_baseline[des_pwr_tot]})")
 ## area
-base_scores[des_ara_die]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_ara_die]} / ${metrics_baseline[des_ara_die]})")
+base_scores[des_area_die]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_area_die]} / ${metrics_baseline[des_area_die]})")
 
 # NOTE metrics where the higher the better, thus calculate score as baseline / submission 
 #
@@ -245,14 +245,14 @@ scores[des_prf]=$(bc -l <<< "scale=$scale; ($calc_string)")
 #echo "des_prf: $calc_string"
 
 ## area
-calc_string="${weights[des_ara_die]}*${base_scores[des_ara_die]}"
-scores[des_ara]=$(bc -l <<< "scale=$scale; ($calc_string)")
-#echo "des_ara: $calc_string"
+calc_string="${weights[des_area_die]}*${base_scores[des_area_die]}"
+scores[des_area]=$(bc -l <<< "scale=$scale; ($calc_string)")
+#echo "des_area: $calc_string"
 
 ## design cost, combined
 calc_string="${weights[des_pwr]}*${scores[des_pwr]}"
 calc_string+=" + ${weights[des_prf]}*${scores[des_prf]}"
-calc_string+=" + ${weights[des_ara]}*${scores[des_ara]}"
+calc_string+=" + ${weights[des_area]}*${scores[des_area]}"
 calc_string+=$calc_string_rounding
 scores[des]=$(bc -l <<< "scale=$scale; ($calc_string)")
 #echo "des: $calc_string"
