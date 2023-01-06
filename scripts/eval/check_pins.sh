@@ -15,8 +15,7 @@ DEF_sub="design.def"
 DEF_orig="design_original.def"
 ## math
 scale="6"
-margin="0.001"
-threshold="0.0"
+margin="0.00001"
 
 ## helper function
 ## required for correctly printing out and sourcing in associative arrays w/ special characters in bash 4.2
@@ -64,30 +63,6 @@ die_sub_x=$(grep -w 'DIEAREA' $DEF_sub | awk '{print $7}')
 die_sub_y=$(grep -w 'DIEAREA' $DEF_sub | awk '{print $8}')
 die_orig_x=$(grep -w 'DIEAREA' $DEF_orig | awk '{print $7}')
 die_orig_y=$(grep -w 'DIEAREA' $DEF_orig | awk '{print $8}')
-
-## NOTE awk is for printing leading zero, which is omitted by bc
-die_ratio_x=$(bc -l <<< "scale=$scale; ($die_sub_x / $die_orig_x)" | awk '{printf "%f", $0}')
-die_ratio_y=$(bc -l <<< "scale=$scale; ($die_sub_y / $die_orig_y)" | awk '{printf "%f", $0}')
-
-## NOTE for x-coordinates, we do not allow for any offset for now
-## the generic code is commented out
-die_ratio_x_lower=$(bc -l <<< "scale=$scale; $die_ratio_x" | awk '{printf "%f", $0}')
-#die_ratio_x_lower=$(bc -l <<< "scale=$scale; $die_ratio_x - $threshold" | awk '{printf "%f", $0}')
-die_ratio_x_upper=$(bc -l <<< "scale=$scale; $die_ratio_x" | awk '{printf "%f", $0}')
-#die_ratio_x_upper=$(bc -l <<< "scale=$scale; $die_ratio_x + $threshold" | awk '{printf "%f", $0}')
-
-## NOTE for y-coordinates, we allow for the full height of the die as range for now (assuming LL corner is (0,0) )
-## the generic code is commented out
-die_ratio_y_lower=$(bc -l <<< "scale=$scale; 0" | awk '{printf "%f", $0}')
-#die_ratio_y_lower=$(bc -l <<< "scale=$scale; $die_ratio_y - $threshold" | awk '{printf "%f", $0}')
-die_ratio_y_upper=$(bc -l <<< "scale=$scale; $die_ratio_y" | awk '{printf "%f", $0}')
-#die_ratio_y_upper=$(bc -l <<< "scale=$scale; $die_ratio_y + $threshold" | awk '{printf "%f", $0}')
-
-## NOTE only meaningful for ranges w/ offsets, thus not printed for now
-#echo "Ratio submission DEF / original DEF for x-coordinates: $die_ratio_x" | tee -a $rpt
-#echo " Allowed range for ratio for x-coordinates for pins: $die_ratio_x_lower--$die_ratio_x_upper" | tee -a $rpt
-#echo "Ratio submission DEF / original DEF for y-coordinates: $die_ratio_y" | tee -a $rpt
-#echo " Allowed range for ratio for y-coordinates for pins: $die_ratio_y_lower--$die_ratio_y_upper" | tee -a $rpt
 
 # parse DEF files for pins using regex
 #
@@ -245,13 +220,19 @@ if ! [[ -e $data_orig ]]; then
 #else, all data was already read in above
 fi
 
-## NOTE for y-coordinates, we allow for the full height of the die as range for now (assuming LL corner is (0,0) )
-y_pin_lower=$(bc -l <<< "scale=$scale; 0" | awk '{printf "%f", $0}')
-y_pin_upper=$(bc -l <<< "scale=$scale; $die_sub_y" | awk '{printf "%f", $0}')
-
 # cross-check pin coordinates
 #
+
 echo "Cross-check pin coordinates ..."
+
+## NOTE awk is for printing leading zero, which is omitted by bc
+die_ratio_x=$(bc -l <<< "scale=$scale; ($die_sub_x / $die_orig_x)" | awk '{printf "%f", $0}')
+
+## NOTE for range of y-coordinates, we allow for the full height of the die, assuming LL corner is (0,0)
+## can be pre-computed once, not needed to calculate w/in loop
+allowed_y_pin_lower=$(bc -l <<< "scale=$scale; 0" | awk '{printf "%f", $0}')
+allowed_y_pin_upper=$(bc -l <<< "scale=$scale; $die_sub_y" | awk '{printf "%f", $0}')
+
 ## iterate over pins from original DEF (keys of assoc array)
 for curr_pin in "${!coords_x_orig[@]}"; do
 
@@ -263,40 +244,22 @@ for curr_pin in "${!coords_x_orig[@]}"; do
 		continue
 	fi
 
-#	# NOTE margin needed to avoid div by zero
-#	# NOTE here be (little) dragons -- just assume that all four coords_x/y_sub/orig are initialized the moment
-#	# coords_x_orig is there and the pin is found in both sub and orig DEF; should be fine, as some error would have
-#	# occurred already above for assignment statements
-#	pin_ratio_x=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} + $margin) / (${coords_x_orig[$curr_pin]} + $margin)" | awk '{printf "%f", $0}')
-#	pin_ratio_y=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} + $margin) / (${coords_y_orig[$curr_pin]} + $margin)" | awk '{printf "%f", $0}')
-#
-#	echo "Curr pin: $curr_pin"
-#	echo " Ratio x-coords: $pin_ratio_x"
-#	echo " Ratio y-coords: $pin_ratio_y"
+	## NOTE for range of x-coordinates, we allow for the same coordinate but rescaled according to die ratio
+	## also consider some margin to avoid mismatches due to rounding
+	allowed_x_pin_lower=$(bc -l <<< "scale=$scale; (${coords_x_orig[$curr_pin]} * ($die_ratio_x - $margin))" | awk '{printf "%f", $0}')
+	allowed_x_pin_upper=$(bc -l <<< "scale=$scale; (${coords_x_orig[$curr_pin]} * ($die_ratio_x + $margin))" | awk '{printf "%f", $0}')
+	if (( $(echo "$allowed_x_pin_lower <= ${coords_x_sub[$curr_pin]}" | bc -l) && $(echo "$allowed_x_pin_upper >= ${coords_x_sub[$curr_pin]}" | bc -l) )); then
 
-	## NOTE for x-coordinates, we do not allow for any offset for now
-	## the generic code is commented out
-#	x_pin_lower=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} * $die_ratio_x_lower)" | awk '{printf "%f", $0}')
-#	x_pin_upper=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} * $die_ratio_x_upper)" | awk '{printf "%f", $0}')
-#	if (( $(echo "$x_pin_lower <= ${coords_x_sub[$curr_pin]}" | bc -l) && $(echo "$x_pin_upper >= ${coords_x_sub[$curr_pin]}" | bc -l) )); then
-	x_pin=$(bc -l <<< "scale=$scale; (${coords_x_sub[$curr_pin]} * $die_ratio_x_upper)" | awk '{printf "%f", $0}')
-	if (( $(echo "$x_pin == ${coords_x_sub[$curr_pin]}" | bc -l) )); then
-
-#		echo "PASS: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls within the allowed range ($x_pin_lower--$x_pin_upper)." | tee -a $rpt
-		echo "PASS: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls onto the allowed coordinate ($x_pin)." | tee -a $rpt
+		echo "PASS: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls within the allowed range ($allowed_x_pin_lower -- $allowed_x_pin_upper)." | tee -a $rpt
 	else
-#		echo "FAIL: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls out of the allowed range ($x_pin_lower--$x_pin_upper)." | tee -a $rpt
-		echo "FAIL: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) does not fall onto the allowed coordinate ($x_pin)." | tee -a $rpt
+		echo "FAIL: For pin \"$curr_pin\" in the submitted DEF, the x-coordinate (${coords_x_sub[$curr_pin]}) falls out of the allowed range ($allowed_x_pin_lower -- $allowed_x_pin_upper)." | tee -a $rpt
 	fi
 
-	## NOTE for y-coordinates, we allow for the full height of the die as range for now (assuming LL corner is (0,0) )
-	## NOTE static computation, sourced out of lopp
-#	y_pin_lower=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} * $die_ratio_y_lower)" | awk '{printf "%f", $0}')
-#	y_pin_upper=$(bc -l <<< "scale=$scale; (${coords_y_sub[$curr_pin]} * $die_ratio_y_upper)" | awk '{printf "%f", $0}')
-	if (( $(echo "$y_pin_lower <= ${coords_y_sub[$curr_pin]}" | bc -l) && $(echo "$y_pin_upper >= ${coords_y_sub[$curr_pin]}" | bc -l) )); then
+	## NOTE for range of y-coordinates, we allow for the full height of the die, assuming LL corner is (0,0)
+	if (( $(echo "$allowed_y_pin_lower <= ${coords_y_sub[$curr_pin]}" | bc -l) && $(echo "$allowed_y_pin_upper >= ${coords_y_sub[$curr_pin]}" | bc -l) )); then
 
-		echo "PASS: For pin \"$curr_pin\" in the submitted DEF, the y-coordinate (${coords_y_sub[$curr_pin]}) falls within the allowed range ($y_pin_lower--$y_pin_upper)." | tee -a $rpt
+		echo "PASS: For pin \"$curr_pin\" in the submitted DEF, the y-coordinate (${coords_y_sub[$curr_pin]}) falls within the allowed range ($allowed_y_pin_lower -- $allowed_y_pin_upper)." | tee -a $rpt
 	else
-		echo "FAIL: For pin \"$curr_pin\" in the submitted DEF, the y-coordinate (${coords_y_sub[$curr_pin]}) falls out of the allowed range ($y_pin_lower--$y_pin_upper)." | tee -a $rpt
+		echo "FAIL: For pin \"$curr_pin\" in the submitted DEF, the y-coordinate (${coords_y_sub[$curr_pin]}) falls out of the allowed range ($allowed_y_pin_lower -- $allowed_y_pin_upper)." | tee -a $rpt
 	fi
 done
