@@ -115,11 +115,12 @@ initialize() {
 	for google_team_folder in "${!google_team_folders[@]}"; do
 	
 		team="${google_team_folders[$google_team_folder]}"
-	
 		google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
-	
+
+		## NOTE initialized here, but also to be updated during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
+		##
 		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
-		google_share_emails[$team]=$(./gdrive share list $google_round_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
+		google_share_emails[$team]=$(./gdrive share list $google_team_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
 	
 		for benchmark in $benchmarks; do
 	
@@ -1518,6 +1519,11 @@ start_eval() {
 
 		team="${google_team_folders[$google_team_folder]}"
 		team_=$(printf "%-"$teams_string_max_length"s" $team)
+
+		## NOTE updated here, that is once during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
+		##
+		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
+		google_share_emails[$team]=$(./gdrive share list $google_team_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
 
 		queued_runs_sum=0
 		# NOTE init the current runs from all work folders of all benchmarks; ignore errors for ls, which are probably only due to empty folders
