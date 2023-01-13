@@ -409,6 +409,13 @@ google_uploads() {
 
 				rpt=$backup_work_folder/downloads_$folder_/reports/scores.rpt.summary
 				if [[ -e $rpt ]]; then
+
+					rpt_=$backup_work_folder/downloads_$folder_/reports/errors.rpt
+					if [[ -e $rpt_ ]]; then
+						text+="SCORES ONLY FOR INFORMATION. THIS SUBMISSION IS INVALID DUE TO SOME ERRORS."
+						text+="\n\n"
+					fi
+
 					# NOTE print out scores summary in email
 					text+=$(cat $rpt)
 					text+="\n\n"

@@ -20,11 +20,11 @@ err_rpt=reports/errors.rpt
 rm $rpt 2> /dev/null
 error=0
 
-## 1) check for any other errors that might have occurred during actual processing
-if [[ -e $err_rpt ]]; then
-	echo "ISPD23 -- ERROR: cannot compute scores -- some evaluation step had some errors." | tee -a $err_rpt
-	error=1
-fi
+### 1) check for any other errors that might have occurred during actual processing
+#if [[ -e $err_rpt ]]; then
+#	echo "ISPD23 -- ERROR: cannot compute scores -- some evaluation step had some errors." | tee -a $err_rpt
+#	error=1
+#fi
 
 ## 1) parameter checks
 if [[ $scale == "" ]]; then
