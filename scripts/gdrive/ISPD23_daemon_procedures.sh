@@ -115,11 +115,12 @@ initialize() {
 	for google_team_folder in "${!google_team_folders[@]}"; do
 	
 		team="${google_team_folders[$google_team_folder]}"
-	
 		google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
-	
+
+		## NOTE initialized here, but also to be updated during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
+		##
 		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
-		google_share_emails[$team]=$(./gdrive share list $google_round_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
+		google_share_emails[$team]=$(./gdrive share list $google_team_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
 	
 		for benchmark in $benchmarks; do
 	
@@ -409,6 +410,13 @@ google_uploads() {
 
 				rpt=$backup_work_folder/downloads_$folder_/reports/scores.rpt.summary
 				if [[ -e $rpt ]]; then
+
+					rpt_=$backup_work_folder/downloads_$folder_/reports/errors.rpt
+					if [[ -e $rpt_ ]]; then
+						text+="SCORES ONLY FOR INFORMATION. THIS SUBMISSION IS INVALID DUE TO SOME ERRORS."
+						text+="\n\n"
+					fi
+
 					# NOTE print out scores summary in email
 					text+=$(cat $rpt)
 					text+="\n\n"
@@ -1511,6 +1519,11 @@ start_eval() {
 
 		team="${google_team_folders[$google_team_folder]}"
 		team_=$(printf "%-"$teams_string_max_length"s" $team)
+
+		## NOTE updated here, that is once during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
+		##
+		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
+		google_share_emails[$team]=$(./gdrive share list $google_team_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
 
 		queued_runs_sum=0
 		# NOTE init the current runs from all work folders of all benchmarks; ignore errors for ls, which are probably only due to empty folders
