@@ -115,6 +115,9 @@ initialize() {
 	for google_team_folder in "${!google_team_folders[@]}"; do
 	
 		team="${google_team_folders[$google_team_folder]}"
+
+		echo "ISPD23 -- 0)    Checking team folder \"$team\" (Google team folder ID \"$google_team_folder\") ..."
+
 		google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
 
 		## NOTE initialized here, but also to be updated during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
@@ -132,7 +135,7 @@ initialize() {
 			# in case the related benchmark folder is missing, create it on the drive
 			if [[ ${google_benchmark_folders[$id_internal]} == "" ]]; then
 
-				echo "ISPD23 -- 0)    Init missing Google folder for round \"$round\", team \"$team\", benchmark \"$benchmark\" ..."
+				echo "ISPD23 -- 0)     Init missing Google folder: round \"$round\", benchmark \"$benchmark\" ..."
 
 				# work with empty dummy folders in tmp dir
 				mkdir -p $tmp_root_folder/$benchmark
