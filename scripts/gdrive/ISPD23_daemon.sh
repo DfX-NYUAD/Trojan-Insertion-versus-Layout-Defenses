@@ -27,7 +27,6 @@ while true; do
 		echo "ISPD23 -- 1) Download new submissions, if any ..."
 		echo "ISPD23 -- 1)  Time: $(date)"
 		echo "ISPD23 -- 1)  Time stamp: $(date +%s)"
-		echo "ISPD23 -- 1)"
 
 		google_downloads
 
@@ -67,7 +66,6 @@ while true; do
 	echo "ISPD23 -- 4) Upload new results, if any ..."
 	echo "ISPD23 -- 4)  Time: $(date)"
 	echo "ISPD23 -- 4)  Time stamp: $(date +%s)"
-	echo "ISPD23 -- 4)"
 
 	google_uploads
 

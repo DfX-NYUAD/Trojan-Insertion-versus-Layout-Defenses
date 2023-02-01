@@ -19,8 +19,10 @@ google_quota() {
 
 	status=$(./gdrive about)
 
+	echo $prefix
 	## NOTE putting prefix in quotes maintains the leading spaces, which we want; not putting status in quotes drops the linebreaks, as intended
 	echo "$prefix"$status
+	echo $prefix
 }
 
 send_email() {
@@ -229,7 +231,7 @@ google_downloads() {
 			downloads_folder="$team_folder/$benchmark/downloads"
 			declare -A basename_folders=()
 
-			# array of [google_ID]=actual_file_name
+			# array of [google_ID]=google_file_name
 			declare -A google_folder_files=()
 			# array of [google_ID]=file_type
 			declare -A google_folder_files_type=()
@@ -272,15 +274,41 @@ google_downloads() {
 					continue
 				fi
 
-				actual_file_name=${google_folder_files[$file]}
-				basename=${actual_file_name%.*}
-				## DBG
-				#echo "ISPD23 -- basename: $basename"
+				google_file_name=${google_folder_files[$file]}
+				basename=${google_file_name%.*}
+				local_file_name=${google_folder_files[$file]}
 
-				# sanity check for malformated file names with only suffix, like ".nfs000000001f6680dd00000194"
+				# sanity check for malformed file names with only suffix, like ".nfs000000001f6680dd00000194" -- simply ignore such files
 				if [[ $basename == "" ]]; then
 					continue
 				fi
+
+				# sanity checks:
+				#
+				# 1) if file name and basename are the same, this means there's no file extension in the current string. This implies, most likely, that
+				# the file is one of multiple files with the same basename in the same folder (gdrive handles such instances as "aes (1).zip", "aes (2).zip" etc.;
+				# the dropping of the file extensions happens because the string parsing, see loops above, considers only 1 word for the file name); thus, we need
+				# to get the full file name again, including spaces
+				# 2) for long filenames: gdrive puts "..." in the middle of long file names, but only for the short ID obtained above; thus, we need to get the full
+				# file name again
+				#
+				if [[ "$basename" == "$google_file_name" || "$google_file_name" == *"..."* ]]; then
+
+					# another call to gdrive, to get the full file name including any spaces etc
+					google_file_name=$(./gdrive info $file | grep "Name: ")
+					google_file_name=${google_file_name##Name: }
+
+					# for the local file, replace spaces, if any, w/ "_"
+					local_file_name=$(echo $google_file_name | sed 's/ /_/g')
+
+					# update basename as well, considering the updated local file name (w/o any spaces)
+					basename=${local_file_name%.*}
+				fi
+
+				## DBG
+				#echo "ISPD23 -- google_file_name: $google_file_name"
+				#echo "ISPD23 -- local_file_name: $local_file_name"
+				#echo "ISPD23 -- basename: $basename"
 
 				# first, if not available yet, init a separate folder for each set of files with common basename
 				# (assuming that different submissions downloaded at once at least have different basenames)
@@ -304,27 +332,35 @@ google_downloads() {
 					#echo "ISPD23 -- existing downloads_folder_: $downloads_folder_"
 				fi
 
-				echo "ISPD23 -- 1)  Download new submission file \"$actual_file_name\" (Google file ID \"$file\") into dedicated folder \"$downloads_folder_\" ..."
+				echo "ISPD23 -- 1)  Download new submission file \"$google_file_name\" (Google file ID \"$file\") to \"$downloads_folder_\" ..."
 				./gdrive download -f --path $downloads_folder_ $file #> /dev/null 2>&1
 
-				# memorize to not download again, but only if the download succeeded
+				# post-processing if download succeeds
 				if [[ $? == 0 ]]; then
 
+					# memorize to not download again
 					echo $file >> $downloads_folder/dl_history
+
+					# move files locally if needed
+					if [[ "$google_file_name" != "$local_file_name" ]]; then
+
+						echo "ISPD23 -- 1)   Rename file locally, w/o any spaces, to: \"$downloads_folder_/$local_file_name\""
+
+						## NOTE quotes for google_file_name are essential to capture any spaces; for local_file_name there are no spaces by definition
+						mv "$downloads_folder_/$google_file_name" $downloads_folder_/$local_file_name
+					fi
+
+					# unpack archive, if applicable
+					if [[ $(file $downloads_folder_/$local_file_name | awk '{print $2}') == 'Zip' ]]; then
+
+						echo "ISPD23 -- 1)   Unpacking zip file \"$local_file_name\" into \"$downloads_folder_\" ..."
+						# NOTE only mute regular stdout, but keep stderr
+						unzip -j $downloads_folder_/$local_file_name -d $downloads_folder_ > /dev/null #2>&1
+						rm $downloads_folder_/$local_file_name #> /dev/null 2>&1
+					fi
 				fi
 
-				# unpack archive, if applicable
-				## NOTE for long filenames, gdrive will put "..." in the middle, which leads to	$actual_file_name not matched as is; so, use sed to replace "..." w/ proper * wildcard
-				actual_file_name_=$(echo $actual_file_name | sed 's/\.\.\./*/g')
-				if [[ $(file $downloads_folder_/$actual_file_name_ | awk '{print $2}') == 'Zip' ]]; then
-
-					echo "ISPD23 -- 1)   Unpacking zip file \"$actual_file_name_\" into dedicated folder \"$downloads_folder_\" ..."
-					# NOTE only mute regular stdout, but keep stderr
-					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ > /dev/null #2>&1
-					rm $downloads_folder_/$actual_file_name_ #> /dev/null 2>&1
-				fi
-
-				# chances are that processing is too fast, resulting in clashes for timestamp in folders, hence slow down on purpose here
+				# chances are that processing is too fast, resulting in clashes for timestamp in folders for same benchmarks, hence slow down on purpose here
 				sleep 1s
 			done
 		) &
@@ -1609,7 +1645,7 @@ start_eval() {
 				((queued_runs = queued_runs - 1))
 				((ongoing_runs = ongoing_runs + 1))
 
-				echo "ISPD23 -- 2)  $id_run: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
+				echo "ISPD23 -- 2)  $id_run: Start processing within work folder \"$work_folder/$folder\" ..."
 
 			## start frame of code to be run in parallel
 			## https://unix.stackexchange.com/a/103921
