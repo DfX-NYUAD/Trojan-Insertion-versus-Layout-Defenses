@@ -6,12 +6,21 @@
 #
 ####
 
-google_check_fix_json() {
+google_fix_json() {
 
 	## for some reason, probably race condition or other runtime conflict, the gdrive tool sometimes messes up the
 	## syntax when handling/updating the json file
 	## the issue is simply "}}" instead of "}" -- simple fixing via sed
 	sed 's/}}/}/g' -i $google_json_file
+}
+
+google_quota() {
+	local prefix=$1
+
+	status=$(./gdrive about)
+
+	## NOTE putting prefix in quotes maintains the leading spaces, which we want; not putting status in quotes drops the linebreaks, as intended
+	echo "$prefix"$status
 }
 
 send_email() {
@@ -77,14 +86,17 @@ initialize() {
 	echo "ISPD23 -- 0)  Time: $(date)"
 	echo "ISPD23 -- 0)  Time stamp: $(date +%s)"
 	echo "ISPD23 -- 0)"
+
+	## fix, if needed, the json file for current session in json file
+	google_fix_json
 	
 	## query drive for root folder, extract columns 1 and 2 from response
 	## store into associative array; key is google file/folder ID, value is actual file/folder name
 	
 	echo "ISPD23 -- 0)  Checking Google root folder \"$google_root_folder\" ..."
 
-	## check and fix, if needed, the json file for current session in json file
-	google_check_fix_json
+	## query quota
+	google_quota "ISPD23 -- 0)   " 
 
 	if [[ "$1" == "testing" ]]; then
 
@@ -191,8 +203,11 @@ initialize() {
 
 google_downloads() {
 
-	## check and fix, if needed, the json file for current session in json file
-	google_check_fix_json
+	## fix, if needed, the json file for current session in json file
+	google_fix_json
+
+	## query quota
+	google_quota "ISPD23 -- 1)  " 
 
 	## iterate over keys / google IDs
 	for google_team_folder in "${!google_team_folders[@]}"; do
@@ -326,7 +341,7 @@ google_uploads() {
 	parallel_uploads=0
 
 	## check and fix, if needed, the json file for current session in json file
-	google_check_fix_json
+	google_fix_json
 
 	## iterate over keys / google IDs
 	for google_team_folder in "${!google_team_folders[@]}"; do
@@ -440,6 +455,9 @@ google_uploads() {
 
 	# wait for all parallel runs to finish
 	wait
+
+	## query quota
+	google_quota "ISPD23 -- 4)  " 
 }
 
 check_eval() {
