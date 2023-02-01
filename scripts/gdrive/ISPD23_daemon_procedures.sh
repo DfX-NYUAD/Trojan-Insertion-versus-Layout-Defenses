@@ -444,7 +444,8 @@ google_uploads() {
 				if [[ -e $rpt ]]; then
 					# NOTE only indicate on errors, do not print out in email
 					#text+=$(cat $rpt)
-					text+="Errors: Some errors occurred -- see errors.txt for details. (Note: errors.txt is the same as reports.zip/errors.rpt; it is copied again into the main folder for convenience of direct access.)"
+					text+="Errors: Some errors occurred -- see errors.txt for details. (Note: errors.txt is the same as reports.zip/errors.rpt;";
+					text+=" it is copied again into the main folder only for your convenience, offering direct viewing access through the Google Drive website.)"
 					text+="\n\n"
 				else
 					text+="Errors: No errors occurred."
@@ -455,7 +456,8 @@ google_uploads() {
 				if [[ -e $rpt ]]; then
 					# NOTE only indicate on warnings, do not print out in email
 					#text+=$(cat $rpt)
-					text+="Warnings: Some warnings occurred -- see warnings.txt for details. (Note: warnings.txt is the same as reports.zip/warnings.rpt; it is copied again into the main folder for convenience of direct access.)"
+					text+="Warnings: Some warnings occurred -- see warnings.txt for details. (Note: warnings.txt is the same as reports.zip/warnings.rpt;";
+					text+=" it is copied again into the main folder only for your convenience, offering direct viewing access through the Google Drive website.)"
 					text+="\n\n"
 				else
 					text+="Warnings: No warnings occurred."
