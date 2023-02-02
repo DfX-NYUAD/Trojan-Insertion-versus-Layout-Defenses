@@ -278,6 +278,13 @@ google_downloads() {
 				basename=${google_file_name%.*}
 				local_file_name=${google_folder_files[$file]}
 
+				## DBG
+				#echo "ISPD23 -- file: $file"
+				#echo "ISPD23 -- google_folder_files_type: ${google_folder_files_type[$file]}"
+				#echo "ISPD23 -- google_file_name: $google_file_name"
+				#echo "ISPD23 -- basename: $basename"
+				#echo "ISPD23 -- local_file_name: $local_file_name"
+
 				# sanity check for malformed file names with only suffix, like ".nfs000000001f6680dd00000194" -- simply ignore such files
 				if [[ $basename == "" ]]; then
 					continue
@@ -307,8 +314,8 @@ google_downloads() {
 
 				## DBG
 				#echo "ISPD23 -- google_file_name: $google_file_name"
-				#echo "ISPD23 -- local_file_name: $local_file_name"
 				#echo "ISPD23 -- basename: $basename"
+				#echo "ISPD23 -- local_file_name: $local_file_name"
 
 				# first, if not available yet, init a separate folder for each set of files with common basename
 				# (assuming that different submissions downloaded at once at least have different basenames)
