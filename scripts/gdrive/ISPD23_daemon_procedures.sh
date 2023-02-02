@@ -329,6 +329,11 @@ google_downloads() {
 					#echo "ISPD23 -- local_file_name: $local_file_name"
 				fi
 
+				## if there's still no file extensions, we're looking at some Google doc, spreadsheet, etc. -- these can be safely ignored as well
+				if [[ "$basename" == "$local_file_name" ]]; then
+					continue
+				fi
+
 				# first, if not available yet, init a separate folder for each set of files with common basename
 				# (assuming that different submissions downloaded at once at least have different basenames)
 				if ! [[ ${basename_folders[$basename]+_} ]]; then
