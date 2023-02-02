@@ -991,10 +991,6 @@ link_work_dir() {
 	## NOTE suppress stderr for 'File exists' -- happens when submission uses same name already -- but keep all others
 	ln -s *.v design.v 2>&1 | grep -v "File exists"
 
-	## init reports folder; mv any already existing report (should be only processed_files_MD5.rpt at this point)
-	mkdir reports
-	mv *.rpt reports/
-
 	## link files related to benchmark into work dir
 	# NOTE force here in order to guarantee that the correct files are used, namely those from the reference folders
 	ln -sf $baselines_root_folder/$benchmark/*.sdc . 
@@ -1672,44 +1668,14 @@ start_eval() {
 			## start frame of code to be run in parallel
 			## https://unix.stackexchange.com/a/103921
 			(
-				## 1) send out email notification of start 
-				#
-				echo "ISPD23 -- 2)  $id_run:  Send out email about processing start ..."
 
-				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
-				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
-
-				text="The processing of your latest submission has started. You will receive another email once results are ready."
-				text+="\n\n"
-
-				text+="MD5 hash and name of files processed in this latest submission are as follows:"
-				text+="\n"
-
-				# NOTE cd to the directory such that paths are not revealed/included into email, only filenames
-				cd $downloads_folder/$folder > /dev/null
-				for file in $(ls); do
-					text+=$(md5sum $file 2> /dev/null)"\n"
-				done
-				text+="\n"
-
-				# return to previous main dir
-				cd - > /dev/null
-
-				# NOTE the number for queued runs is more accurate here, but still does not account for empty folders that are not yet processed
-				text+="Processing status: You have currently $ongoing_runs run(s) ongoing in total, and $queued_runs more run(s) queued for this particular benchmark."
-				text+=" "
-				text+="At this point, the evaluation server may start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
-				text+=" "
-				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
-
-				send_email "$text" "$subject" "${google_share_emails[$team]}"
-
-				# 2) init folder
+				# 1) init folder
 				echo "ISPD23 -- 2)  $id_run:  Init work folder ..."
 				
 				## copy downloaded folder in full to work folder
 				cp -rf $downloads_folder/$folder $work_folder/
 
+				### 
 				### switch to work folder
 				### 
 				cd $work_folder/$folder > /dev/null
@@ -1726,7 +1692,34 @@ start_eval() {
 #					zip processed_files.zip $file > /dev/null
 				done
 
-				## link scripts and design files needed for evaluation
+				## init reports folder (only now, to not include in md5 hashes)
+				mkdir reports
+				mv processed_files_MD5.rpt reports/
+
+				# 2) send out email notification of start 
+				echo "ISPD23 -- 2)  $id_run:  Send out email about processing start ..."
+
+				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
+				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
+
+				text="The processing of your latest submission has started. You will receive another email once results are ready."
+				text+="\n\n"
+
+				text+="MD5 hash and name of files processed in this latest submission are as follows:"
+				text+="\n"
+				text+=$(cat reports/processed_files_MD5.rpt)
+				text+="\n\n"
+
+				# NOTE the number for queued runs is more accurate here, but still does not account for empty folders that are not yet processed
+				text+="Processing status: You have currently $ongoing_runs run(s) ongoing in total, and $queued_runs more run(s) queued for this particular benchmark."
+				text+=" "
+				text+="At this point, the evaluation server may start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
+				text+=" "
+				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
+
+				send_email "$text" "$subject" "${google_share_emails[$team]}"
+
+				# 3) link scripts and design files needed for evaluation
 
 				link_work_dir
 
@@ -1747,7 +1740,7 @@ start_eval() {
 					exit 1
 				fi
 
-				# 3) check submission; simple checks
+				# 4) check submission; simple checks
 
 				check_submission
 
@@ -1769,7 +1762,7 @@ start_eval() {
 					exit 1
 				fi
 
-				# 4) start processing for actual checks
+				# 5) start processing for actual checks
 			
 				echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
 #				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
@@ -1786,7 +1779,7 @@ start_eval() {
 				innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null &
 				echo $! > PID.inv_checks
 
-				# 5) cleanup downloads dir, to avoid processing again
+				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null
 			) &
 
