@@ -237,14 +237,25 @@ google_downloads() {
 			declare -A google_folder_files_type=()
 
 			while read -r a b c; do
+
 				google_folder_files[$a]=$b
 				google_folder_files_type[$a]=$c
-			# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
+
+				# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
 				## ISPD23 -- 1)  Download new submission file "to" (Google file ID "Failed") into dedicated folder
 				## Failed to get file: googleapi: Error 404: File not found: Failed., notFound
-				##
 				## ISPD23_daemon_procedures.sh: line 168: google_folder_files[$a]: bad array subscript
-			done < <(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
+
+				# NOTE for google_folder_files_type, we're only interested in "dir" versus any other file. Since folders may have spaces as well, we need to go from
+				# back (right to left); we cannot assume that the file type is 3rd position. Also note that the same issue can occur for non-dir files, but we do not bother here about those
+				## some examples
+				#1upYhtbufP8-G3S1aJr9AcdXZed57w1vn   old result          dir             2023-02-02 17:01:00
+				#1sBKwXVHNd1iSDPDkdEcwo66bmbDufClS   sha256_0202.zip     bin    1.7 MB   2023-02-02 17:03:15
+				#128fBdGnDOLfZ5EN6gwsehT8I453ueUFs   sha256_3.zip        bin    1.5 MB   2023-02-02 13:32:42
+				#1ZD4hzgwHdldCLh4dvtIMRVs6WGi_bvfY   sha256_sdc.zip      bin    1.7 MB   2023-02-02 12:12:51
+				#1fuXzMuq-cEE0ANwVvgLTZv0S1j424RNi   method-01-13-1008   dir             2023-01-13 06:08:27
+
+			done < <(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$(NF-2)}')
 
 			## pre-processing: list files within (sub)folders, if any
 			for folder in "${!google_folder_files_type[@]}"; do
@@ -258,7 +269,7 @@ google_downloads() {
 					google_folder_files[$a]=$b
 					google_folder_files_type[$a]=$c
 				# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines; see note above
-				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
+				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$(NF-2)}')
 			done
 
 			## iterate over keys / google IDs
@@ -269,7 +280,8 @@ google_downloads() {
 					continue
 				fi
 
-				# skip subfolders (if any), as their files are already included in the google_folder_files array
+				# skip subfolders (if any); the files of 1st level subfolders are already included in google_folder_files array (see loop above), other subfolders
+				# of level 2 or more are ignored on purpose
 				if [[ ${google_folder_files_type[$file]} == "dir" ]]; then
 					continue
 				fi
@@ -279,8 +291,8 @@ google_downloads() {
 				local_file_name=${google_folder_files[$file]}
 
 				## DBG
-				#echo "ISPD23 -- file: $file"
-				#echo "ISPD23 -- google_folder_files_type: ${google_folder_files_type[$file]}"
+				#echo "ispd23 -- file: $file"
+				#echo "ispd23 -- google_folder_files_type: ${google_folder_files_type[$file]}"
 				#echo "ISPD23 -- google_file_name: $google_file_name"
 				#echo "ISPD23 -- basename: $basename"
 				#echo "ISPD23 -- local_file_name: $local_file_name"
@@ -294,10 +306,10 @@ google_downloads() {
 				#
 				# 1) if file name and basename are the same, this means there's no file extension in the current string. This implies, most likely, that
 				# the file is one of multiple files with the same basename in the same folder (gdrive handles such instances as "aes (1).zip", "aes (2).zip" etc.;
-				# the dropping of the file extensions happens because the string parsing, see loops above, considers only 1 word for the file name); thus, we need
+				# the dropping of the file extensions happens because awk-based parsing (see loops above) considers only 1 word for the file name); thus, we need
 				# to get the full file name again, including spaces
-				# 2) for long filenames: gdrive puts "..." in the middle of long file names, but only for the short ID obtained above; thus, we need to get the full
-				# file name again
+				# 2) for long filenames: gdrive puts "..." in the middle of long file names, but only for the short ID obtained above, not for the actual file
+				# download; thus, we need to get the full file name again
 				#
 				if [[ "$basename" == "$google_file_name" || "$google_file_name" == *"..."* ]]; then
 
@@ -310,12 +322,12 @@ google_downloads() {
 
 					# update basename as well, considering the updated local file name (w/o any spaces)
 					basename=${local_file_name%.*}
-				fi
 
-				## DBG
-				#echo "ISPD23 -- google_file_name: $google_file_name"
-				#echo "ISPD23 -- basename: $basename"
-				#echo "ISPD23 -- local_file_name: $local_file_name"
+					## DBG
+					#echo "ISPD23 -- google_file_name: $google_file_name"
+					#echo "ISPD23 -- basename: $basename"
+					#echo "ISPD23 -- local_file_name: $local_file_name"
+				fi
 
 				# first, if not available yet, init a separate folder for each set of files with common basename
 				# (assuming that different submissions downloaded at once at least have different basenames)
