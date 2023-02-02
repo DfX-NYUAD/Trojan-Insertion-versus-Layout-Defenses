@@ -237,14 +237,25 @@ google_downloads() {
 			declare -A google_folder_files_type=()
 
 			while read -r a b c; do
+
 				google_folder_files[$a]=$b
 				google_folder_files_type[$a]=$c
-			# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
+
+				# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines, like:
 				## ISPD23 -- 1)  Download new submission file "to" (Google file ID "Failed") into dedicated folder
 				## Failed to get file: googleapi: Error 404: File not found: Failed., notFound
-				##
 				## ISPD23_daemon_procedures.sh: line 168: google_folder_files[$a]: bad array subscript
-			done < <(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
+
+				# NOTE for google_folder_files_type, we're only interested in "dir" versus any other file. Since folders may have spaces as well, we need to go from
+				# back (right to left); we cannot assume that the file type is 3rd position. Also note that the same issue can occur for non-dir files, but we do not bother here about those
+				## some examples
+				#1upYhtbufP8-G3S1aJr9AcdXZed57w1vn   old result          dir             2023-02-02 17:01:00
+				#1sBKwXVHNd1iSDPDkdEcwo66bmbDufClS   sha256_0202.zip     bin    1.7 MB   2023-02-02 17:03:15
+				#128fBdGnDOLfZ5EN6gwsehT8I453ueUFs   sha256_3.zip        bin    1.5 MB   2023-02-02 13:32:42
+				#1ZD4hzgwHdldCLh4dvtIMRVs6WGi_bvfY   sha256_sdc.zip      bin    1.7 MB   2023-02-02 12:12:51
+				#1fuXzMuq-cEE0ANwVvgLTZv0S1j424RNi   method-01-13-1008   dir             2023-01-13 06:08:27
+
+			done < <(./gdrive list --no-header -q "parents in '$google_benchmark_folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$(NF-2)}')
 
 			## pre-processing: list files within (sub)folders, if any
 			for folder in "${!google_folder_files_type[@]}"; do
@@ -258,7 +269,7 @@ google_downloads() {
 					google_folder_files[$a]=$b
 					google_folder_files_type[$a]=$c
 				# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines; see note above
-				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$3}')
+				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$(NF-2)}')
 			done
 
 			## iterate over keys / google IDs
@@ -269,7 +280,8 @@ google_downloads() {
 					continue
 				fi
 
-				# skip subfolders (if any), as their files are already included in the google_folder_files array
+				# skip subfolders (if any); the files of 1st level subfolders are already included in google_folder_files array (see loop above), other subfolders
+				# of level 2 or more are ignored on purpose
 				if [[ ${google_folder_files_type[$file]} == "dir" ]]; then
 					continue
 				fi
@@ -279,8 +291,8 @@ google_downloads() {
 				local_file_name=${google_folder_files[$file]}
 
 				## DBG
-				#echo "ISPD23 -- file: $file"
-				#echo "ISPD23 -- google_folder_files_type: ${google_folder_files_type[$file]}"
+				#echo "ispd23 -- file: $file"
+				#echo "ispd23 -- google_folder_files_type: ${google_folder_files_type[$file]}"
 				#echo "ISPD23 -- google_file_name: $google_file_name"
 				#echo "ISPD23 -- basename: $basename"
 				#echo "ISPD23 -- local_file_name: $local_file_name"
@@ -294,10 +306,10 @@ google_downloads() {
 				#
 				# 1) if file name and basename are the same, this means there's no file extension in the current string. This implies, most likely, that
 				# the file is one of multiple files with the same basename in the same folder (gdrive handles such instances as "aes (1).zip", "aes (2).zip" etc.;
-				# the dropping of the file extensions happens because the string parsing, see loops above, considers only 1 word for the file name); thus, we need
+				# the dropping of the file extensions happens because awk-based parsing (see loops above) considers only 1 word for the file name); thus, we need
 				# to get the full file name again, including spaces
-				# 2) for long filenames: gdrive puts "..." in the middle of long file names, but only for the short ID obtained above; thus, we need to get the full
-				# file name again
+				# 2) for long filenames: gdrive puts "..." in the middle of long file names, but only for the short ID obtained above, not for the actual file
+				# download; thus, we need to get the full file name again
 				#
 				if [[ "$basename" == "$google_file_name" || "$google_file_name" == *"..."* ]]; then
 
@@ -310,12 +322,17 @@ google_downloads() {
 
 					# update basename as well, considering the updated local file name (w/o any spaces)
 					basename=${local_file_name%.*}
+
+					## DBG
+					#echo "ISPD23 -- google_file_name: $google_file_name"
+					#echo "ISPD23 -- basename: $basename"
+					#echo "ISPD23 -- local_file_name: $local_file_name"
 				fi
 
-				## DBG
-				#echo "ISPD23 -- google_file_name: $google_file_name"
-				#echo "ISPD23 -- basename: $basename"
-				#echo "ISPD23 -- local_file_name: $local_file_name"
+				## if there's still no file extensions, we're looking at some Google doc, spreadsheet, etc. -- these can be safely ignored as well
+				if [[ "$basename" == "$local_file_name" ]]; then
+					continue
+				fi
 
 				# first, if not available yet, init a separate folder for each set of files with common basename
 				# (assuming that different submissions downloaded at once at least have different basenames)
@@ -978,10 +995,6 @@ link_work_dir() {
 	## NOTE don't force here, to avoid circular links from design.v to itself, in case the submitted file's name is already the same
 	## NOTE suppress stderr for 'File exists' -- happens when submission uses same name already -- but keep all others
 	ln -s *.v design.v 2>&1 | grep -v "File exists"
-
-	## init reports folder; mv any already existing report (should be only processed_files_MD5.rpt at this point)
-	mkdir reports
-	mv *.rpt reports/
 
 	## link files related to benchmark into work dir
 	# NOTE force here in order to guarantee that the correct files are used, namely those from the reference folders
@@ -1660,8 +1673,37 @@ start_eval() {
 			## start frame of code to be run in parallel
 			## https://unix.stackexchange.com/a/103921
 			(
-				## 1) send out email notification of start 
-				#
+
+				# 1) init folder
+				echo "ISPD23 -- 2)  $id_run:  Init work folder ..."
+				
+				## copy downloaded folder in full to work folder
+				cp -rf $downloads_folder/$folder $work_folder/
+
+				### 
+				### switch to work folder
+				### 
+				cd $work_folder/$folder > /dev/null
+
+				## record files processed; should be useful to share along w/ results to participants, to allow them double-checking the processed files
+				# NOTE "in *" catches all files, also those including spaces and other special characters
+				for file in *; do
+
+					# log MD5
+					# NOTE md5sum still needs quotes to capture files w/ spaces etc as one file
+					md5sum "$file" >> processed_files_MD5.rpt
+
+#					# NOTE deprecated
+#					# pack processed files again, to be shared again to teams for double-checking
+#					# NOTE only mute regular stdout, but keep stderr
+#					zip processed_files.zip $file > /dev/null
+				done
+
+				## init reports folder (only now, to not include in md5 hashes)
+				mkdir reports
+				mv processed_files_MD5.rpt reports/
+
+				# 2) send out email notification of start 
 				echo "ISPD23 -- 2)  $id_run:  Send out email about processing start ..."
 
 				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
@@ -1672,16 +1714,8 @@ start_eval() {
 
 				text+="MD5 hash and name of files processed in this latest submission are as follows:"
 				text+="\n"
-
-				# NOTE cd to the directory such that paths are not revealed/included into email, only filenames
-				cd $downloads_folder/$folder > /dev/null
-				for file in $(ls); do
-					text+=$(md5sum $file 2> /dev/null)"\n"
-				done
-				text+="\n"
-
-				# return to previous main dir
-				cd - > /dev/null
+				text+=$(cat reports/processed_files_MD5.rpt)
+				text+="\n\n"
 
 				# NOTE the number for queued runs is more accurate here, but still does not account for empty folders that are not yet processed
 				text+="Processing status: You have currently $ongoing_runs run(s) ongoing in total, and $queued_runs more run(s) queued for this particular benchmark."
@@ -1692,29 +1726,7 @@ start_eval() {
 
 				send_email "$text" "$subject" "${google_share_emails[$team]}"
 
-				# 2) init folder
-				echo "ISPD23 -- 2)  $id_run:  Init work folder ..."
-				
-				## copy downloaded folder in full to work folder
-				cp -rf $downloads_folder/$folder $work_folder/
-
-				### switch to work folder
-				### 
-				cd $work_folder/$folder > /dev/null
-
-				## record files processed; should be useful to share along w/ results to participants, to allow them double-checking the processed files
-				for file in $(ls); do
-
-					# log MD5
-					md5sum $file >> processed_files_MD5.rpt
-
-#					# NOTE deprecated
-#					# pack processed files again, to be shared again to teams for double-checking
-#					# NOTE only mute regular stdout, but keep stderr
-#					zip processed_files.zip $file > /dev/null
-				done
-
-				## link scripts and design files needed for evaluation
+				# 3) link scripts and design files needed for evaluation
 
 				link_work_dir
 
@@ -1735,7 +1747,7 @@ start_eval() {
 					exit 1
 				fi
 
-				# 3) check submission; simple checks
+				# 4) check submission; simple checks
 
 				check_submission
 
@@ -1757,7 +1769,7 @@ start_eval() {
 					exit 1
 				fi
 
-				# 4) start processing for actual checks
+				# 5) start processing for actual checks
 			
 				echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
 #				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
@@ -1774,7 +1786,7 @@ start_eval() {
 				innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null &
 				echo $! > PID.inv_checks
 
-				# 5) cleanup downloads dir, to avoid processing again
+				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null
 			) &
 
