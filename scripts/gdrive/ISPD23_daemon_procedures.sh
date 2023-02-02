@@ -1686,10 +1686,12 @@ start_eval() {
 				cd $work_folder/$folder > /dev/null
 
 				## record files processed; should be useful to share along w/ results to participants, to allow them double-checking the processed files
-				for file in $(ls); do
+				# NOTE "in *" catches all files, also those including spaces and other special characters
+				for file in *; do
 
 					# log MD5
-					md5sum $file >> processed_files_MD5.rpt
+					# NOTE md5sum still needs quotes to capture files w/ spaces etc as one file
+					md5sum "$file" >> processed_files_MD5.rpt
 
 #					# NOTE deprecated
 #					# pack processed files again, to be shared again to teams for double-checking
