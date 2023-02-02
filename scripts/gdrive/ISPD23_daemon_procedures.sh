@@ -6,12 +6,23 @@
 #
 ####
 
-google_check_fix_json() {
+google_fix_json() {
 
 	## for some reason, probably race condition or other runtime conflict, the gdrive tool sometimes messes up the
 	## syntax when handling/updating the json file
 	## the issue is simply "}}" instead of "}" -- simple fixing via sed
 	sed 's/}}/}/g' -i $google_json_file
+}
+
+google_quota() {
+	local prefix=$1
+
+	status=$(./gdrive about)
+
+	echo $prefix
+	## NOTE putting prefix in quotes maintains the leading spaces, which we want; not putting status in quotes drops the linebreaks, as intended
+	echo "$prefix"$status
+	echo $prefix
 }
 
 send_email() {
@@ -77,14 +88,17 @@ initialize() {
 	echo "ISPD23 -- 0)  Time: $(date)"
 	echo "ISPD23 -- 0)  Time stamp: $(date +%s)"
 	echo "ISPD23 -- 0)"
+
+	## fix, if needed, the json file for current session in json file
+	google_fix_json
 	
 	## query drive for root folder, extract columns 1 and 2 from response
 	## store into associative array; key is google file/folder ID, value is actual file/folder name
 	
 	echo "ISPD23 -- 0)  Checking Google root folder \"$google_root_folder\" ..."
 
-	## check and fix, if needed, the json file for current session in json file
-	google_check_fix_json
+	## query quota
+	google_quota "ISPD23 -- 0)   " 
 
 	if [[ "$1" == "testing" ]]; then
 
@@ -115,11 +129,15 @@ initialize() {
 	for google_team_folder in "${!google_team_folders[@]}"; do
 	
 		team="${google_team_folders[$google_team_folder]}"
-	
+
+		echo "ISPD23 -- 0)    Checking team folder \"$team\" (Google team folder ID \"$google_team_folder\") ..."
+
 		google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
-	
+
+		## NOTE initialized here, but also to be updated during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
+		##
 		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
-		google_share_emails[$team]=$(./gdrive share list $google_round_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
+		google_share_emails[$team]=$(./gdrive share list $google_team_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
 	
 		for benchmark in $benchmarks; do
 	
@@ -131,7 +149,7 @@ initialize() {
 			# in case the related benchmark folder is missing, create it on the drive
 			if [[ ${google_benchmark_folders[$id_internal]} == "" ]]; then
 
-				echo "ISPD23 -- 0)    Init missing Google folder for round \"$round\", team \"$team\", benchmark \"$benchmark\" ..."
+				echo "ISPD23 -- 0)     Init missing Google folder: round \"$round\", benchmark \"$benchmark\" ..."
 
 				# work with empty dummy folders in tmp dir
 				mkdir -p $tmp_root_folder/$benchmark
@@ -187,8 +205,11 @@ initialize() {
 
 google_downloads() {
 
-	## check and fix, if needed, the json file for current session in json file
-	google_check_fix_json
+	## fix, if needed, the json file for current session in json file
+	google_fix_json
+
+	## query quota
+	google_quota "ISPD23 -- 1)  " 
 
 	## iterate over keys / google IDs
 	for google_team_folder in "${!google_team_folders[@]}"; do
@@ -210,7 +231,7 @@ google_downloads() {
 			downloads_folder="$team_folder/$benchmark/downloads"
 			declare -A basename_folders=()
 
-			# array of [google_ID]=actual_file_name
+			# array of [google_ID]=google_file_name
 			declare -A google_folder_files=()
 			# array of [google_ID]=file_type
 			declare -A google_folder_files_type=()
@@ -253,15 +274,41 @@ google_downloads() {
 					continue
 				fi
 
-				actual_file_name=${google_folder_files[$file]}
-				basename=${actual_file_name%.*}
-				## DBG
-				#echo "ISPD23 -- basename: $basename"
+				google_file_name=${google_folder_files[$file]}
+				basename=${google_file_name%.*}
+				local_file_name=${google_folder_files[$file]}
 
-				# sanity check for malformated file names with only suffix, like ".nfs000000001f6680dd00000194"
+				# sanity check for malformed file names with only suffix, like ".nfs000000001f6680dd00000194" -- simply ignore such files
 				if [[ $basename == "" ]]; then
 					continue
 				fi
+
+				# sanity checks:
+				#
+				# 1) if file name and basename are the same, this means there's no file extension in the current string. This implies, most likely, that
+				# the file is one of multiple files with the same basename in the same folder (gdrive handles such instances as "aes (1).zip", "aes (2).zip" etc.;
+				# the dropping of the file extensions happens because the string parsing, see loops above, considers only 1 word for the file name); thus, we need
+				# to get the full file name again, including spaces
+				# 2) for long filenames: gdrive puts "..." in the middle of long file names, but only for the short ID obtained above; thus, we need to get the full
+				# file name again
+				#
+				if [[ "$basename" == "$google_file_name" || "$google_file_name" == *"..."* ]]; then
+
+					# another call to gdrive, to get the full file name including any spaces etc
+					google_file_name=$(./gdrive info $file | grep "Name: ")
+					google_file_name=${google_file_name##Name: }
+
+					# for the local file, replace spaces, if any, w/ "_"
+					local_file_name=$(echo $google_file_name | sed 's/ /_/g')
+
+					# update basename as well, considering the updated local file name (w/o any spaces)
+					basename=${local_file_name%.*}
+				fi
+
+				## DBG
+				#echo "ISPD23 -- google_file_name: $google_file_name"
+				#echo "ISPD23 -- local_file_name: $local_file_name"
+				#echo "ISPD23 -- basename: $basename"
 
 				# first, if not available yet, init a separate folder for each set of files with common basename
 				# (assuming that different submissions downloaded at once at least have different basenames)
@@ -285,27 +332,35 @@ google_downloads() {
 					#echo "ISPD23 -- existing downloads_folder_: $downloads_folder_"
 				fi
 
-				echo "ISPD23 -- 1)  Download new submission file \"$actual_file_name\" (Google file ID \"$file\") into dedicated folder \"$downloads_folder_\" ..."
+				echo "ISPD23 -- 1)  Download new submission file \"$google_file_name\" (Google file ID \"$file\") to \"$downloads_folder_\" ..."
 				./gdrive download -f --path $downloads_folder_ $file #> /dev/null 2>&1
 
-				# memorize to not download again, but only if the download succeeded
+				# post-processing if download succeeds
 				if [[ $? == 0 ]]; then
 
+					# memorize to not download again
 					echo $file >> $downloads_folder/dl_history
+
+					# move files locally if needed
+					if [[ "$google_file_name" != "$local_file_name" ]]; then
+
+						echo "ISPD23 -- 1)   Rename file locally, w/o any spaces, to: \"$downloads_folder_/$local_file_name\""
+
+						## NOTE quotes for google_file_name are essential to capture any spaces; for local_file_name there are no spaces by definition
+						mv "$downloads_folder_/$google_file_name" $downloads_folder_/$local_file_name
+					fi
+
+					# unpack archive, if applicable
+					if [[ $(file $downloads_folder_/$local_file_name | awk '{print $2}') == 'Zip' ]]; then
+
+						echo "ISPD23 -- 1)   Unpacking zip file \"$local_file_name\" into \"$downloads_folder_\" ..."
+						# NOTE only mute regular stdout, but keep stderr
+						unzip -j $downloads_folder_/$local_file_name -d $downloads_folder_ > /dev/null #2>&1
+						rm $downloads_folder_/$local_file_name #> /dev/null 2>&1
+					fi
 				fi
 
-				# unpack archive, if applicable
-				## NOTE for long filenames, gdrive will put "..." in the middle, which leads to	$actual_file_name not matched as is; so, use sed to replace "..." w/ proper * wildcard
-				actual_file_name_=$(echo $actual_file_name | sed 's/\.\.\./*/g')
-				if [[ $(file $downloads_folder_/$actual_file_name_ | awk '{print $2}') == 'Zip' ]]; then
-
-					echo "ISPD23 -- 1)   Unpacking zip file \"$actual_file_name_\" into dedicated folder \"$downloads_folder_\" ..."
-					# NOTE only mute regular stdout, but keep stderr
-					unzip -j $downloads_folder_/$actual_file_name_ -d $downloads_folder_ > /dev/null #2>&1
-					rm $downloads_folder_/$actual_file_name_ #> /dev/null 2>&1
-				fi
-
-				# chances are that processing is too fast, resulting in clashes for timestamp in folders, hence slow down on purpose here
+				# chances are that processing is too fast, resulting in clashes for timestamp in folders for same benchmarks, hence slow down on purpose here
 				sleep 1s
 			done
 		) &
@@ -322,7 +377,7 @@ google_uploads() {
 	parallel_uploads=0
 
 	## check and fix, if needed, the json file for current session in json file
-	google_check_fix_json
+	google_fix_json
 
 	## iterate over keys / google IDs
 	for google_team_folder in "${!google_team_folders[@]}"; do
@@ -389,7 +444,8 @@ google_uploads() {
 				if [[ -e $rpt ]]; then
 					# NOTE only indicate on errors, do not print out in email
 					#text+=$(cat $rpt)
-					text+="Errors: Some errors occurred -- see errors.txt for details. (Note: errors.txt is the same as reports.zip/errors.rpt; it is copied again into the main folder for convenience of direct access.)"
+					text+="Errors: Some errors occurred -- see errors.txt for details. (Note: errors.txt is the same as reports.zip/errors.rpt;";
+					text+=" it is copied again into the main folder only for your convenience, offering direct viewing access through the Google Drive website.)"
 					text+="\n\n"
 				else
 					text+="Errors: No errors occurred."
@@ -400,7 +456,8 @@ google_uploads() {
 				if [[ -e $rpt ]]; then
 					# NOTE only indicate on warnings, do not print out in email
 					#text+=$(cat $rpt)
-					text+="Warnings: Some warnings occurred -- see warnings.txt for details. (Note: warnings.txt is the same as reports.zip/warnings.rpt; it is copied again into the main folder for convenience of direct access.)"
+					text+="Warnings: Some warnings occurred -- see warnings.txt for details. (Note: warnings.txt is the same as reports.zip/warnings.rpt;";
+					text+=" it is copied again into the main folder only for your convenience, offering direct viewing access through the Google Drive website.)"
 					text+="\n\n"
 				else
 					text+="Warnings: No warnings occurred."
@@ -409,6 +466,13 @@ google_uploads() {
 
 				rpt=$backup_work_folder/downloads_$folder_/reports/scores.rpt.summary
 				if [[ -e $rpt ]]; then
+
+					rpt_=$backup_work_folder/downloads_$folder_/reports/errors.rpt
+					if [[ -e $rpt_ ]]; then
+						text+="SCORES ONLY FOR INFORMATION. THIS SUBMISSION IS INVALID DUE TO SOME ERRORS."
+						text+="\n\n"
+					fi
+
 					# NOTE print out scores summary in email
 					text+=$(cat $rpt)
 					text+="\n\n"
@@ -429,6 +493,9 @@ google_uploads() {
 
 	# wait for all parallel runs to finish
 	wait
+
+	## query quota
+	google_quota "ISPD23 -- 4)  " 
 }
 
 check_eval() {
@@ -916,7 +983,8 @@ link_work_dir() {
 	ln -sf $baselines_root_folder/$benchmark/design.v design_original.v
 	ln -sf $baselines_root_folder/$benchmark/design.def design_original.def
 	ln -sf $baselines_root_folder/$benchmark/reports/*.data reports/
-	ln -sf $baselines_root_folder/$benchmark/rc_model.bin .
+	# NOTE copy this instead of linking, as details might depend on the design/submission, so should not be mixed across teams
+	cp $baselines_root_folder/$benchmark/rc_model.bin .
 
 	## link scripts into work dir, using dedicated subfolder
 
@@ -1512,6 +1580,11 @@ start_eval() {
 		team="${google_team_folders[$google_team_folder]}"
 		team_=$(printf "%-"$teams_string_max_length"s" $team)
 
+		## NOTE updated here, that is once during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
+		##
+		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
+		google_share_emails[$team]=$(./gdrive share list $google_team_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
+
 		queued_runs_sum=0
 		# NOTE init the current runs from all work folders of all benchmarks; ignore errors for ls, which are probably only due to empty folders
 		ongoing_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
@@ -1575,7 +1648,7 @@ start_eval() {
 				((queued_runs = queued_runs - 1))
 				((ongoing_runs = ongoing_runs + 1))
 
-				echo "ISPD23 -- 2)  $id_run: Start processing within dedicated work folder \"$work_folder/$folder\" ..."
+				echo "ISPD23 -- 2)  $id_run: Start processing within work folder \"$work_folder/$folder\" ..."
 
 			## start frame of code to be run in parallel
 			## https://unix.stackexchange.com/a/103921
