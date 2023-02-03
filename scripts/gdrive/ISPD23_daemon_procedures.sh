@@ -1783,7 +1783,7 @@ start_eval() {
 #				note for the related syntax
 #				bash -c 'echo $$ > PID.inv_checks; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-				innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null &
+				innovus -nowin -stylus -files scripts/checks_and_PPA.tcl -log check > /dev/null &
 				echo $! > PID.inv_checks
 
 				# 6) cleanup downloads dir, to avoid processing again
