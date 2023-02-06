@@ -303,7 +303,12 @@ if [[ $list_rpts == 1 ]]; then
 		# remaining cols: underyling rpt file
 		for team in "${!teams[@]}"; do
 
-			out+=$(cat $rpts | grep $benchmark | grep $team | tail -n 1)
+			if [[ $(cat $rpts | grep $benchmark | grep -q $team; echo $?) == 0 ]]; then
+				out+=$(cat $rpts | grep $benchmark | grep $team | tail -n 1)
+				out+=" "
+			else
+				out+="$ND "
+			fi
 		done
 		# end row
 		out+=$'\n'
