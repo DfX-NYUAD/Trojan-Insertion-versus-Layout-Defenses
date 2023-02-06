@@ -95,7 +95,7 @@ initialize() {
 	## query drive for root folder, extract columns 1 and 2 from response
 	## store into associative array; key is google file/folder ID, value is actual file/folder name
 	
-	echo "ISPD23 -- 0)  Checking Google root folder \"$google_root_folder\" ..."
+	echo "ISPD23 -- 0)  Checking Google root folder (Google folder ID \"$google_root_folder\") ..."
 
 	## query quota
 	google_quota "ISPD23 -- 0)   " 
@@ -123,14 +123,14 @@ initialize() {
 	
 	# init local array for folder references, helpful for faster gdrive access later on throughout all other procedures
 	#
-	echo "ISPD23 -- 0)   Obtain all Google folder IDs/references ..."
+	echo "ISPD23 -- 0)   Obtain all Google folder IDs ..."
 	
 	## iterate over keys / google IDs
 	for google_team_folder in "${!google_team_folders[@]}"; do
 	
 		team="${google_team_folders[$google_team_folder]}"
 
-		echo "ISPD23 -- 0)    Checking team folder \"$team\" (Google team folder ID \"$google_team_folder\") ..."
+		echo "ISPD23 -- 0)    Checking for team \"$team\" (Google folder ID \"$google_team_folder\") ..."
 
 		google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
 
@@ -149,7 +149,7 @@ initialize() {
 			# in case the related benchmark folder is missing, create it on the drive
 			if [[ ${google_benchmark_folders[$id_internal]} == "" ]]; then
 
-				echo "ISPD23 -- 0)     Init missing Google folder: round \"$round\", benchmark \"$benchmark\" ..."
+				echo "ISPD23 -- 0)     Init missing Google folder for round \"$round\", benchmark \"$benchmark\" ..."
 
 				# work with empty dummy folders in tmp dir
 				mkdir -p $tmp_root_folder/$benchmark
@@ -164,7 +164,7 @@ initialize() {
 	
 	# Check corresponding local folders
 	#
-	echo "ISPD23 -- 0)   Check corresponding local folders in $teams_root_folder/ ..."
+	echo "ISPD23 -- 0)   Checking local root folder $teams_root_folder/ ..."
 	
 	## iterate over values / actual names
 	for team in "${google_team_folders[@]}"; do
@@ -217,7 +217,7 @@ google_downloads() {
 		team=${google_team_folders[$google_team_folder]}
 		team_folder="$teams_root_folder/$team"
 
-		echo "ISPD23 -- 1)  Checking team folder \"$team\" (Google team folder ID \"$google_team_folder\") for new submission files ..."
+		echo "ISPD23 -- 1)  Checking all benchmark folders for team \"$team\" for new submission files ..."
 
 		for benchmark in $benchmarks; do
 
@@ -226,7 +226,7 @@ google_downloads() {
 			google_benchmark_folder=${google_benchmark_folders[$id_internal]}
 
 			## NOTE relatively verbose; could be turned off
-			#echo "ISPD23 -- 1)   Checking benchmark \"$benchmark\" (Google benchmark folder ID \"$google_benchmark_folder\") ..."
+			#echo "ISPD23 -- 1)   Checking benchmark \"$benchmark\" (Google folder ID \"$google_benchmark_folder\") ..."
 
 			downloads_folder="$team_folder/$benchmark/downloads"
 			declare -A basename_folders=()
@@ -435,7 +435,7 @@ google_uploads() {
 				team_=$(printf "%-"$teams_string_max_length"s" $team)
 				id_run="[ $round -- $team_ -- $benchmark_ -- $folder_ ]"
 			(
-				echo "ISPD23 -- 4)  $id_run: Upload results folder \"$uploads_folder/$folder\" (Google team folder ID \"$google_team_folder\", Google benchmark folder ID \"$google_benchmark_folder\") ..."
+				echo "ISPD23 -- 4)  $id_run: Upload results folder \"$uploads_folder/$folder\" into team's benchmark folder (Google folder ID \"$google_benchmark_folder\") ..."
 
 				./gdrive upload -p $google_benchmark_folder -r $uploads_folder/$folder #> /dev/null 2>&1
 
