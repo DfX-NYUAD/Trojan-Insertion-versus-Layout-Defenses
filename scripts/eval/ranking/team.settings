@@ -1,3 +1,16 @@
 
 # associative array w/ teams and anon IDs
-teams[_test]=A
+teams[AHS-Team]=A
+teams[CUEDA]=B
+teams[FDEDA]=C
+teams[FZU-router]=D
+teams[Hardware-Heroes]=E
+teams[Have-A-Try]=F
+teams[Horse-Wranglers]=G
+teams[HwSecUwin]=H
+teams[NTHU-TCLAB]=I
+teams[_production]=J
+teams[SEAL_Layout_Designers]=K
+teams[secure-closer]=L
+teams[Sunshine]=M
+teams[XDSecurity-II]=N
