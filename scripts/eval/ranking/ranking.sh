@@ -4,7 +4,8 @@
 # 0) settings, init
 ######################
 
-list_rpts_default=1
+metric_default="OVERALL"
+list_files_default=1
 team_real_name_default=1
 score_related_OVERALL_default=1
 daemon_settings="../../gdrive/ISPD23_daemon.settings"
@@ -17,26 +18,27 @@ ND="--------"
 declare -A teams
 source $team_settings
 
-if [ $# -lt 1 ]; then
-	echo "Parameters required:"
-	echo "1) Metric -- pick one from those available in the scores.rpt files, e.g., OVERALL"
-	echo "Parameters optional:"
-	echo "2) List related rpt files -- 0: no; 1: yes -- default is $list_rpts_default"
-	echo "3) Team names -- 0: anonymous label; 1: actual names -- default is $team_real_name_default"
-	echo "4) Score related to OVERALL -- 0: no, means that best score is selected (for the metric of choice) independently of OVERALL score; 1: yes, means that best score (for the metric of choice) is extracted for run w/ best OVERALL score -- default is $score_related_OVERALL_default"
-	echo "5) List of teams to report for, as one string, e.g., \"_test _production\" -- default is to report for all teams listed in \"$team_settings\""
-	echo "6) Path for ISPD23_daemon.settings file -- default is \"$daemon_settings\""
-	exit
-fi
+echo "Optional parameters:"
+echo "1) Metric -- pick one from those available in the scores.rpt files -- default is \"$metric_default\""
+echo "2) List related files -- 0: no; 1: yes -- default is $list_files_default"
+echo "3) Real team names -- 0: anonymous label; 1: actual names -- default is $team_real_name_default"
+echo "4) Score related to \"OVERALL\" -- 0: no, means that best score is selected (for the metric of choice) independently of \"OVERALL\" score; 1: yes, means that best score (for the metric of choice) is extracted for run w/ best \"OVERALL\" score -- default is $score_related_OVERALL_default"
+echo "5) List of teams to report for, as one string, e.g., \"_test _production\" -- default is to report for all teams listed in \"$team_settings\""
+echo "6) Path for ISPD23_daemon.settings file -- default is \"$daemon_settings\""
+echo
 
 # call parameters
 
-metric="$1"
+if [[ $1 != "" ]]; then
+	metric=$1
+else
+	metric=$metric_default
+fi
 
 if [[ $2 != "" ]]; then
-	list_rpts=$2
+	list_files=$2
 else
-	list_rpts=$list_rpts_default
+	list_files=$list_files_default
 fi
 
 if [[ $3 != "" ]]; then
@@ -65,15 +67,18 @@ fi
 
 echo "Parameters:"
 echo " Metric: $metric"
-echo " List related rpt files: $list_rpts"
-echo " Team names: $team_real_name"
+echo " List related files: $list_files"
+echo " Real team names: $team_real_name"
 echo " Score related to OVERALL: $score_related_OVERALL"
 echo " List of teams to report for: \"$teams_list\""
 echo " Path for ISPD23_daemon.settings file: $daemon_settings"
 echo
 
-# tmp log file; used for keeping track of best runs
-rpts=/tmp/$metric"_"$(date +%s).log
+# cleanup all old log files; cleanup only here, not at the end of the run, so that log would still remain available for more details after running this script
+rm /tmp/ISPD23_*_*.log
+
+# init log file; used for keeping track of best runs
+log=/tmp/ISPD23_$metric"_"$(date +%s).log
 
 ######################
 # 1) obtain scores
@@ -93,7 +98,6 @@ for team in "${!teams[@]}"; do
 
 	# list for a) all or b) only for selected teams
 	if [[ "$teams_list" != $ND ]]; then
-
 		if [[ "$teams_list" != *"$team"* ]]; then
 			continue
 		fi
@@ -156,8 +160,11 @@ for team in "${!teams[@]}"; do
 				## NOTE update here needed for check below
 				score_OVERALL_min=$score_OVERALL_curr
 
-				# also log the rpt file
-				echo $backup_work/$run/reports/scores.rpt >> $rpts
+				# also log the rpt file, if not done yet
+				string="$backup_work/$run/reports/scores.rpt"
+				if [[ $(grep -q $string $log 2> /dev/null; echo $?) != 0 ]]; then
+					echo $string >> $log
+				fi
 			fi
 			## NOTE in this mode, the actual min score should only be initialized when also the OVERALL min score is already initialized
 			if [[ $score_related_OVERALL == 1 ]]; then
@@ -167,8 +174,11 @@ for team in "${!teams[@]}"; do
 
 						eval $array_name[$benchmark]=$score_curr
 
-						# also log the rpt file
-						echo $backup_work/$run/reports/scores.rpt >> $rpts
+						# also log the rpt file, if not done yet
+						string="$backup_work/$run/reports/scores.rpt"
+						if [[ $(grep -q $string $log 2> /dev/null; echo $?) != 0 ]]; then
+							echo $string >> $log
+						fi
 
 						continue
 					fi
@@ -180,8 +190,11 @@ for team in "${!teams[@]}"; do
 
 					eval $array_name[$benchmark]=$score_curr
 
-					# also log the rpt file
-					echo $backup_work/$run/reports/scores.rpt >> $rpts
+					# also log the rpt file, if not done yet
+					string="$backup_work/$run/reports/scores.rpt"
+					if [[ $(grep -q $string $log 2> /dev/null; echo $?) != 0 ]]; then
+						echo $string >> $log
+					fi
 
 					continue
 				fi
@@ -209,8 +222,11 @@ for team in "${!teams[@]}"; do
 
 						eval $array_name[$benchmark]=$score_curr
 
-						# also log the rpt file
-						echo $backup_work/$run/reports/scores.rpt >> $rpts
+						# also log the rpt file, if not done yet
+						string="$backup_work/$run/reports/scores.rpt"
+						if [[ $(grep -q $string $log 2> /dev/null; echo $?) != 0 ]]; then
+							echo $string >> $log
+						fi
 					fi
 				fi
 
@@ -222,8 +238,11 @@ for team in "${!teams[@]}"; do
 
 					eval $array_name[$benchmark]=$score_curr
 
-					# also log the rpt file
-					echo $backup_work/$run/reports/scores.rpt >> $rpts
+					# also log the rpt file, if not done yet
+					string="$backup_work/$run/reports/scores.rpt"
+					if [[ $(grep -q $string $log 2> /dev/null; echo $?) != 0 ]]; then
+						echo $string >> $log
+					fi
 				fi
 			fi
 
@@ -236,11 +255,15 @@ for team in "${!teams[@]}"; do
 
 done
 echo "Done"
-echo
 
 ######################
-# 2) print scores
+# 2a) print scores
 ######################
+
+echo
+echo "Valid submissions"
+echo "-----------------"
+echo
 
 ## 1st row: header
 out=""
@@ -250,7 +273,71 @@ for team in "${!teams[@]}"; do
 
 	# list for a) all or b) only for selected teams
 	if [[ "$teams_list" != $ND ]]; then
+		if [[ "$teams_list" != *"$team"* ]]; then
+			continue
+		fi
+	fi
 
+	# real or anon team name
+	if [[ $team_real_name == 1 ]]; then
+		out+="$team "
+	else
+		out+="${teams[$team]} "
+	fi
+done
+# end row
+# NOTE see https://stackoverflow.com/a/3182519 for newline handling
+out+=$'\n'
+
+## build up rows, one per benchmark
+for benchmark in $benchmarks; do
+
+	# 1st col: benchmark name
+	out+="$benchmark "
+
+	# remaining cols: reference, extracted from underyling rpt file
+	for team in "${!teams[@]}"; do
+
+		# list for a) all or b) only for selected teams
+		if [[ "$teams_list" != $ND ]]; then
+			if [[ "$teams_list" != *"$team"* ]]; then
+				continue
+			fi
+		fi
+
+		if [[ $(cat $log | grep $benchmark | grep -q $team; echo $?) == 0 ]]; then
+
+			string=$(cat $log | grep $benchmark | grep $team | wc -l)
+			out+="$string "
+		else
+			out+="$ND "
+		fi
+	done
+	# end row
+	out+=$'\n'
+done
+
+# print as table
+# NOTE quotes are required here for proper newline handling (https://stackoverflow.com/a/3182519)
+echo "$out" | column -t
+
+######################
+# 2b) print scores
+######################
+
+echo
+echo "Best scores"
+echo "-----------"
+echo
+
+## 1st row: header
+out=""
+out+="Benchmark "
+#out+="Baseline "
+for team in "${!teams[@]}"; do
+
+	# list for a) all or b) only for selected teams
+	if [[ "$teams_list" != $ND ]]; then
 		if [[ "$teams_list" != *"$team"* ]]; then
 			continue
 		fi
@@ -281,7 +368,6 @@ for benchmark in $benchmarks; do
 
 		# list for a) all or b) only for selected teams
 		if [[ "$teams_list" != $ND ]]; then
-
 			if [[ "$teams_list" != *"$team"* ]]; then
 				continue
 			fi
@@ -303,13 +389,80 @@ done
 echo "$out" | column -t
 
 ######################
+# 2c) print references
+######################
+
+echo
+echo "Related references"
+echo "------------------"
+echo
+
+## 1st row: header
+out=""
+out+="Benchmark "
+for team in "${!teams[@]}"; do
+
+	# list for a) all or b) only for selected teams
+	if [[ "$teams_list" != $ND ]]; then
+		if [[ "$teams_list" != *"$team"* ]]; then
+			continue
+		fi
+	fi
+
+	# real or anon team name
+	if [[ $team_real_name == 1 ]]; then
+		out+="$team "
+	else
+		out+="${teams[$team]} "
+	fi
+done
+# end row
+# NOTE see https://stackoverflow.com/a/3182519 for newline handling
+out+=$'\n'
+
+## build up rows, one per benchmark
+for benchmark in $benchmarks; do
+
+	# 1st col: benchmark name
+	out+="$benchmark "
+
+	# remaining cols: reference, extracted from underyling rpt file
+	for team in "${!teams[@]}"; do
+
+		# list for a) all or b) only for selected teams
+		if [[ "$teams_list" != $ND ]]; then
+			if [[ "$teams_list" != *"$team"* ]]; then
+				continue
+			fi
+		fi
+
+		if [[ $(cat $log | grep $benchmark | grep -q $team; echo $?) == 0 ]]; then
+
+			string=$(cat $log | grep $benchmark | grep $team | tail -n 1)
+			string=${string%/reports/scores.rpt}
+			string=${string##*_}
+			out+="$string "
+		else
+			out+="$ND "
+		fi
+	done
+	# end row
+	out+=$'\n'
+done
+
+# print as table
+# NOTE quotes are required here for proper newline handling (https://stackoverflow.com/a/3182519)
+echo "$out" | column -t
+
+######################
 # 3) print files
 ######################
 
-if [[ $list_rpts == 1 ]]; then
+if [[ $list_files == 1 ]]; then
 
 	echo
-	echo "Related report files:"
+	echo "Related files"
+	echo "-------------"
 	echo
 
 	out=""
@@ -318,7 +471,6 @@ if [[ $list_rpts == 1 ]]; then
 
 		# list for a) all or b) only for selected teams
 		if [[ "$teams_list" != $ND ]]; then
-
 			if [[ "$teams_list" != *"$team"* ]]; then
 				continue
 			fi
@@ -346,14 +498,39 @@ if [[ $list_rpts == 1 ]]; then
 
 			# list for a) all or b) only for selected teams
 			if [[ "$teams_list" != $ND ]]; then
-
 				if [[ "$teams_list" != *"$team"* ]]; then
 					continue
 				fi
 			fi
 
-			if [[ $(cat $rpts | grep $benchmark | grep -q $team; echo $?) == 0 ]]; then
-				out+=$(cat $rpts | grep $benchmark | grep $team | tail -n 1)
+			if [[ $(cat $log | grep $benchmark | grep -q $team; echo $?) == 0 ]]; then
+				out+=$(cat $log | grep $benchmark | grep $team | tail -n 1)
+				out+=" "
+			else
+				out+="$ND "
+			fi
+		done
+		# end row
+		out+=$'\n'
+	
+		# 1st col: benchmark name
+		out+="$benchmark "
+	
+		# remaining cols: underyling zip file, extracted from underlying rpt file
+		for team in "${!teams[@]}"; do
+
+			# list for a) all or b) only for selected teams
+			if [[ "$teams_list" != $ND ]]; then
+				if [[ "$teams_list" != *"$team"* ]]; then
+					continue
+				fi
+			fi
+
+			if [[ $(cat $log | grep $benchmark | grep -q $team; echo $?) == 0 ]]; then
+
+				string=$(cat $log | grep $benchmark | grep $team | tail -n 1)
+				out+=${string%/reports/scores.rpt}
+				out+=".zip"
 				out+=" "
 			else
 				out+="$ND "
@@ -367,6 +544,3 @@ if [[ $list_rpts == 1 ]]; then
 	# NOTE quotes are required here for proper newline handling (https://stackoverflow.com/a/3182519)
 	echo "$out" | column -t
 fi
-
-# cleanup
-rm $rpts
