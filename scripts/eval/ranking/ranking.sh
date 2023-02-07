@@ -12,7 +12,7 @@ daemon_settings="../../gdrive/ISPD23_daemon.settings"
 team_settings="team.settings"
 
 # string for non-defined results
-ND="--------"
+ND="-"
 
 # associative array w/ teams and anon IDs
 declare -A teams
@@ -261,8 +261,8 @@ echo "Done"
 ######################
 
 echo
-echo "Valid submissions"
-echo "-----------------"
+echo "Submissions: valid/total"
+echo "------------------------"
 echo
 
 ## 1st row: header
@@ -305,12 +305,15 @@ for benchmark in $benchmarks; do
 			fi
 		fi
 
+		backup_work="$teams_root_folder/$team/$benchmark/backup_work"
+		runs_total=$(ls $backup_work/*.zip 2> /dev/null | wc -l)
+
 		if [[ $(cat $log | grep $benchmark | grep -q $team; echo $?) == 0 ]]; then
 
 			string=$(cat $log | grep $benchmark | grep $team | wc -l)
-			out+="$string "
+			out+="$string/$runs_total "
 		else
-			out+="$ND "
+			out+="$ND/$runs_total "
 		fi
 	done
 	# end row
