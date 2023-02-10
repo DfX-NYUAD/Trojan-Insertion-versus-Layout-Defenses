@@ -13,7 +13,6 @@ set_multi_cpu_usage -local_cpu 24
 set_db design_process_node 7
 set_db design_tech_node N7
 
-set mmmc_path scripts/mmmc.tcl
 set lef_path "ASAP7/asap7_tech_4x_201209.lef ASAP7/asap7sc7p5t_28_L_4x_220121a.lef ASAP7/asap7sc7p5t_28_SL_4x_220121a.lef"
 set def_path design.def
 set netlist_path design.v
@@ -22,15 +21,12 @@ set netlist_path design.v
 # init
 ####
 
-read_mmmc $mmmc_path
 read_physical -lefs $lef_path
 read_netlist $netlist_path
+# preserve shapes/layout as is
 read_def $def_path -preserve_shape
 
 init_design
-
-# required for proper power and SI analysis; default activity factor for PIs, 0.2, is not propagated automatically
-set_default_switching_activity -sequential_activity 0.2
 
 # delete all kinds of fillers (decaps, tap cells, filler cells)
 delete_filler -cells [ get_db -u [ get_db insts -if { .is_physical } ] .base_cell.name ]
@@ -66,40 +62,7 @@ source scripts/check_stripes_coors_stylus.tcl
 source scripts/check_stripes_width_stylus.tcl
 
 ####
-# timing the design
-####
-
-# removes clock pessimism
-set_db timing_analysis_cppr both
-
-# on-chip variations to be considered
-set_db timing_analysis_type ocv
-
-# simultaneous setup, hold analysis
-# NOTE applicable for (faster) timing analysis, but not for subsequent ECO runs or so -- OK for our scope of DEF loading and evaluating
-set_db timing_enable_simultaneous_setup_hold_mode true
-
-# actual timing eval command
-time_design -post_route
-
-####
-# design evaluation
-####
-
-# timing
-# NOTE can provide setup, hold, DRV, clock checks all at once if simultaneous_setup_hold_mode is true
-report_timing_summary > reports/timing.rpt
-
-# die area
-set out [open reports/area.rpt w]
-puts $out [get_db current_design .bbox.area]
-close $out
-
-# power
-report_power > reports/power.rpt
-
-####
-# security evaluation
+# security evaluation: 1st order, alpha round
 ####
 
 # exploitable regions
