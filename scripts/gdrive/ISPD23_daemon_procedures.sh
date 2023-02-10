@@ -569,7 +569,9 @@ check_eval() {
 				# from any other procedure
 				(
 
+					###
 					# Innovus design checks
+					###
 					(
 
 					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
@@ -582,7 +584,7 @@ check_eval() {
 						exit 2
 					fi
 
-#					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for Innovus design checks"
+#					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for Innovus design checks."
 
 					# sleep a little to avoid immediate but useless errors concerning log file not
 					# found; is only relevant for the very first run just following right after
@@ -598,7 +600,7 @@ check_eval() {
 
 							# check for any errors
 							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
-							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" check.log* | grep -Ev "$innovus_errors_excluded_for_checking")
+							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" checks.log* | grep -Ev "$innovus_errors_excluded_for_checking")
 							if [[ $errors_run != "" ]]; then
 
 								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
@@ -633,6 +635,13 @@ check_eval() {
 
 								errors=1
 							fi
+							if [[ -e FAILED.inv_PPA ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus PPA evaluation failed. Also abort Innovus design checks ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to Innovus PPA evaluation failure" >> reports/errors.rpt
+
+								errors=1
+							fi
 
 							# for any errors, try killing the process and mark as failed
 							if [[ $errors != '0' ]]; then
@@ -645,6 +654,7 @@ check_eval() {
 								# NOTE not all cases/conditions require killing again, but for simplicity this is unified here; trying to kill again wont hurt
 								# NOTE do not set FAILED file for the other process(es) here; this is covered by the other monitoring subshell(s)
 								cat PID.lec_checks | xargs kill 2> /dev/null
+								cat PID.inv_PPA | xargs kill 2> /dev/null
 
 								exit 1
 							fi
@@ -658,9 +668,114 @@ check_eval() {
 					## set/mark status via PASSED/FAILED files
 					parse_inv_checks
 
-					) &
+					) & # Innovus design checks
 
+
+					###
+					# Innovus PPA evaluation 
+					###
+					(
+
+					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
+				 	# NOTE ignore errors for cat, in case PID file not existing yet; for ps, ignore
+					# related file errors and others errors and also drop output, just keep status/exit code
+					running=$(ps --pid $(cat PID.monitor.inv_PPA 2> /dev/null) > /dev/null 2>&1; echo $?)
+					if [[ $running != 0 ]]; then
+						echo $$ > PID.monitor.inv_PPA
+					else
+						exit 2
+					fi
+
+#					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for Innovus PPA evaluation."
+
+					# sleep a little to avoid immediate but useless errors concerning log file not
+					# found; is only relevant for the very first run just following right after
+					# starting the process, but should still be employed here as fail-safe measure
+					sleep 1s
+
+					while true; do
+
+						if [[ -e DONE.inv_PPA ]]; then
+							break
+						else
+							errors=0
+
+							# check for any errors
+							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
+							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" PPA.log* | grep -Ev "$innovus_errors_excluded_for_checking")
+							if [[ $errors_run != "" ]]; then
+
+								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
+								echo -e "\nISPD23 -- 2)  $id_run:  Some error occurred for Innovus PPA evaluation."
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- $errors_run" >> reports/errors.rpt
+
+								errors=1
+							fi
+						
+							# also check for interrupts
+							errors_interrupt=$(ps --pid $(cat PID.inv_PPA) > /dev/null; echo $?)
+							if [[ $errors_interrupt != 0 ]]; then
+
+								# NOTE also check again for DONE flag file, to avoid race condition where
+								# process just finished but DONE did not write out yet
+								sleep 1s
+								if [[ -e DONE.inv_PPA ]]; then
+									break
+								fi
+
+								echo -e "\nISPD23 -- 2)  $id_run:  Innovus PPA evaluation got interrupted."
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- INTERRUPT" >> reports/errors.rpt
+
+								errors=1
+							fi
+
+							# also check process state/evaluation outcome of other process(es)
+							if [[ -e FAILED.lec_checks ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, LEC design checks failed. Also abort Innovus PPA evaluation ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to LEC design checks failure" >> reports/errors.rpt
+
+								errors=1
+							fi
+							if [[ -e FAILED.inv_checks ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus design checks failed. Also abort Innovus PPA evaluation ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to Innovus design checks failure" >> reports/errors.rpt
+
+								errors=1
+							fi
+
+							# for any errors, try killing the process and mark as failed
+							if [[ $errors != '0' ]]; then
+
+								# NOTE not all cases/conditions require killing, but for simplicity this is unified here; trying again to kill wont hurt
+								cat PID.inv_PPA | xargs kill 2> /dev/null
+								date > FAILED.inv_PPA
+
+								# NOTE as this important eval process failed, the other eval process(es) should be killed as well
+								# NOTE not all cases/conditions require killing again, but for simplicity this is unified here; trying to kill again wont hurt
+								# NOTE do not set FAILED file for the other process(es) here; this is covered by the other monitoring subshell(s)
+								cat PID.lec_checks | xargs kill 2> /dev/null
+								cat PID.inv_checks | xargs kill 2> /dev/null
+
+								exit 1
+							fi
+						fi
+
+						sleep 1s
+					done
+
+					## parse rpt, log files for failures
+					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
+					## set/mark status via PASSED/FAILED files
+					parse_inv_PPA
+
+					) & # Innovus PPA evaluation
+
+
+					###
 					# LEC design checks
+					###
 					(
 
 					# NOTE subshell should be started only once, to avoid race conditions -- handle via PID file
@@ -673,7 +788,7 @@ check_eval() {
 						exit 2
 					fi
 
-#					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for LEC design checks ..."
+#					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for LEC design checks."
 
 					# sleep a little to avoid immediate but useless errors concerning log file not
 					# found; is only relevant for the very first run just following right after
@@ -724,6 +839,13 @@ check_eval() {
 
 								errors=1
 							fi
+							if [[ -e FAILED.inv_PPA ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus PPA evaluation failed. Also abort LEC design checks ..."
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to Innovus PPA evaluation failure" >> reports/errors.rpt
+
+								errors=1
+							fi
 
 							# for any errors, try killing the process and mark as failed
 							if [[ $errors != '0' ]]; then
@@ -736,6 +858,7 @@ check_eval() {
 								# NOTE not all cases/conditions require killing again, but for simplicity this is unified here; trying to kill again wont hurt
 								# NOTE do not set FAILED file for the other process(es) here; this is covered by the other monitoring subshell(s)
 								cat PID.inv_checks | xargs kill 2> /dev/null
+								cat PID.inv_PPA | xargs kill 2> /dev/null
 
 								exit 1
 							fi
@@ -749,7 +872,7 @@ check_eval() {
 					## set/mark status via PASSED/FAILED files
 					parse_lec_checks
 
-					) &
+					) & # LEC design checks
 
 				) &
 
@@ -757,15 +880,29 @@ check_eval() {
 
 				### check status of above processes
 
-				## design checks
+				## Innovus PPA evaluation
+				if [[ -e PASSED.inv_PPA ]]; then
+					status[inv_PPA]=1
+					echo "ISPD23 -- 3)  $id_run:  Innovus PPA evaluation: done"
+				elif [[ -e FAILED.inv_PPA ]]; then
+					status[inv_PPA]=2
+					echo "ISPD23 -- 3)  $id_run:  Innovus PPA evaluation: failed"
+				# in case init steps failed, this check is not running at all -- mark as failed but
+				# don't report on status
+				elif [[ ${status[init]} == 2 ]]; then
+					status[inv_PPA]=2
+				else
+					status[inv_PPA]=0
+					echo "ISPD23 -- 3)  $id_run:  Innovus PPA evaluation: still working ..."
+				fi
+
+				## Innovus design checks
 				if [[ -e PASSED.inv_checks ]]; then
 					status[inv_checks]=1
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: done"
-
 				elif [[ -e FAILED.inv_checks ]]; then
 					status[inv_checks]=2
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: failed"
-
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
@@ -779,11 +916,9 @@ check_eval() {
 				if [[ -e PASSED.lec_checks ]]; then
 					status[lec_checks]=1
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: done"
-
 				elif [[ -e FAILED.lec_checks ]]; then
 					status[lec_checks]=2
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: failed"
-
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
@@ -794,7 +929,7 @@ check_eval() {
 				fi
 
 				## 2) if not done yet, and no error occurred, then continue, i.e., skip the further processing for now
-				if [[ ${status[inv_checks]} == 0 || ${status[lec_checks]} == 0 ]]; then
+				if [[ ${status[inv_checks]} == 0 || ${status[lec_checks]} == 0 || ${status[inv_PPA]} == 0 ]]; then
 					
 					# first return to previous main dir silently
 					cd - > /dev/null
@@ -805,7 +940,7 @@ check_eval() {
 				## 3) compute scores
 				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-				$scripts_folder/scores.sh 6 $baselines_root_folder/$benchmark > /dev/null
+				scripts/scores.sh 6 $baselines_root_folder/$benchmark > /dev/null
 
 				## 4) create related upload folder, w/ same timestamp as work and download folder
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
@@ -1308,6 +1443,74 @@ parse_lec_checks() {
 	fi
 }
 
+parse_inv_PPA() {
+
+	errors=0
+
+	# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
+	#
+	## NOTE failure on those is considered as error/constraint violation
+	#
+
+	# setup 
+# Example:
+## SETUP                  WNS    TNS   FEP   
+##------------------------------------------
+# View : ALL           16.703  0.000     0  
+#    Group : in2out       N/A    N/A     0  
+#    Group : reg2out   16.703  0.000     0  
+#    Group : in2reg   151.422    0.0     0  
+#    Group : reg2reg  149.277    0.0     0  
+
+	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==1')
+	string="Innovus: Timing issues for setup:"
+
+	if [[ $issues != '0' ]]; then
+
+		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	# hold 
+# Example:
+## HOLD                   WNS    TNS   FEP   
+##------------------------------------------
+# View : ALL           17.732  0.000     0  
+#    Group : in2out       N/A    N/A     0  
+#    Group : reg2out  305.300  0.000     0  
+#    Group : in2reg    17.732    0.0     0  
+#    Group : reg2reg  188.440    0.0     0  
+
+	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==2')
+	string="Innovus: Timing issues for hold:"
+
+	if [[ $issues != '0' ]]; then
+
+		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	#
+	# evaluate criticality of issues
+	#
+	if [[ $errors == 1 ]]; then
+
+		echo -e "\nISPD23 -- 2)  $id_run:  Some critical Innovus PPA evaluation step(s) failed."
+
+		date > FAILED.inv_PPA
+		exit 1
+	else
+		echo -e "\nISPD23 -- 2)  $id_run:  Innovus PPA evaluation done; all passed."
+
+		date > PASSED.inv_PPA
+		exit 0
+	fi
+}
+
 parse_inv_checks() {
 
 	errors=0
@@ -1319,7 +1522,7 @@ parse_inv_checks() {
 # NOTE such line is only present if errors/issues found at all
 
 	issues=$(grep "total info(s) created" reports/*.conn.rpt | awk '{print $1}')
-       string="Innovus: Basic routing issues:"
+	string="Innovus: Basic routing issues:"
 
 	if [[ $issues != "" ]]; then
 
@@ -1370,6 +1573,27 @@ parse_inv_checks() {
 
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
+	# DRC routing issues; check *.geom.rpt for "Total Violations"
+	#
+	## NOTE failure on those is considered as error/constraint violation
+	#
+# Example:
+#  Total Violations : 2 Viols.
+# NOTE such line is only present if errors/issues found at all
+
+	issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $4}')
+	string="Innovus: DRC issues:"
+
+	if [[ $issues != "" ]]; then
+
+		errors=1
+		echo "ISPD23 -- ERROR: $string $issues -- see *.geom.rpt for more details." >> reports/errors.rpt
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
 	# placement and routing; check check_design.rpt file for summary
 # Example:
 #	**INFO: Identified 21 error(s) and 0 warning(s) during 'check_design -type {place cts route}'.
@@ -1384,9 +1608,9 @@ parse_inv_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
-			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see check_design.rpt and check.logv for more details." >> reports/errors.rpt
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see check_design.rpt and checks.logv for more details." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: $string $issues -- see check_design.rpt and check.logv for more details." >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see check_design.rpt and checks.logv for more details." >> reports/warnings.rpt
 		fi
 	else
 		issues=0
@@ -1503,74 +1727,6 @@ parse_inv_checks() {
 
 		errors=1
 		echo "ISPD23 -- ERROR: $string $issues -- see check_stripes.rpt for more details." >> reports/errors.rpt
-	fi
-
-	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
-
-	# DRC routing issues; check *.geom.rpt for "Total Violations"
-	#
-	## NOTE failure on those is considered as error/constraint violation
-	#
-# Example:
-#  Total Violations : 2 Viols.
-# NOTE such line is only present if errors/issues found at all
-
-	issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $4}')
-	string="Innovus: DRC issues:"
-
-	if [[ $issues != "" ]]; then
-
-		errors=1
-		echo "ISPD23 -- ERROR: $string $issues -- see *.geom.rpt for more details." >> reports/errors.rpt
-	else
-		issues=0
-	fi
-
-	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
-
-	# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
-	#
-	## NOTE failure on those is considered as error/constraint violation
-	#
-
-	# setup 
-# Example:
-## SETUP                  WNS    TNS   FEP   
-##------------------------------------------
-# View : ALL           16.703  0.000     0  
-#    Group : in2out       N/A    N/A     0  
-#    Group : reg2out   16.703  0.000     0  
-#    Group : in2reg   151.422    0.0     0  
-#    Group : reg2reg  149.277    0.0     0  
-
-	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==1')
-	string="Innovus: Timing issues for setup:"
-
-	if [[ $issues != '0' ]]; then
-
-		errors=1
-		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
-	fi
-
-	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
-
-	# hold 
-# Example:
-## HOLD                   WNS    TNS   FEP   
-##------------------------------------------
-# View : ALL           17.732  0.000     0  
-#    Group : in2out       N/A    N/A     0  
-#    Group : reg2out  305.300  0.000     0  
-#    Group : in2reg    17.732    0.0     0  
-#    Group : reg2reg  188.440    0.0     0  
-
-	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==2')
-	string="Innovus: Timing issues for hold:"
-
-	if [[ $issues != '0' ]]; then
-
-		errors=1
-		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
 	fi
 
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
@@ -1779,12 +1935,13 @@ start_eval() {
 				echo $! > PID.lec_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
-#				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
-#				note for the related syntax
-#				bash -c 'echo $$ > PID.inv_checks; exec innovus -nowin -stylus -files scripts/check.tcl -log check > /dev/null' &
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-				innovus -nowin -stylus -files scripts/checks_and_PPA.tcl -log check > /dev/null &
+				innovus -nowin -stylus -files scripts/checks.tcl -log checks > /dev/null &
 				echo $! > PID.inv_checks
+
+				echo "ISPD23 -- 2)  $id_run:  Starting Innovus PPA evaluation ..."
+				innovus -nowin -files scripts/PPA.tcl -log PPA > /dev/null &
+				echo $! > PID.inv_PPA
 
 				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null

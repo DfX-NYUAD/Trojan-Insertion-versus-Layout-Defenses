@@ -67,9 +67,9 @@ lec_errors_for_checking="Error|StackTrace|License check failed!"
 ##
 ## NOTE only to be changed if you know what you're doing
 scripts_sec="sec/1st_order/exploitable_regions.bin sec/1st_order/exploitable_regions.tcl"
-scripts_des="des/checks_and_PPA.tcl des/mmmc.tcl"
-scripts_checks="checks/lec.do checks/check_pins.sh checks/check_stripes_area_stylus.tcl checks/check_stripes_coors_stylus.tcl checks/check_stripes_width_stylus.tcl"
-scripts_others="scores.sh"
+scripts_des="des/PPA.tcl des/mmmc.tcl"
+scripts_checks="checks/lec.do checks/checks.tcl checks/check_pins.sh checks/check_stripes_area_stylus.tcl checks/check_stripes_coors_stylus.tcl checks/check_stripes_width_stylus.tcl"
+scripts_others="scores/scores.sh"
 scripts="$scripts_sec $scripts_des $scripts_checks $scripts_others"
 
 ## main data structures

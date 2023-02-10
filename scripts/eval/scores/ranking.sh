@@ -12,7 +12,7 @@ daemon_settings="../../gdrive/ISPD23_daemon.settings"
 team_settings="team.settings"
 
 # string for non-defined results
-ND="-"
+ND="---"
 
 # associative array w/ teams and anon IDs
 declare -A teams
@@ -162,11 +162,9 @@ for team in "${!teams[@]}"; do
 				## NOTE update here needed for check below
 				score_OVERALL_min=$score_OVERALL_curr
 
-				# also log the rpt file, if not done yet
+				# also log the rpt file
 				string="$backup_work/$run/reports/scores.rpt"
-				if [[ $(grep -q $string $log 2> /dev/null; echo $?) != 0 ]]; then
-					echo $string >> $log
-				fi
+				echo $string >> $log
 			fi
 			## NOTE in this mode, the actual min score should only be initialized when also the OVERALL min score is already initialized
 			if [[ $score_related_OVERALL == 1 ]]; then
@@ -224,11 +222,9 @@ for team in "${!teams[@]}"; do
 
 						eval $array_name[$benchmark]=$score_curr
 
-						# also log the rpt file, if not done yet
+						# also log the rpt file
 						string="$backup_work/$run/reports/scores.rpt"
-						if [[ $(grep -q $string $log 2> /dev/null; echo $?) != 0 ]]; then
-							echo $string >> $log
-						fi
+						echo $string >> $log
 					fi
 				fi
 
@@ -240,11 +236,9 @@ for team in "${!teams[@]}"; do
 
 					eval $array_name[$benchmark]=$score_curr
 
-					# also log the rpt file, if not done yet
+					# also log the rpt file
 					string="$backup_work/$run/reports/scores.rpt"
-					if [[ $(grep -q $string $log 2> /dev/null; echo $?) != 0 ]]; then
-						echo $string >> $log
-					fi
+					echo $string >> $log
 				fi
 			fi
 
@@ -308,15 +302,32 @@ for benchmark in $benchmarks; do
 		fi
 
 		backup_work="$teams_root_folder/$team/$benchmark/backup_work"
-		runs_total=$(ls $backup_work/*.zip 2> /dev/null | wc -l)
+		runs_total=0
+		runs_valid=0
 
-		if [[ $(cat $log | grep $benchmark | grep -q $team; echo $?) == 0 ]]; then
+		for run in $(ls $backup_work); do
 
-			string=$(cat $log | grep $benchmark | grep $team | wc -l)
-			out+="$string/$runs_total "
-		else
-			out+="$ND/$runs_total "
-		fi
+			## only consider folders; ignore other files in main dirs
+			if ! [[ -d $backup_work/$run ]] ; then
+				continue
+			fi
+
+			(( runs_total++ ))
+
+			## skip runs w/o scores
+			if ! [[ -e $backup_work/$run/reports/scores.rpt ]] ; then
+				continue
+			fi
+
+			## also skip runs w/ errors
+			if [[ -e $backup_work/$run/reports/errors.rpt ]] ; then
+				continue
+			fi
+
+			(( runs_valid++ ))
+		done
+
+		out+="$runs_valid/$runs_total "
 	done
 	# end row
 	out+=$'\n'
