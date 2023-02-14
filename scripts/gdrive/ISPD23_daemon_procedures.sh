@@ -245,6 +245,7 @@ google_downloads() {
 				## ISPD23 -- 1)  Download new submission file "to" (Google file ID "Failed") into dedicated folder
 				## Failed to get file: googleapi: Error 404: File not found: Failed., notFound
 				## ISPD23_daemon_procedures.sh: line 168: google_folder_files[$a]: bad array subscript
+				## awk: cmd. line:1: (FILENAME=- FNR=1) fatal: attempt to access field -2
 
 				# NOTE for google_folder_files_type, we're only interested in "dir" versus any other file. Since folders may have spaces as well, we need to go from
 				# back (right to left); we cannot assume that the file type is 3rd position. Also note that the same issue can occur for non-dir files, but we do not bother here about those
