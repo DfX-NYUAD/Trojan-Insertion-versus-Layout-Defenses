@@ -55,8 +55,16 @@ set_propagated_clock [all_clocks]
 #
 setAnalysisMode -analysisType onChipVariation
 # removes clock pessimism
-setAnalysisMode -cppr both 
-timeDesign -postroute 
+setAnalysisMode -cppr both
+timeDesign -postroute
+
+#####################
+# write out db
+#####################
+#
+# NOTE -timingGraph triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable -- sounds like timing graph is not stored properly
+# NOTE -rc works fine, but also does not provide much runtime benefit, probably because rc_model.bin is already there as well
+saveDesign design.enc -rc -no_wait saveDesign.log
 
 #####################
 # reports
@@ -65,7 +73,7 @@ timeDesign -postroute
 report_power > reports/power.rpt
 
 # simultaneous setup, hold analysis
-# NOTE applicable for (faster) timing analysis, but not for subsequent ECO runs or so -- OK for our scope of DEF loading and evaluating
+# NOTE applicable for (faster) timing analysis, but not for subsequent ECO runs or so -- OK for our scope here, i.e., DEF loading and evaluating
 set_global timing_enable_simultaneous_setup_hold_mode true
 report_timing_summary > reports/timing.rpt
 

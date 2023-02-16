@@ -1139,6 +1139,7 @@ link_work_dir() {
 	ln -sf $baselines_root_folder/$benchmark/design.v design_original.v
 	ln -sf $baselines_root_folder/$benchmark/design.def design_original.def
 	ln -sf $baselines_root_folder/$benchmark/reports/*.data reports/
+	ln -sf $baselines_root_folder/$benchmark/TI .
 	# NOTE copy this instead of linking, as details might depend on the design/submission, so should not be mixed across teams
 	cp $baselines_root_folder/$benchmark/rc_model.bin .
 
