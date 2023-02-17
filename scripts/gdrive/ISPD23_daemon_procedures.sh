@@ -632,14 +632,21 @@ check_eval() {
 							if [[ -e FAILED.lec_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, LEC design checks failed. Also abort Innovus design checks ..."
-								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to LEC design checks failure" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for LEC design checks" >> reports/errors.rpt
 
 								errors=1
 							fi
 							if [[ -e FAILED.inv_PPA ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus PPA evaluation failed. Also abort Innovus design checks ..."
-								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to Innovus PPA evaluation failure" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for Innovus PPA evaluation" >> reports/errors.rpt
+
+								errors=1
+							fi
+							if [[ -e FAILED.TI_* ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus design checks ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
 
 								errors=1
 							fi
@@ -734,14 +741,21 @@ check_eval() {
 							if [[ -e FAILED.lec_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, LEC design checks failed. Also abort Innovus PPA evaluation ..."
-								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to LEC design checks failure" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for LEC design checks" >> reports/errors.rpt
 
 								errors=1
 							fi
 							if [[ -e FAILED.inv_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus design checks failed. Also abort Innovus PPA evaluation ..."
-								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to Innovus design checks failure" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for Innovus design checks" >> reports/errors.rpt
+
+								errors=1
+							fi
+							if [[ -e FAILED.TI_* ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus PPA evaluation ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
 
 								errors=1
 							fi
@@ -836,14 +850,21 @@ check_eval() {
 							if [[ -e FAILED.inv_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus design checks failed. Also abort LEC design checks ..."
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to Innovus design checks failure" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus design checks" >> reports/errors.rpt
 
 								errors=1
 							fi
 							if [[ -e FAILED.inv_PPA ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus PPA evaluation failed. Also abort LEC design checks ..."
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to Innovus PPA evaluation failure" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus PPA evaluation" >> reports/errors.rpt
+
+								errors=1
+							fi
+							if [[ -e FAILED.TI_* ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort LEC design checks ..."
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
 
 								errors=1
 							fi
@@ -880,6 +901,8 @@ check_eval() {
 				fi
 
 				### check status of above processes
+
+#TODO TI; go by DONE.TI_ALL and FAILED.TI_ALL
 
 				## Innovus PPA evaluation
 				if [[ -e PASSED.inv_PPA ]]; then
@@ -937,6 +960,9 @@ check_eval() {
 
 					continue
 				fi
+
+# TODO evalute all reports/$design_name.geom.TI_$trojan_name.rpt
+# TODO evalute all reports/timing.TI_$trojan_name.rpt
 
 				## 3) compute scores
 				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
@@ -1944,6 +1970,10 @@ start_eval() {
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus PPA evaluation ..."
 				innovus -nowin -files scripts/PPA.tcl -log PPA > /dev/null &
 				echo $! > PID.inv_PPA
+
+				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
+				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
+				scripts/TI_wrapper.sh $benchmark &
 
 				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null

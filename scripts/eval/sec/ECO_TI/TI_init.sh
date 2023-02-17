@@ -10,28 +10,16 @@ out="scripts/TI_settings.tcl"
 err_rpt="reports/errors.rpt"
 
 trojan_name=$1
-# NOTE deprecated
-##trojan_netlist=$2
 
 ## sanity checks: all parameters provided?
 if [[ $trojan_name == "" ]]; then
-	echo "ISPD23 -- ERROR: cannot init Trojan insertion -- 1st parameter, trojan_name, is not provided. Provide either of the following: leak, burn, or fault" | tee -a $err_rpt
-# NOTE deprecated
-##	error=1
-##fi
-##if [[ $trojan_netlist == "" ]]; then
-##	echo "ISPD23 -- ERROR: cannot init Trojan insertion -- 2nd parameter, trojan_netlist, is not provided." | tee -a $err_rpt
-##	error=1
-##fi
-##if [[ $error == 1 ]]; then
+	echo "ISPD23 -- ERROR: cannot init Trojan insertion -- 1st parameter, trojan_name, is not provided. Examples: camellia_burn_8_32, camellia_fault_16_5, camellia_leak_16_5; note that this parameter is to be provided w/ design prefix." | tee -a $err_rpt
 	exit 1
 fi
 
-## derive netlist from Trojan name, not from parameter\
-## NOTE: only considers the last matching netlist; should be only matchin anyway, but this is as fail-safe measure
-trojan_netlist=$(ls TI/*$trojan_name* 2> /dev/null | awk '{print $NF}')
+trojan_netlist="TI/"$trojan_name".v"
 
-## sanity checks: all needed files present?
+## sanity checks: all files present?
 if ! [[ -e design.enc ]]; then
 	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- database description file \"design.enc\" is missing in working directory." | tee -a $err_rpt
 	error=1
@@ -57,35 +45,35 @@ mv $out $out$files 2> /dev/null
 ## general: extract design name -- which is different from benchmark name
 design_name=$(cat design.enc | grep "restoreDesign" | awk '{print $NF}')
 
-## specific settings, in LUT-style
-# TODO clk divider stuff: clk name, instance name for generate_clock command, etc
-# TODO inner case statements for leak, burn, fault as needed
+### specific settings, in LUT-style
+## TODO clk divider stuff: clk name, instance name for generate_clock command, etc
+## TODO inner case statements for leak, burn, fault as needed
+##
+#case $design_name in
 #
-case $design_name in
-
-	aes_128)
-	;;
-
-	Camellia)
-	;;
-
-	CAST128)
-	;;
-
-	# misty
-	top)
-	;;
-
-	SEED)
-	;;
-
-	sha256)
-	;;
-
-	*)
-	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Unknown/unsupported design name \"$design_name\"." | tee -a $err_rpt
-	;;
-esac
+#	aes_128)
+#	;;
+#
+#	Camellia)
+#	;;
+#
+#	CAST128)
+#	;;
+#
+#	# misty
+#	top)
+#	;;
+#
+#	SEED)
+#	;;
+#
+#	sha256)
+#	;;
+#
+#	*)
+#	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Unknown/unsupported design name \"$design_name\"." | tee -a $err_rpt
+#	;;
+#esac
 
 ## write out settings file
 echo "set design_name \"$design_name\"" > $out
