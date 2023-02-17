@@ -62,7 +62,8 @@ timeDesign -postroute
 # write out db
 #####################
 #
-# NOTE -timingGraph triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable -- sounds like timing graph is not stored properly
+# NOTE -timingGraph triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable.
+#  Sounds like timing graph is not stored properly. Interestingly, restoreDesign works fine with -timingGraph generated db.
 # NOTE -rc works fine, but also does not provide much runtime benefit, probably because rc_model.bin is already there as well
 saveDesign design.enc -rc -no_wait saveDesign.log
 
