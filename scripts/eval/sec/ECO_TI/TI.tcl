@@ -29,7 +29,7 @@ date > DONE.source.TI_$trojan_name
 ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace
 setPlaceMode -place_detail_preroute_as_obs 3
 ecoPlace -fixPlacedInsts
-# TODO limit optimization iterations to TODO
+setNanoRouteMode -drouteEndIteration 20
 ecoRoute
 
 #####################
