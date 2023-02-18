@@ -1044,10 +1044,16 @@ check_eval() {
 				# compress backup
 				cd $backup_work_folder > /dev/null
 
-				# silent cleanup of rpt files lingering around in main folder
-				# NOTE As of now, only a 0-byte power.rpt file occurs here (the proper file is in reports/power.rpt). Not sure why this happens
-				# though. Also, instead of deleting, moving to reports/ would be an option -- but, not for that 0-byte power.rpt file
-				rm $folder/*.rpt > /dev/null 2>&1
+#				# NOTE deprecated; general rm is not good practice. For example, reports for Trojan insertion are in main folder, and should neither be moved to
+#				reports/ (as they should not be shared) nor removed altogether. Also, keeping any other report that was previously overlooked is better practice.
+#				# silent cleanup of rpt files lingering around in main folder
+#				# NOTE As of now, only a 0-byte power.rpt file occurs here (the proper file is in reports/power.rpt). Not sure why this happens
+#				# though. Also, instead of deleting, moving to reports/ would be an option -- but, not for that 0-byte power.rpt file
+#				rm $folder/*.rpt > /dev/null 2>&1
+
+#				# silent cleanup of `false' rpt files
+#				# NOTE As of now, only a 0-byte power.rpt file matches here (the proper file is already in reports/power.rpt). Not sure where this file comes from.
+				rm $folder/power.rpt > /dev/null 2>&1
 
 				# NOTE only mute regular stdout, but keep stderr
 				zip -y -r $folder'.zip' $folder/ > /dev/null #2>&1

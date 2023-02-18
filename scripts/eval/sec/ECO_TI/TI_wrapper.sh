@@ -100,6 +100,7 @@ done
 declare -A trojans
 case $benchmark in
 
+	#TODO merge those cases w/ same trojan_name, using eg aes|camellia)
 	#TODO
 	aes)
 	;;

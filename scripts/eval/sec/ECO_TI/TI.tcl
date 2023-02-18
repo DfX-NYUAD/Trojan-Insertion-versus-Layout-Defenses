@@ -26,7 +26,8 @@ date > DONE.source.TI_$trojan_name
 # Trojan insertion
 #####################
 #
-ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace
+# NOTE related report files are placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
+ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace -reportFile $trojan_name.ecoDesign.rpt
 setPlaceMode -place_detail_preroute_as_obs 3
 ecoPlace -fixPlacedInsts
 setNanoRouteMode -drouteEndIteration 20
@@ -34,8 +35,10 @@ ecoRoute
 
 #####################
 # post-insertion checks
-# TODO consider other design checks again here?
 #####################
+#
+# NOTE other checks in checks.tcl are skipped here, since 1) accounting for all them during scoring seems difficult and, more importantly, 2) these checks were more to try to catch
+# any cheating/trivial defenses
 #
 verify_drc -limit 100000 -report reports/$design_name.geom.TI_$trojan_name.rpt
 
