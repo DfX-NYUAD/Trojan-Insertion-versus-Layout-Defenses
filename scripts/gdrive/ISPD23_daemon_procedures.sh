@@ -984,6 +984,7 @@ check_eval() {
 
 # TODO evalute all reports/$design_name.geom.TI_$trojan_name.rpt
 # TODO evalute all reports/timing.TI_$trojan_name.rpt
+# NOTE just go by TI_* that is w/o specific knowledge of trojan_name -- but, occurrence of >1 such files does not mean it didn't fail overall -> check against FAILED.TI_ALL
 
 				## 3) compute scores
 				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
@@ -1025,6 +1026,11 @@ check_eval() {
 #				# NOTE deprecated
 #				echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 #				mv processed_files.zip $uploads_folder/ #2> /dev/null
+
+				## GDS from Trojan insertion
+				#
+				# NOTE mute stderr which occurs in case the files are not there
+				cp *.gds.gz $uploads_folder/ 2> /dev/null
 
 				## 6) backup work dir
 				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."

@@ -33,7 +33,7 @@ setNanoRouteMode -drouteEndIteration 20
 ecoRoute
 
 #####################
-# post-insertion checks; only those required for scoring
+# post-insertion checks
 # TODO consider other design checks again here?
 #####################
 #
@@ -54,24 +54,11 @@ report_timing_summary > reports/timing.TI_$trojan_name.rpt
 #defOut -netlist -routing -allLayers design.TI_$trojan_name.def
 #saveNetlist design.TI_$trojan_name.v
 
-## GDS
-#setStreamOutMode -reset                                                                                                                                                                                                                                                                             
-#
-##TODO
-## TODO also update daemon, to upload GDS files
-## streamOut ./sha256_v${VERSION}.gds.gz \
-## -mapFile {../gds/gds2.map} \
-## -libName DesignLib \
-## -uniquifyCellNames \
-## -outputMacros \
-## -stripes 1 \
-## -mode ALL \
-## -units 4000 \
-## -reportFile ../report/top/gds_stream_out_final.rpt \
-## -merge { ../gds/asap7sc7p5t_28_L_220121a_scaled4x.gds  ../gds/asap7sc7p5t_28_SL_220121a_scaled4x.gds }
-### -merge { ../gds/asap7sc7p5t_28_L_220121a_scaled4x.gds  ../gds/asap7sc7p5t_28_R_220121a_scaled4x.gds
-#../gds/asap7sc7p5t_28_SL_220121a_scaled4x.gds  ../gds/asap7sc7p5t_28_SRAM_220121a_scaled4x.gds}
+# GDS
+set_global timing_enable_simultaneous_setup_hold_mode false
+setStreamOutMode -reset
 
+streamOut $trojan_name.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName DesignLib -uniquifyCellNames -outputMacros -mode ALL -units 4000 -reportFile reports/$trojan_name.gds.rpt -merge { ASAP7/asap7sc7p5t_28_L_220121a_scaled4x.gds  ASAP7/asap7sc7p5t_28_SL_220121a_scaled4x.gds }
 
 ####
 # mark done; exit
