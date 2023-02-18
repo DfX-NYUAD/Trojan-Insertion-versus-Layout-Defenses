@@ -643,7 +643,9 @@ check_eval() {
 
 								errors=1
 							fi
-							if [[ -e FAILED.TI_* ]]; then
+							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and its exit code
+							err=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
+							if [[ $err == '0' ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus design checks ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
@@ -752,7 +754,9 @@ check_eval() {
 
 								errors=1
 							fi
-							if [[ -e FAILED.TI_* ]]; then
+							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and its exit code
+							err=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
+							if [[ $err == '0' ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus PPA evaluation ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
@@ -861,7 +865,9 @@ check_eval() {
 
 								errors=1
 							fi
-							if [[ -e FAILED.TI_* ]]; then
+							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and its exit code
+							err=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
+							if [[ $err == '0' ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort LEC design checks ..."
 								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
@@ -901,8 +907,6 @@ check_eval() {
 				fi
 
 				### check status of above processes
-
-#TODO TI; go by DONE.TI_ALL and FAILED.TI_ALL
 
 				## Innovus PPA evaluation
 				if [[ -e PASSED.inv_PPA ]]; then
@@ -952,8 +956,25 @@ check_eval() {
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: still working ..."
 				fi
 
+				## Innovus Trojan insertion
+				# NOTE processes handled via TI_wrapper.sh, not above
+				if [[ -e DONE.TI_ALL ]]; then
+					status[inv_TI]=1
+					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: done"
+				elif [[ -e FAILED.TI_ALL ]]; then
+					status[inv_TI]=2
+					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: failed"
+				# in case init steps failed, this check is not running at all -- mark as failed but
+				# don't report on status
+				elif [[ ${status[init]} == 2 ]]; then
+					status[inv_TI]=2
+				else
+					status[inv_TI]=0
+					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working ..."
+				fi
+
 				## 2) if not done yet, and no error occurred, then continue, i.e., skip the further processing for now
-				if [[ ${status[inv_checks]} == 0 || ${status[lec_checks]} == 0 || ${status[inv_PPA]} == 0 ]]; then
+				if [[ ${status[inv_checks]} == 0 || ${status[lec_checks]} == 0 || ${status[inv_PPA]} == 0 || ${status[inv_TI]} == 0 ]]; then
 					
 					# first return to previous main dir silently
 					cd - > /dev/null
@@ -1973,7 +1994,7 @@ start_eval() {
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
-				scripts/TI_wrapper.sh $benchmark &
+				scripts/TI_wrapper.sh $benchmark "$id_run" &
 
 				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null

@@ -29,6 +29,7 @@ date > DONE.source.TI_$trojan_name
 ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace
 setPlaceMode -place_detail_preroute_as_obs 3
 ecoPlace -fixPlacedInsts
+# TODO limit optimization iterations to TODO
 ecoRoute
 
 #####################
@@ -57,6 +58,7 @@ report_timing_summary > reports/timing.TI_$trojan_name.rpt
 #setStreamOutMode -reset                                                                                                                                                                                                                                                                             
 #
 ##TODO
+## TODO also update daemon, to upload GDS files
 ## streamOut ./sha256_v${VERSION}.gds.gz \
 ## -mapFile {../gds/gds2.map} \
 ## -libName DesignLib \
