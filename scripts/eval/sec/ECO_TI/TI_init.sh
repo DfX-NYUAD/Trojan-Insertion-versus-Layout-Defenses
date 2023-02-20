@@ -48,6 +48,7 @@ design_name=$(cat design.enc | grep "restoreDesign" | awk '{print $NF}')
 ### specific settings, in LUT-style
 ## TODO clk divider stuff: clk name, instance name for generate_clock command, etc
 ## TODO inner case statements for leak, burn, fault as needed
+## TODO merge cases as useful, using eg aes|camellia)
 ##
 #case $design_name in
 #

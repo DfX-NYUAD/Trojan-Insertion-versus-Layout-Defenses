@@ -8,7 +8,7 @@
 # general settings
 #####################
 #
-setMultiCpuUsage -localCpu 16
+setMultiCpuUsage -localCpu 24
 
 set mmmc_path scripts/mmmc.tcl
 set lef_path "ASAP7/asap7_tech_4x_201209.lef ASAP7/asap7sc7p5t_28_L_4x_220121a.lef ASAP7/asap7sc7p5t_28_SL_4x_220121a.lef"

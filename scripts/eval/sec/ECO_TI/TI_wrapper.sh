@@ -8,8 +8,7 @@
 
 ## fixed settings; typically not to be modified
 #
-benchmark=$1
-id_run=$2
+id_run=$1
 err_rpt="reports/errors.rpt"
 
 ## procedures
@@ -21,7 +20,7 @@ start_TI() {
 
 		while true; do
 
-			if [[ -e DONE.source.TI_$previous_trojan_name ]]; then
+			if [[ -e DONE.source.$previous_trojan_name ]]; then
 				break
 			fi
 
@@ -56,18 +55,6 @@ start_TI() {
 ## main code
 #
 
-## 0) parameter checks
-#
-if [[ $benchmark == "" ]]; then
-
-	echo "ISPD23 -- ERROR: cannot conduct Trojan insertion -- 1st parameter, benchmark, is not provided." >> $err_rpt
-
-	# set failure flag/file for all Trojan insertion
-	date > FAILED.TI_ALL
-
-	exit 1
-fi
-
 ## 1) wait until design db becomes available (db is generated through scripts/eval/des/PPA.tcl)
 #
 while true; do
@@ -95,72 +82,30 @@ done
 
 ##  2) start TI processes; all in parallel, but wait during init phase, as there's only one common config file, which can be updated only once some prior TI process has fully started -- waiting is handled via start_TI procedure
 #
+
 # key: running ID; value: trojan_name
 # NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
 declare -A trojans
-case $benchmark in
 
-	#TODO merge those cases w/ same trojan_name, using eg aes|camellia)
-	#TODO
-	aes)
-	;;
+trojan_name="NA"
+trojan_counter=0
 
-	camellia)
-		previous_trojan_name="NA"
-		trojan_name="camellia_burn_8_32"
-		trojans[0]=$trojan_name
-		start_TI
-		if [[ $? != 0 ]]; then
-			# NOTE break; don't start further TI processes
-			break;
-		fi
+for file in TI/*; do
 
-		previous_trojan_name=$trojan_name
-		trojan_name="camellia_fault_16_5"
-		trojans[1]=$trojan_name
-		start_TI
-		if [[ $? != 0 ]]; then
-			# NOTE break; don't start further TI processes
-			# NOTE prior TI processes will be killed by monitor subshells
-			break;
-		fi
+	previous_trojan_name=$trojan_name
+	trojan_name=${file##TI/}
+	trojan_name=${trojan_name%%.v}
+	trojans[$trojan_counter]=$trojan_name
 
-		previous_trojan_name=$trojan_name
-		trojan_name="camellia_leak_16_5"
-		trojans[2]=$trojan_name
-		start_TI
-		if [[ $? != 0 ]]; then
-			# NOTE break; don't start further TI processes
-			# NOTE prior TI processes will be killed by monitor subshells
-			break;
-		fi
-	;;
+	((trojan_counter = trojan_counter + 1))
 
-	#TODO
-	cast)
-	;;
-
-	#TODO
-	misty)
-	;;
-
-	#TODO
-	seed)
-	;;
-
-	#TODO
-	sha256)
-	;;
-
-	*)
-		echo "ISPD23 -- ERROR: cannot conduct Trojan insertion -- Unknown benchmark \"$benchmark\"." >> $err_rpt
-
-		# set failure flag/file for all Trojan insertion
-		date > FAILED.TI_ALL
-
-		exit 1
-	;;
-esac
+	start_TI
+	if [[ $? != 0 ]]; then
+		# NOTE break; don't start further TI processes
+		# NOTE already started TI processes, if any, will be killed by monitor subshells
+		break;
+	fi
+done
 
 ## 3) monitor all TI processes
 #

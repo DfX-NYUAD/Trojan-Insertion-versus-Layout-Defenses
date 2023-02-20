@@ -982,10 +982,6 @@ check_eval() {
 					continue
 				fi
 
-# TODO evalute all reports/$design_name.geom.TI_$trojan_name.rpt
-# TODO evalute all reports/timing.TI_$trojan_name.rpt
-# NOTE just go by TI_* that is w/o specific knowledge of trojan_name -- but, occurrence of >1 such files does not mean it didn't fail overall -> check against FAILED.TI_ALL
-
 				## 3) compute scores
 				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
@@ -2008,7 +2004,7 @@ start_eval() {
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
-				scripts/TI_wrapper.sh $benchmark "$id_run" &
+				scripts/TI_wrapper.sh "$id_run" &
 
 				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null
