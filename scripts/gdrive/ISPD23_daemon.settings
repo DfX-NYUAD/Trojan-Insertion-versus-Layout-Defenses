@@ -6,7 +6,7 @@
 
 ## misc key parameters
 ##
-round="alpha"
+round="final"
 ## work mode
 mode="testing"
 ## wait time b/w cycles [s]
