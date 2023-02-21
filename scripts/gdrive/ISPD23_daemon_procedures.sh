@@ -277,7 +277,7 @@ google_downloads() {
 			for file in "${!google_folder_files[@]}"; do
 
 				# cross-check w/ already downloaded ones, considering unique Google IDS, memorized in history file
-				if [[ $(grep -c $file $downloads_folder/dl_history) != '0' ]]; then
+				if [[ $(grep -c $file $downloads_folder/dl_history) != 0 ]]; then
 					continue
 				fi
 
@@ -587,12 +587,12 @@ check_eval() {
 
 #					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for Innovus design checks."
 
-					# sleep a little to avoid immediate but useless errors concerning log file not
-					# found; is only relevant for the very first run just following right after
-					# starting the process, but should still be employed here as fail-safe measure
-					sleep 1s
-
 					while true; do
+
+						# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant
+						# for the very first run just following right after starting the process, but should still be employed here as fail-safe measure
+						# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
+						sleep 1s
 
 						if [[ -e DONE.inv_checks ]]; then
 							break
@@ -629,32 +629,35 @@ check_eval() {
 							fi
 
 							# also check process state/evaluation outcome of other process(es)
-							if [[ -e FAILED.lec_checks ]]; then
+							#
+							# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
+							# process; use elif statemets to abort each process only once
+							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and eval its exit code here
+							err_TI=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
+							if [[ $err_TI == 0 ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus design checks ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
+
+								errors=1
+
+							elif [[ -e FAILED.lec_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, LEC design checks failed. Also abort Innovus design checks ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for LEC design checks" >> reports/errors.rpt
 
 								errors=1
-							fi
-							if [[ -e FAILED.inv_PPA ]]; then
+
+							elif [[ -e FAILED.inv_PPA ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus PPA evaluation failed. Also abort Innovus design checks ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for Innovus PPA evaluation" >> reports/errors.rpt
 
 								errors=1
 							fi
-							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and its exit code
-							err=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
-							if [[ $err == '0' ]]; then
-
-								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus design checks ..."
-								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
-
-								errors=1
-							fi
 
 							# for any errors, try killing the process and mark as failed
-							if [[ $errors != '0' ]]; then
+							if [[ $errors != 0 ]]; then
 
 								# NOTE not all cases/conditions require killing, but for simplicity this is unified here; trying again to kill wont hurt
 								cat PID.inv_checks | xargs kill 2> /dev/null
@@ -669,8 +672,6 @@ check_eval() {
 								exit 1
 							fi
 						fi
-
-						sleep 1s
 					done
 
 					## parse rpt, log files for failures
@@ -698,12 +699,12 @@ check_eval() {
 
 #					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for Innovus PPA evaluation."
 
-					# sleep a little to avoid immediate but useless errors concerning log file not
-					# found; is only relevant for the very first run just following right after
-					# starting the process, but should still be employed here as fail-safe measure
-					sleep 1s
-
 					while true; do
+
+						# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant
+						# for the very first run just following right after starting the process, but should still be employed here as fail-safe measure
+						# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
+						sleep 1s
 
 						if [[ -e DONE.inv_PPA ]]; then
 							break
@@ -740,32 +741,35 @@ check_eval() {
 							fi
 
 							# also check process state/evaluation outcome of other process(es)
-							if [[ -e FAILED.lec_checks ]]; then
+							#
+							# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
+							# process; use elif statemets to abort each process only once
+							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and eval its exit code here
+							err_TI=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
+							if [[ $err_TI == 0 ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus PPA evaluation ..."
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
+
+								errors=1
+
+							elif [[ -e FAILED.lec_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, LEC design checks failed. Also abort Innovus PPA evaluation ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for LEC design checks" >> reports/errors.rpt
 
 								errors=1
-							fi
-							if [[ -e FAILED.inv_checks ]]; then
+
+							elif [[ -e FAILED.inv_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus design checks failed. Also abort Innovus PPA evaluation ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for Innovus design checks" >> reports/errors.rpt
 
 								errors=1
 							fi
-							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and its exit code
-							err=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
-							if [[ $err == '0' ]]; then
-
-								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus PPA evaluation ..."
-								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
-
-								errors=1
-							fi
 
 							# for any errors, try killing the process and mark as failed
-							if [[ $errors != '0' ]]; then
+							if [[ $errors != 0 ]]; then
 
 								# NOTE not all cases/conditions require killing, but for simplicity this is unified here; trying again to kill wont hurt
 								cat PID.inv_PPA | xargs kill 2> /dev/null
@@ -780,8 +784,6 @@ check_eval() {
 								exit 1
 							fi
 						fi
-
-						sleep 1s
 					done
 
 					## parse rpt, log files for failures
@@ -809,12 +811,12 @@ check_eval() {
 
 #					echo "ISPD23 -- 3)  $id_run:  Process monitor subshell started for LEC design checks."
 
-					# sleep a little to avoid immediate but useless errors concerning log file not
-					# found; is only relevant for the very first run just following right after
-					# starting the process, but should still be employed here as fail-safe measure
-					sleep 1s
-
 					while true; do
+
+						# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant
+						# for the very first run just following right after starting the process, but should still be employed here as fail-safe measure
+						# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
+						sleep 1s
 
 						if [[ -e DONE.lec_checks ]]; then
 							break
@@ -851,32 +853,35 @@ check_eval() {
 							fi
 
 							# also check process state/evaluation outcome of other process(es)
-							if [[ -e FAILED.inv_checks ]]; then
+							#
+							# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
+							# process; use elif statemets to abort each process only once
+							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and eval its exit code here
+							err_TI=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
+							if [[ $err_TI == 0 ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort LEC design checks ..."
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
+
+								errors=1
+
+							elif [[ -e FAILED.inv_PPA ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus PPA evaluation failed. Also abort LEC design checks ..."
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus PPA evaluation" >> reports/errors.rpt
+
+								errors=1
+
+							elif [[ -e FAILED.inv_checks ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus design checks failed. Also abort LEC design checks ..."
 								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus design checks" >> reports/errors.rpt
 
 								errors=1
 							fi
-							if [[ -e FAILED.inv_PPA ]]; then
-
-								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus PPA evaluation failed. Also abort LEC design checks ..."
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus PPA evaluation" >> reports/errors.rpt
-
-								errors=1
-							fi
-							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and its exit code
-							err=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
-							if [[ $err == '0' ]]; then
-
-								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort LEC design checks ..."
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
-
-								errors=1
-							fi
 
 							# for any errors, try killing the process and mark as failed
-							if [[ $errors != '0' ]]; then
+							if [[ $errors != 0 ]]; then
 
 								# NOTE not all cases/conditions require killing, but for simplicity this is unified here; trying again to kill wont hurt
 								cat PID.lec_checks | xargs kill 2> /dev/null
@@ -891,8 +896,6 @@ check_eval() {
 								exit 1
 							fi
 						fi
-
-						sleep 1s
 					done
 
 					## parse rpt, log files for failures
@@ -1167,7 +1170,7 @@ link_work_dir() {
 
 	## DEF, including sanity checks
 	def_files=$(ls *.def 2> /dev/null | wc -l)
-	if [[ $def_files != '1' ]]; then
+	if [[ $def_files != 1 ]]; then
 
 		echo "ISPD23 -- ERROR: there are $def_files DEF files in the submission's work directory, which shouldn't happen." >> reports/errors.rpt
 
@@ -1179,7 +1182,7 @@ link_work_dir() {
 	
 	## netlist, including sanity checks
 	netlist_files=$(ls *.v 2> /dev/null | wc -l)
-	if [[ $netlist_files != '1' ]]; then
+	if [[ $netlist_files != 1 ]]; then
 
 		echo "ISPD23 -- ERROR: there are $netlist_files netlist files in the submission's work directory, which shouldn't happen." >> reports/errors.rpt
 
@@ -1524,7 +1527,7 @@ parse_inv_PPA() {
 	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==1')
 	string="Innovus: Timing issues for setup:"
 
-	if [[ $issues != '0' ]]; then
+	if [[ $issues != 0 ]]; then
 
 		errors=1
 		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
@@ -1545,7 +1548,7 @@ parse_inv_PPA() {
 	issues=$(grep "View : ALL" reports/timing.rpt | awk '{print $NF}' | awk 'NR==2')
 	string="Innovus: Timing issues for hold:"
 
-	if [[ $issues != '0' ]]; then
+	if [[ $issues != 0 ]]; then
 
 		errors=1
 		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
@@ -1615,7 +1618,7 @@ parse_inv_checks() {
 	issues=$(grep "TOTAL" reports/*.checkPin.rpt | awk '{ sum = $9 + $13 + $17 + $21; print sum }')
 	string="Innovus: Module pin issues:"
 
-	if [[ $issues != '0' ]]; then
+	if [[ $issues != 0 ]]; then
 
 		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
@@ -1660,7 +1663,7 @@ parse_inv_checks() {
 	issues=$(grep "**INFO: Identified" reports/check_design.rpt | awk '{ sum = $3 + $6; print sum }')
 	string="Innovus: Placement and/or routing issues:"
 
-	if [[ $issues != '0' ]]; then
+	if [[ $issues != 0 ]]; then
 
 		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
@@ -1692,7 +1695,7 @@ parse_inv_checks() {
 #	issues=$(grep "Number of DC tolerance violations" reports/noise.rpt | awk '{print $NF}')
 #	string="Innovus: DC tolerance issues:"
 #
-#	if [[ $issues != '0' ]]; then
+#	if [[ $issues != 0 ]]; then
 #
 #		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 #
@@ -1712,7 +1715,7 @@ parse_inv_checks() {
 #	issues=$(grep "Number of Receiver Output Peak violations" reports/noise.rpt | awk '{print $NF}')
 #	string="Innovus: Receiver output peak issues:"
 #
-#	if [[ $issues != '0' ]]; then
+#	if [[ $issues != 0 ]]; then
 #
 #		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 #
@@ -1732,7 +1735,7 @@ parse_inv_checks() {
 #	issues=$(grep "Number of total problem noise nets" reports/noise.rpt | awk '{print $NF}')
 #	string="Innovus: Noise net issues:"
 #
-#	if [[ $issues != '0' ]]; then
+#	if [[ $issues != 0 ]]; then
 #
 #		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 #
@@ -1782,7 +1785,7 @@ parse_inv_checks() {
 	issues=$(grep "Final result: false" reports/check_stripes.rpt | wc -l)
 	string="Innovus: PDN stripes checks failures:"
 
-	if [[ $issues != '0' ]]; then
+	if [[ $issues != 0 ]]; then
 
 		errors=1
 		echo "ISPD23 -- ERROR: $string $issues -- see check_stripes.rpt for more details." >> reports/errors.rpt
@@ -1863,7 +1866,7 @@ start_eval() {
 				fi
 
 				## 0) folders might be empty, namely when download of submission files failed -- delete empty folders
-				if [[ $(ls $downloads_folder/$folder/ | wc -l) == '0' ]]; then
+				if [[ $(ls $downloads_folder/$folder/ | wc -l) == 0 ]]; then
 
 					((queued_runs = queued_runs - 1))
 					rmdir $downloads_folder/$folder
@@ -1990,21 +1993,21 @@ start_eval() {
 #				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
 #				note for the related syntax
 #				bash -c 'echo $$ > PID.lec_checks; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
-				lec_64 -nogui -xl -dofile scripts/lec.do > lec.log &
+				$lec_call scripts/lec.do > lec.log &
 				echo $! > PID.lec_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-				innovus -nowin -stylus -files scripts/checks.tcl -log checks > /dev/null &
+				$inv_call scripts/checks.tcl -stylus -log checks > /dev/null &
 				echo $! > PID.inv_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus PPA evaluation ..."
-				innovus -nowin -files scripts/PPA.tcl -log PPA > /dev/null &
+				$inv_call scripts/PPA.tcl -log PPA > /dev/null &
 				echo $! > PID.inv_PPA
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
-				scripts/TI_wrapper.sh "$id_run" &
+				scripts/TI_wrapper.sh "$id_run" "$inv_call" &
 
 				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null

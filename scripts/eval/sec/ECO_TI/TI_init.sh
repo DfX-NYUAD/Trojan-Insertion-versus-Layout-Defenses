@@ -44,6 +44,10 @@ mv $out $out$files 2> /dev/null
 
 ## general: extract design name -- which is different from benchmark name
 design_name=$(cat design.enc | grep "restoreDesign" | awk '{print $NF}')
+if [[ "$design_name" == "" ]]; then
+	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- failed to retrieve design name from database description file \"design.enc\"." | tee -a $err_rpt
+	exit 1
+fi
 
 ### specific settings, in LUT-style
 ## TODO clk divider stuff: clk name, instance name for generate_clock command, etc

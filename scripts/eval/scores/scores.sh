@@ -93,7 +93,7 @@ done
 for file in "${trojans_rpt_DRC[@]}"; do
 
 	errors=$(ls $file > /dev/null 2>&1; echo $?)
-	if [[ $errors != '0' ]]; then
+	if [[ $errors != 0 ]]; then
 		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
 		error=1
 	fi

@@ -12,7 +12,8 @@ mode="testing"
 ## wait time b/w cycles [s]
 check_interval="60"
 ## max runs allowed in parallel per team
-max_parallel_runs="6"
+# TODO set to 1, per team; so, max 4 overall
+max_parallel_runs="4"
 ## max uploads allowed to be started in parallel; based on experience of load behaviour w/ Google drive
 max_parallel_uploads="10"
 ## margin/tolerance for soft constraints to be classified as errors
@@ -45,6 +46,7 @@ emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 
 ## Innovus
 ##
+inv_call="innovus -nowin -wait 10 -files"
 # NOTE as above, use pipe as separate and provide at least one term
 innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
 # NOTE as above, use pipe as separate and provide at least one term
@@ -60,6 +62,7 @@ innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file"
 
 ## LEC
 ##
+lec_call="lec_64 -nogui -xl -dofile"
 # NOTE as above, use pipe as separate and provide at least one term
 lec_errors_for_checking="Error|StackTrace|License check failed!"
 
