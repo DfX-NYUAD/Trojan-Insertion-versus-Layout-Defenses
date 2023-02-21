@@ -589,6 +589,11 @@ check_eval() {
 
 					while true; do
 
+						# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant
+						# for the very first run just following right after starting the process, but should still be employed here as fail-safe measure
+						# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
+						sleep 1s
+
 						if [[ -e DONE.inv_checks ]]; then
 							break
 						else
@@ -596,8 +601,7 @@ check_eval() {
 
 							# check for any errors
 							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
-							# NOTE mute stderr to ignore early but erroneous catches, where the log file does not exist yet
-							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" checks.log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
+							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" checks.log* | grep -Ev "$innovus_errors_excluded_for_checking")
 							if [[ $errors_run != "" ]]; then
 
 								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
@@ -668,8 +672,6 @@ check_eval() {
 								exit 1
 							fi
 						fi
-
-						sleep 1s
 					done
 
 					## parse rpt, log files for failures
@@ -699,6 +701,11 @@ check_eval() {
 
 					while true; do
 
+						# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant
+						# for the very first run just following right after starting the process, but should still be employed here as fail-safe measure
+						# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
+						sleep 1s
+
 						if [[ -e DONE.inv_PPA ]]; then
 							break
 						else
@@ -706,8 +713,7 @@ check_eval() {
 
 							# check for any errors
 							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
-							# NOTE mute stderr to ignore early but erroneous catches, where the log file does not exist yet
-							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" PPA.log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
+							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" PPA.log* | grep -Ev "$innovus_errors_excluded_for_checking")
 							if [[ $errors_run != "" ]]; then
 
 								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
@@ -778,8 +784,6 @@ check_eval() {
 								exit 1
 							fi
 						fi
-
-						sleep 1s
 					done
 
 					## parse rpt, log files for failures
@@ -809,6 +813,11 @@ check_eval() {
 
 					while true; do
 
+						# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant
+						# for the very first run just following right after starting the process, but should still be employed here as fail-safe measure
+						# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
+						sleep 1s
+
 						if [[ -e DONE.lec_checks ]]; then
 							break
 						else
@@ -816,8 +825,7 @@ check_eval() {
 
 							# check for any errors
 							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
-							# NOTE mute stderr to ignore early but erroneous catches, where the log file does not exist yet
-							errors_run=$(grep -m 1000 -E "$lec_errors_for_checking" lec.log 2> /dev/null)
+							errors_run=$(grep -m 1000 -E "$lec_errors_for_checking" lec.log)
 							if [[ $errors_run != "" ]]; then
 
 								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
@@ -888,8 +896,6 @@ check_eval() {
 								exit 1
 							fi
 						fi
-
-						sleep 1s
 					done
 
 					## parse rpt, log files for failures
@@ -2001,7 +2007,7 @@ start_eval() {
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
-				( scripts/TI_wrapper.sh "$id_run" "$inv_call" ) &
+				scripts/TI_wrapper.sh "$id_run" "$inv_call" &
 
 				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null
