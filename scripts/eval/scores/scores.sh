@@ -41,7 +41,7 @@ declare -A trojans_rpt_DRC
 for trojan in "${trojans[@]}"; do
 
 	trojans_rpt_timing[$trojan]="reports/timing."$trojan".rpt"
-	trojans_rpt_DRC[$trojan]="reports/*.geom."$trojan".rpt"
+	trojans_rpt_DRC[$trojan]="*.geom."$trojan".rpt"
 done
 
 ## NOTE deprecated, disabled on purpose; see https://wp.nyu.edu/ispd23_contest/qa/#scoring QA5
@@ -184,6 +184,13 @@ echo "NOTE sec_ti_eco_*_vio components are not weights but values for scoring as
 echo " 0 for any DRC violations triggered by ECO TI -- TI fails; design is secure" | tee -a $rpt
 echo " 1 each for no DRC violations but {setup, hold} timing violations from ECO TI -- TI possible in principle; timing could be fixed w/ further clock dividers etc; design not really secure" | tee -a $rpt
 echo " 4 for no DRC violations and no timing violations from ECO TI -- TI possible; design not secure" | tee -a $rpt
+
+# TODO parsing of DRVs from rpt is bit more difficult: not in the same line as VIEW: ALL
+#echo "NOTE sec_ti_eco_*_vio components are not weights but values for scoring as follows:" | tee -a $rpt
+#echo " 0 for any DRC violations triggered by ECO TI -- TI fails; design is secure" | tee -a $rpt
+#1 for any DRV violations
+#echo " 2 each for no DRC, DRV  violations but {setup, hold} timing violations from ECO TI -- TI possible in principle; timing could be fixed w/ further clock dividers etc; design not really secure" | tee -a $rpt
+#echo " 6 for no DRC, DRC violations and no timing violations from ECO TI -- TI possible; design not secure" | tee -a $rpt
 
 echo "" | tee -a $rpt
 
