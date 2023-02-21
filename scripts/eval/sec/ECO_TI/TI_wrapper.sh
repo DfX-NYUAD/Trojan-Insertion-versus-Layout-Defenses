@@ -11,7 +11,7 @@
 id_run=$1
 inv_call=$2
 err_rpt="reports/errors.rpt"
-max_current_runs=2
+max_current_runs=3
 
 ## procedures
 #
@@ -92,7 +92,7 @@ monitor() {
 		# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant for the very first run just
 		# following right after starting the process, but should still be employed here as fail-safe measure
 		# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
-		sleep 1s
+		sleep 5s
 
 		errors=0
 

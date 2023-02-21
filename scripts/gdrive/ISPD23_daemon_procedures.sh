@@ -592,7 +592,7 @@ check_eval() {
 						# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant
 						# for the very first run just following right after starting the process, but should still be employed here as fail-safe measure
 						# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
-						sleep 1s
+						sleep 2s
 
 						if [[ -e DONE.inv_checks ]]; then
 							break
@@ -704,7 +704,7 @@ check_eval() {
 						# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant
 						# for the very first run just following right after starting the process, but should still be employed here as fail-safe measure
 						# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
-						sleep 1s
+						sleep 2s
 
 						if [[ -e DONE.inv_PPA ]]; then
 							break
@@ -816,7 +816,7 @@ check_eval() {
 						# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant
 						# for the very first run just following right after starting the process, but should still be employed here as fail-safe measure
 						# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
-						sleep 1s
+						sleep 2s
 
 						if [[ -e DONE.lec_checks ]]; then
 							break
@@ -2007,7 +2007,8 @@ start_eval() {
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
-				scripts/TI_wrapper.sh "$id_run" "$inv_call" &
+				# NOTE separate subshell required such that interrupts on daemon still keep the monitoring subprocesses for TI running
+				( scripts/TI_wrapper.sh "$id_run" "$inv_call" ) &
 
 				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null
