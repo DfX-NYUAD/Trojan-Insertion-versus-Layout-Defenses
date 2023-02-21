@@ -11,7 +11,7 @@
 id_run=$1
 inv_call=$2
 err_rpt="reports/errors.rpt"
-max_current_runs=2
+max_current_runs=3
 
 ## procedures
 #
@@ -89,11 +89,6 @@ monitor() {
 #		# dbg
 #		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor for Trojan \"$trojan\"."
 
-		# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant for the very first run just
-		# following right after starting the process, but should still be employed here as fail-safe measure
-		# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
-		sleep 1s
-
 		errors=0
 
 		# hasn't started yet
@@ -137,7 +132,8 @@ monitor() {
 
 			# check for any errors
 			# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
-			errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" TI_"$trojan".log* | grep -Ev "$innovus_errors_excluded_for_checking")
+			# NOTE mute stderr to ignore early but erroneous catches, where the log file does not exist yet
+			errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" TI_"$trojan".log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
 			if [[ $errors_run != "" ]]; then
 
 				# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
@@ -223,6 +219,8 @@ monitor() {
 
 			exit 1
 		fi
+
+		sleep 1s
 	done
 }
 
