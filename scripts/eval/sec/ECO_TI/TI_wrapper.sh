@@ -146,9 +146,12 @@ monitor() {
 				# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
 				# NOTE id_run passed through as global var
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, some error occurred for Trojan \"$trojan\"."
-$				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT" >> $err_rpt
-#				# NOTE deprecated; do not disclose details to participants
-#				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
+
+				# NOTE deprecated; do not disclose details to participants
+				# (TODO) use for dbg only
+				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
+#				# NOTE do not disclose details to participants
+#				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT" >> $err_rpt
 
 				errors=1
 			fi
