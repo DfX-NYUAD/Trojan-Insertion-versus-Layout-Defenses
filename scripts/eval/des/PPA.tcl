@@ -8,7 +8,7 @@
 # general settings
 #####################
 #
-setMultiCpuUsage -keepLicense true -localCpu 8
+setMultiCpuUsage -localCpu 8 -keepLicense true
 
 set mmmc_path scripts/mmmc.tcl
 set lef_path "ASAP7/asap7_tech_4x_201209.lef ASAP7/asap7sc7p5t_28_L_4x_220121a.lef ASAP7/asap7sc7p5t_28_SL_4x_220121a.lef"
@@ -56,7 +56,7 @@ set_propagated_clock [all_clocks]
 setAnalysisMode -analysisType onChipVariation
 # removes clock pessimism
 setAnalysisMode -cppr both
-setMultiCpuUsage -keepLicense false -localCpu 32
+setMultiCpuUsage -localCpu 16 -keepLicense false
 timeDesign -postroute
 
 #####################
@@ -72,13 +72,13 @@ saveDesign design.enc -rc -no_wait saveDesign.log
 # reports
 #####################
 #
-setMultiCpuUsage -keepLicense false -localCpu 32
+setMultiCpuUsage -localCpu 16 -keepLicense false
 report_power > reports/power.rpt
 
 # simultaneous setup, hold analysis
 # NOTE applicable for (faster) timing analysis, but not for subsequent ECO runs or so -- OK for our scope here, i.e., DEF loading and evaluating
 set_global timing_enable_simultaneous_setup_hold_mode true
-setMultiCpuUsage -keepLicense false -localCpu 32
+setMultiCpuUsage -localCpu 16 -keepLicense false
 report_timing_summary > reports/timing.rpt
 
 #die area

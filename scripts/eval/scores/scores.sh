@@ -41,7 +41,11 @@ declare -A trojans_rpt_DRC
 for trojan in "${trojans[@]}"; do
 
 	trojans_rpt_timing[$trojan]="reports/timing."$trojan".rpt"
-	trojans_rpt_DRC[$trojan]="*.geom."$trojan".rpt"
+
+	# (TODO) use for dbg only
+	trojans_rpt_DRC[$trojan]="reports/*.geom."$trojan".rpt"
+	## NOTE related report file is placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
+	#trojans_rpt_DRC[$trojan]="*.geom."$trojan".rpt"
 done
 
 ## NOTE deprecated, disabled on purpose; see https://wp.nyu.edu/ispd23_contest/qa/#scoring QA5

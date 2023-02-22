@@ -1011,8 +1011,11 @@ check_eval() {
 				#
 				# NOTE only mute regular stdout, but keep stderr
 				zip $uploads_folder/logs.zip *.log* > /dev/null
-				# delete again the logs for Trojan insertion; these details should not be disclosed to participants
-				zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null
+
+# 				# (TODO) to be commented out/deactivated for dbg only
+#				# NOTE delete again the logs related to Trojan insertion; these details should not be disclosed to participants
+#				zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null
+#				zip -d $uploads_folder/logs.zip saveDesign.log > /dev/null
 
 				## status files
 				#

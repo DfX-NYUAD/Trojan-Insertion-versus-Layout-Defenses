@@ -46,7 +46,7 @@ emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 
 ## Innovus
 ##
-inv_call="innovus -nowin -wait 10 -files"
+inv_call="innovus -nowin -wait 120 -files"
 # NOTE as above, use pipe as separate and provide at least one term
 innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
 # NOTE as above, use pipe as separate and provide at least one term
