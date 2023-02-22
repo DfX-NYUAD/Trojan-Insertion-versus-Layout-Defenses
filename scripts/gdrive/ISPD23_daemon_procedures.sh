@@ -2009,9 +2009,12 @@ start_eval() {
 				echo $! > PID.inv_PPA
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
+				daemon_settings_file=$(pwd)
+				daemon_settings_file+="/ISPD23_daemon.settings"
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
 				# NOTE separate subshell required such that interrupts on daemon still keep the monitoring subprocesses for TI running
-				( scripts/TI_wrapper.sh "$id_run" "$inv_call" ) &
+				# NOTE for id_run, we need quotes since the string itself contains spaces
+				( scripts/TI_wrapper.sh "$id_run" $daemon_settings_file ) &
 
 				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null

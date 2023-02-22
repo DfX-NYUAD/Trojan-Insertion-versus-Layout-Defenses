@@ -9,10 +9,12 @@
 ## fixed settings; typically not to be modified
 #
 id_run=$1
-inv_call=$2
+daemon_settings_file=$2
 err_rpt="reports/errors.rpt"
 # TODO test for 3, against 4x aes designs
 max_current_runs=2
+
+source $daemon_settings_file
 
 ## procedures
 #
@@ -144,7 +146,9 @@ monitor() {
 				# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
 				# NOTE id_run passed through as global var
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, some error occurred for Trojan \"$trojan\"."
-				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
+$				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT" >> $err_rpt
+#				# NOTE deprecated; do not disclose details to participants
+#				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
 
 				errors=1
 			fi
