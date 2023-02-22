@@ -1,0 +1,9 @@
+rm DONE.source.*
+rm DONE.TI_random_misty_*
+rm FAILED.TI_*
+rm PID.TI_*
+rm STARTED.TI_*
+rm *gds*
+rm *ecoDesign*
+rm TI_*
+rm scripts/TI_settings.tcl*
