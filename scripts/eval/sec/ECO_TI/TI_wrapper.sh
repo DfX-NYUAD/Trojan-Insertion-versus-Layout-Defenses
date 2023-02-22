@@ -11,7 +11,8 @@
 id_run=$1
 inv_call=$2
 err_rpt="reports/errors.rpt"
-max_current_runs=3
+# TODO test for 3, against 4x aes designs
+max_current_runs=2
 
 ## procedures
 #
@@ -149,21 +150,24 @@ monitor() {
 			fi
 		
 			# also check for interrupts
-			# cat errors to /dev/null as PID file might not even exist, namely when TI_init.sh fails
-			errors_interrupt=$(ps --pid $(cat PID.TI_$trojan 2> /dev/null) > /dev/null 2>&1; echo $?)
-			if [[ $errors_interrupt != 0 ]]; then
+			# NOTE only check when PID file already exist; might not be the case even though the STARTED file exists, but this was set ASAP to avoid race condition for starting jobs
+			if [[ -e PID.TI_$trojan ]]; then
 
-				# NOTE also check again for DONE flag file, to avoid race condition where
-				# process just finished but DONE did not write out yet
-				sleep 1s
-				if [[ -e DONE.TI_$trojan ]]; then
-					break
+				errors_interrupt=$(ps --pid $(cat PID.TI_$trojan) > /dev/null 2>&1; echo $?)
+				if [[ $errors_interrupt != 0 ]]; then
+
+					# NOTE also check again for DONE flag file, to avoid race condition where
+					# process just finished but DONE did not write out yet
+					sleep 1s
+					if [[ -e DONE.TI_$trojan ]]; then
+						break
+					fi
+
+					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, got interrupted for Trojan \"$trojan\"."
+					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT" >> $err_rpt
+
+					errors=1
 				fi
-
-				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, got interrupted for Trojan \"$trojan\"."
-				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT" >> $err_rpt
-
-				errors=1
 			fi
 
 			# also check other TI processes
