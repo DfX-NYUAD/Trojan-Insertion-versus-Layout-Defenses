@@ -56,7 +56,6 @@ set_propagated_clock [all_clocks]
 setAnalysisMode -analysisType onChipVariation
 # removes clock pessimism
 setAnalysisMode -cppr both
-setMultiCpuUsage -localCpu 16 -keepLicense false
 timeDesign -postroute
 
 #####################
@@ -72,13 +71,11 @@ saveDesign design.enc -rc -no_wait saveDesign.log
 # reports
 #####################
 #
-setMultiCpuUsage -localCpu 16 -keepLicense false
 report_power > reports/power.rpt
 
 # simultaneous setup, hold analysis
 # NOTE applicable for (faster) timing analysis, but not for subsequent ECO runs or so -- OK for our scope here, i.e., DEF loading and evaluating
 set_global timing_enable_simultaneous_setup_hold_mode true
-setMultiCpuUsage -localCpu 16 -keepLicense false
 report_timing_summary > reports/timing.rpt
 
 #die area

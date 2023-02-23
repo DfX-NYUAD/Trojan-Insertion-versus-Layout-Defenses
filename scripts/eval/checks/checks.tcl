@@ -45,7 +45,6 @@ check_pin_assignment
 mv *.checkPin.rpt reports/
 
 # covers routing DRCs; check *.geom.rpt
-set_multi_cpu_usage -local_cpu 16 -keep_license false
 check_drc -limit 100000
 mv *.geom.rpt reports/
 

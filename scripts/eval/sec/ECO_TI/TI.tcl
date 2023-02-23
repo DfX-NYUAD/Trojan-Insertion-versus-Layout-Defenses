@@ -8,7 +8,7 @@
 # general settings
 #####################
 #
-setMultiCpuUsage -localCpu 24 -keepLicense true
+setMultiCpuUsage -localCpu 8 -keepLicense true
 
 #####################
 # init
