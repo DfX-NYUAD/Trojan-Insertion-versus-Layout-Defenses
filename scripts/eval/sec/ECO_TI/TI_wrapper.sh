@@ -11,8 +11,8 @@
 id_run=$1
 daemon_settings_file=$2
 err_rpt="reports/errors.rpt"
-# TODO test for 3, against 4x aes designs
-max_current_runs=2
+max_current_runs_default=6
+max_current_runs_aes=2
 
 source $daemon_settings_file
 
@@ -40,7 +40,14 @@ start_TI() {
 				runs_done=$(ls {DONE.TI_*,FAILED.TI_*} 2> /dev/null | wc -l)
 				((runs_ongoing = runs_started - runs_done))
 
-				# once some runs are done and new ones allowed, start this
+				# design-specific limits
+				if [[ "$trojan_name" == *"aes"* ]]; then
+					max_current_runs=$max_current_runs_aes
+				else
+					max_current_runs=$max_current_runs_default
+				fi
+
+				# once some runs are done and new ones allowed, start from this procedure
 				if [[ $runs_ongoing -lt $max_current_runs ]]; then
 
 					# NOTE might result in race condition w/ other start_TI processes; thus, mark start ASAP and, if any init error occurs, unmark again later on
