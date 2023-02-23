@@ -32,6 +32,7 @@ ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace -
 #ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace -reportFile $trojan_name.ecoDesign.rpt
 setPlaceMode -place_detail_preroute_as_obs 3
 ecoPlace -fixPlacedInsts
+setDesignMode -bottomRoutingLayer 1
 setNanoRouteMode -drouteEndIteration 20
 ecoRoute
 
