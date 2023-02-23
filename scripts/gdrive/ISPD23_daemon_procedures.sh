@@ -1038,7 +1038,7 @@ check_eval() {
 
 				## 6) backup work dir
 				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
-				mv $work_folder/$folder $backup_work_folder/
+				mv -f $work_folder/$folder $backup_work_folder/
 
 				# return to previous main dir silently; goes together with the final 'cd -' command at the end
 				cd - > /dev/null
