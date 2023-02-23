@@ -1038,7 +1038,16 @@ check_eval() {
 
 				## 6) backup work dir
 				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
-				mv -f $work_folder/$folder $backup_work_folder/
+
+				# NOTE in case the same backup folder already exists (which probably only happens for manual re-runs), store away that previous folder, marking it with its timestamp
+				if [[ -d $backup_work_folder/$folder ]]; then
+
+					previous_backup_work_folder_date=$(ls -l --time-style=+%s $backup_work_folder/$folder -d | awk '{print $(NF-1)}')
+					mv $backup_work_folder/$folder $backup_work_folder/$folder"__"$previous_backup_work_folder_date
+				fi
+				
+				# actual backup; move from work folder to backup folder
+				mv $work_folder/$folder $backup_work_folder/
 
 				# return to previous main dir silently; goes together with the final 'cd -' command at the end
 				cd - > /dev/null
@@ -2016,8 +2025,7 @@ start_eval() {
 				echo $! > PID.inv_PPA
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
-				daemon_settings_file=$(pwd)
-				daemon_settings_file+="/ISPD23_daemon.settings"
+				daemon_settings_file="$scripts_folder/../gdrive/ISPD23_daemon.settings"
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
 				# NOTE separate subshell required such that interrupts on daemon still keep the monitoring subprocesses for TI running
 				# NOTE for id_run, we need quotes since the string itself contains spaces
