@@ -1065,8 +1065,15 @@ check_eval() {
 				# unzip all rpt files again, also those *.rpt.ext etc; rpt files should be readily accessible for debugging
 				# NOTE only mute regular stdout, but keep stderr
 				unzip $folder'.zip' $folder/reports/* > /dev/null #2>&1
+
 #				# NOTE deprecated; log files can be GBs large in case of interrupts
-#				#unzip $folder'.zip' $folder/*.log > /dev/null #2>&1
+				# unzip all log files again; log files should be readily accessible for debugging
+				# NOTE only mute regular stdout, but keep stderr
+#				#unzip $folder'.zip' $folder/*.log* > /dev/null #2>&1
+
+				# unzip Trojan ECO log files again; these log files should be readily accessible for debugging
+				# NOTE only mute regular stdout, but keep stderr
+				unzip $folder'.zip' $folder/TI_*.log* > /dev/null #2>&1
 
 				cd - > /dev/null
 			done
