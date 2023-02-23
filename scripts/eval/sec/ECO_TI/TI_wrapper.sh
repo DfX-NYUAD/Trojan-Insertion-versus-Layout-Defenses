@@ -49,7 +49,7 @@ start_TI() {
 				fi
 			fi
 
-			## sanity check; process might have been cancelled in the meantime
+			## sanity check and exit handling; process might have been cancelled in the meantime, namely for any failure for PPA eval, LEC checks, and/or design checks
 			if [[ -e FAILED.TI_$trojan_name ]]; then
 				exit 1
 			fi
@@ -102,35 +102,13 @@ monitor() {
 		# hasn't started yet
 		if ! [[ -e STARTED.TI_$trojan ]]; then
 
-			# also check other TI processes
-			for trojan_other in "${trojans[@]}"; do
-
-				if [[ "$trojan" == "$trojan_other" ]]; then
-					continue
-				fi
-
-				if [[ -e FAILED.TI_$trojan_other ]]; then
-
-					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, failed for some reason for Trojan \"$trojan_other\". Also cancel Innovus Trojan insertion for Trojan \"$trojan\" ..."
-					echo "ISPD23 -- ERROR: cancelled Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled due to failure for Innovus Trojan insertion, Trojan \"$trojan_other\"" >> $err_rpt
-
-					errors=1
-
-					# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
-					break
-				fi
-			done
-
-			# no other process failed yet; just continue waiting to start (else, the error handling is done at the end of the main 'while' loop)
-			if [[ $errors == 0 ]]; then
-				continue
-			fi
+			# continue to wait
+			continue
 
 		# has started, and already done (w/o errors)
 		elif [[ -e DONE.TI_$trojan ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, done for Trojan \"$trojan\"."
-
 			break
 
 		# has started, but not done yet
@@ -146,12 +124,10 @@ monitor() {
 				# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
 				# NOTE id_run passed through as global var
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, some error occurred for Trojan \"$trojan\"."
-
-				# NOTE deprecated; do not disclose details to participants
-				# (TODO) use for dbg only
-				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
-#				# NOTE do not disclose details to participants
-#				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT" >> $err_rpt
+				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- details remain undisclosed, on purpose" >> $err_rpt
+#				# NOTE deprecated
+#				# (TODO) use for dbg only
+#				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
 
 				errors=1
 			fi
@@ -171,31 +147,11 @@ monitor() {
 					fi
 
 					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, got interrupted for Trojan \"$trojan\"."
-					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT" >> $err_rpt
+					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error -- please re-submit" >> $err_rpt
 
 					errors=1
 				fi
 			fi
-
-			# also check other TI processes
-			# NOTE copied from above
-			for trojan_other in "${trojans[@]}"; do
-
-				if [[ "$trojan" == "$trojan_other" ]]; then
-					continue
-				fi
-
-				if [[ -e FAILED.TI_$trojan_other ]]; then
-
-					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, failed for some reason for Trojan \"$trojan_other\". Also abort Innovus Trojan insertion for Trojan \"$trojan\" ..."
-					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- aborted due to failure for Innovus Trojan insertion, Trojan \"$trojan_other\"" >> $err_rpt
-
-					errors=1
-
-					# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
-					break
-				fi
-			done
 
 			# also check process state/evaluation outcome of other process(es)
 			#
@@ -298,16 +254,32 @@ wait
 
 # 4) final status checks across all Trojans
 #
-# NOTE "if [[ -e FAILED.TI_* ]]; then" does not work; thus, check for files via `ls' and its exit code
-success=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
-if [[ $success == 0 ]]; then
 
-	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, some run(s) failed."
+failed=$(ls FAILED.TI_* 2> /dev/null; wc -l)
+
+# NOTE sanity check on 0 Trojans; just exit quietly
+if [[ $trojan_counter == 0 ]]; then
+
+	date > DONE.TI_ALL
+	exit 0
+
+elif [[ $failed == 0 ]]; then
+
+	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, all $trojan_counter run(s) done without failure."
+
+	date > DONE.TI_ALL
+	exit 0
+
+elif [[ $failed == $trojan_counter ]]; then
+
+	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, ALL $failed/$trojan_counter runs failed."
 
 	date > FAILED.TI_ALL
 	exit 1
+
+# NOTE some but not all runs failed; still mark as done for main daemon
 else
-	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, all run(s) done."
+	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, $failed/$trojan_counter run(s) failed and remaining run(s) are done without failure."
 
 	date > DONE.TI_ALL
 	exit 0

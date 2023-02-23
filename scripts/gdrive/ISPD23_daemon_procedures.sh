@@ -623,7 +623,7 @@ check_eval() {
 								fi
 
 								echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks got interrupted."
-								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- INTERRUPT" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- INTERRUPT, runtime error -- please re-submit" >> reports/errors.rpt
 
 								errors=1
 							fi
@@ -632,9 +632,7 @@ check_eval() {
 							#
 							# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
 							# process; use elif statemets to abort each process only once
-							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and eval its exit code here
-							err_TI=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
-							if [[ $err_TI == 0 ]]; then
+							if [[ -e FAILED.TI_ALL ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus design checks ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
@@ -735,7 +733,7 @@ check_eval() {
 								fi
 
 								echo -e "\nISPD23 -- 2)  $id_run:  Innovus PPA evaluation got interrupted."
-								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- INTERRUPT" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- INTERRUPT, runtime error -- please re-submit" >> reports/errors.rpt
 
 								errors=1
 							fi
@@ -744,9 +742,7 @@ check_eval() {
 							#
 							# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
 							# process; use elif statemets to abort each process only once
-							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and eval its exit code here
-							err_TI=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
-							if [[ $err_TI == 0 ]]; then
+							if [[ -e FAILED.TI_ALL ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus PPA evaluation ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
@@ -847,7 +843,7 @@ check_eval() {
 								fi
 
 								echo -e "\nISPD23 -- 2)  $id_run:  LEC design checks got interrupted."
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT, runtime error -- please re-submit" >> reports/errors.rpt
 
 								errors=1
 							fi
@@ -856,9 +852,7 @@ check_eval() {
 							#
 							# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
 							# process; use elif statemets to abort each process only once
-							# NOTE 'if [[ -e FAILED.TI_* ]]; then' does not work; thus, check for files via 'ls' and eval its exit code here
-							err_TI=$(ls FAILED.TI_* > /dev/null 2>&1; echo $?)
-							if [[ $err_TI == 0 ]]; then
+							if [[ -e FAILED.TI_ALL ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort LEC design checks ..."
 								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
