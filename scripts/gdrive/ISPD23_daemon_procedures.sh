@@ -602,6 +602,9 @@ check_eval() {
 							# check for any errors
 							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
 							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" checks.log* | grep -Ev "$innovus_errors_excluded_for_checking")
+							# also check for interrupts
+							errors_interrupt=$(ps --pid $(cat PID.inv_checks) > /dev/null; echo $?)
+
 							if [[ $errors_run != "" ]]; then
 
 								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
@@ -609,11 +612,10 @@ check_eval() {
 								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- $errors_run" >> reports/errors.rpt
 
 								errors=1
-							fi
-						
-							# also check for interrupts
-							errors_interrupt=$(ps --pid $(cat PID.inv_checks) > /dev/null; echo $?)
-							if [[ $errors_interrupt != 0 ]]; then
+					
+							# NOTE merged with check for errors into 'elif', as errors might lead to immediate process exit, which would then result in both
+							# errors reported at once; whereas we like to keep sole interrupt, runtime errors separate
+							elif [[ $errors_interrupt != 0 ]]; then
 
 								# NOTE also check again for DONE flag file, to avoid race condition where
 								# process just finished but DONE did not write out yet
@@ -712,6 +714,9 @@ check_eval() {
 							# check for any errors
 							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
 							errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" PPA.log* | grep -Ev "$innovus_errors_excluded_for_checking")
+							# also check for interrupts
+							errors_interrupt=$(ps --pid $(cat PID.inv_PPA) > /dev/null; echo $?)
+
 							if [[ $errors_run != "" ]]; then
 
 								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
@@ -719,11 +724,10 @@ check_eval() {
 								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- $errors_run" >> reports/errors.rpt
 
 								errors=1
-							fi
 						
-							# also check for interrupts
-							errors_interrupt=$(ps --pid $(cat PID.inv_PPA) > /dev/null; echo $?)
-							if [[ $errors_interrupt != 0 ]]; then
+							# NOTE merged with check for errors into 'elif', as errors might lead to immediate process exit, which would then result in both
+							# errors reported at once; whereas we like to keep sole interrupt, runtime errors separate
+							elif [[ $errors_interrupt != 0 ]]; then
 
 								# NOTE also check again for DONE flag file, to avoid race condition where
 								# process just finished but DONE did not write out yet
@@ -822,6 +826,9 @@ check_eval() {
 							# check for any errors
 							# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
 							errors_run=$(grep -m 1000 -E "$lec_errors_for_checking" lec.log)
+							# also check for interrupts
+							errors_interrupt=$(ps --pid $(cat PID.lec_checks) > /dev/null; echo $?)
+
 							if [[ $errors_run != "" ]]; then
 
 								# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
@@ -829,11 +836,10 @@ check_eval() {
 								echo "ISPD23 -- ERROR: process failed for LEC design checks -- $errors_run" >> reports/errors.rpt
 
 								errors=1
-							fi
 						
-							# also check for interrupts
-							errors_interrupt=$(ps --pid $(cat PID.lec_checks) > /dev/null; echo $?)
-							if [[ $errors_interrupt != 0 ]]; then
+							# NOTE merged with check for errors into 'elif', as errors might lead to immediate process exit, which would then result in both
+							# errors reported at once; whereas we like to keep sole interrupt, runtime errors separate
+							elif [[ $errors_interrupt != 0 ]]; then
 
 								# NOTE also check again for DONE flag file, to avoid race condition where
 								# process just finished but DONE did not write out yet
