@@ -26,7 +26,7 @@ start_TI() {
 		while true; do
 
 #			# dbg
-#			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI for Trojan \"$trojan_name\"."
+#			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI WHILE for Trojan \"$trojan_name\"."
 
 			sleep 1s
 
@@ -34,9 +34,10 @@ start_TI() {
 			if [[ -e DONE.source.$previous_trojan_name ]]; then
 
 				# wait further in case max runs are already ongoing
-				# NOTE use this instead of process status from 'ps pid', as status from 'ps' would also cover errors, not only processes done
+				#
 				runs_started=$(ls STARTED.TI_* 2> /dev/null | wc -l)
-				runs_done=$(ls DONE.TI_* 2> /dev/null | wc -l)
+				# NOTE must also cover any failed run
+				runs_done=$(ls {DONE.TI_*,FAILED.TI_*} 2> /dev/null | wc -l)
 				((runs_ongoing = runs_started - runs_done))
 
 				# once some runs are done and new ones allowed, start this
@@ -51,6 +52,10 @@ start_TI() {
 
 			## sanity check and exit handling; process might have been cancelled in the meantime, namely for any failure for PPA eval, LEC checks, and/or design checks
 			if [[ -e FAILED.TI_$trojan_name ]]; then
+
+#				# dbg
+#				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan_name\"."
+				
 				exit 1
 			fi
 		done
@@ -73,6 +78,9 @@ start_TI() {
 		# also unmark start again
 		rm STARTED.TI_$trojan_name
 
+#		# dbg
+#		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan_name\"."
+
 		exit 1
 	fi
 
@@ -80,6 +88,9 @@ start_TI() {
 	date > STARTED.TI_$trojan_name
 	$inv_call scripts/TI.tcl -log TI_$trojan_name > /dev/null &
 	echo $! > PID.TI_$trojan_name
+
+#	# dbg
+#	echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 0 for Trojan \"$trojan_name\"."
 }
 
 monitor() {
@@ -90,7 +101,7 @@ monitor() {
 	while true; do
 
 #		# dbg
-#		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor for Trojan \"$trojan\"."
+#		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor WHILE for Trojan \"$trojan\"."
 
 		# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant for the very first run just
 		# following right after starting the process, but should still be employed here as fail-safe measure
@@ -119,6 +130,7 @@ monitor() {
 			# check for any errors
 			# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
 			errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" TI_"$trojan".log* | grep -Ev "$innovus_errors_excluded_for_checking")
+
 			if [[ $errors_run != "" ]]; then
 
 				# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
@@ -130,11 +142,16 @@ monitor() {
 #				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
 
 				errors=1
-			fi
 		
 			# also check for interrupts
-			# NOTE only check when PID file already exist; might not be the case even though the STARTED file exists, but this was set ASAP to avoid race condition for starting jobs
-			if [[ -e PID.TI_$trojan ]]; then
+			#
+			# NOTE merged with check for errors into 'elif', as errors might lead to immediate process exit, which would then result in both
+			# errors reported at once; whereas we like to keep sole interrupt, runtime errors separate
+			#
+			# NOTE only check when PID file already exist; might not be the case even though the STARTED file exists (which is the pre-requisite to reach here), as the
+			# STARTED file was set ASAP in start_TI(), to avoid race condition for starting jobs
+
+			elif [[ -e PID.TI_$trojan ]]; then
 
 				errors_interrupt=$(ps --pid $(cat PID.TI_$trojan) > /dev/null 2>&1; echo $?)
 				if [[ $errors_interrupt != 0 ]]; then
@@ -188,9 +205,15 @@ monitor() {
 			# NOTE mute stderr for cat, as the process might not have been started yet (then the PID file won't exist)
 			cat PID.TI_$trojan 2> /dev/null | xargs kill 2> /dev/null
 
+#			# dbg
+#			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor EXIT 1 for Trojan \"$trojan\"."
+
 			exit 1
 		fi
 	done
+
+#	# dbg
+#	echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor EXIT 0 for Trojan \"$trojan\"."
 }
 
 #
@@ -255,7 +278,7 @@ wait
 # 4) final status checks across all Trojans
 #
 
-failed=$(ls FAILED.TI_* 2> /dev/null; wc -l)
+failed=$(ls FAILED.TI_* 2> /dev/null | wc -l)
 
 # NOTE sanity check on 0 Trojans; just exit quietly
 if [[ $trojan_counter == 0 ]]; then
