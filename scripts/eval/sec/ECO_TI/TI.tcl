@@ -14,10 +14,20 @@ setMultiCpuUsage -localCpu 8 -keepLicense true
 # init
 #####################
 #
-# dynamic config file; generated through the TI_init.sh helper script
+# source dynamic config file; generated through the TI_init.sh helper script
 source "scripts/TI_settings.tcl"
 # NOTE mark once the config file is sourced; this signals to the TI_wrapper.sh helper script that the next config file can be written out
 date > DONE.source.$trojan_name
+
+# dbg related settings
+# NOTE TI_dbg is also sourced from scripts/TI_settings.tcl
+if { $TI_dbg == 0 } {
+	# NOTE for non-debug mode, report files are placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
+	set reports_folder "./"
+} else {
+	# NOTE for debug, related report files are placed in reports/ and, thus, also uploaded
+	set reports_folder "reports/"
+}
 
 ## dbg: restoring session as is
 #restoreDesign design.enc.dat $design_name
@@ -26,10 +36,7 @@ date > DONE.source.$trojan_name
 # Trojan insertion
 #####################
 #
-# (TODO) use for dbg only
-ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace -reportFile reports/$trojan_name.ecoDesign.rpt
-## NOTE related report files are placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
-#ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace -reportFile $trojan_name.ecoDesign.rpt
+ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace -reportFile $reports_folder/$trojan_name.ecoDesign.rpt
 setPlaceMode -place_detail_preroute_as_obs 3
 ecoPlace -fixPlacedInsts
 setDesignMode -bottomRoutingLayer 1
@@ -43,10 +50,7 @@ ecoRoute
 # any cheating/trivial defenses
 #####################
 #
-# (TODO) use for dbg only
-verify_drc -limit 100000 -report reports/$design_name.geom.$trojan_name.rpt
-## NOTE related report file is placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
-#verify_drc -limit 100000 -report $design_name.geom.$trojan_name.rpt
+verify_drc -limit 100000 -report $reports_folder/$design_name.geom.$trojan_name.rpt
 
 # simultaneous setup, hold analysis
 # NOTE applicable for (faster) timing analysis, but not for subsequent ECO runs or so -- OK for our scope here, after actual ECO commands
@@ -66,11 +70,7 @@ report_timing_summary > reports/timing.$trojan_name.rpt
 # GDS
 set_global timing_enable_simultaneous_setup_hold_mode false
 setStreamOutMode -reset
-
-# (TODO) use for dbg only
-streamOut $trojan_name.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName DesignLib -uniquifyCellNames -outputMacros -mode ALL -units 4000 -reportFile reports/$trojan_name.gds.rpt -merge { ASAP7/asap7sc7p5t_28_L_220121a_scaled4x.gds  ASAP7/asap7sc7p5t_28_SL_220121a_scaled4x.gds }
-## NOTE related report file is placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
-#streamOut $trojan_name.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName DesignLib -uniquifyCellNames -outputMacros -mode ALL -units 4000 -reportFile $trojan_name.gds.rpt -merge { ASAP7/asap7sc7p5t_28_L_220121a_scaled4x.gds  ASAP7/asap7sc7p5t_28_SL_220121a_scaled4x.gds }
+streamOut $trojan_name.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName DesignLib -uniquifyCellNames -outputMacros -mode ALL -units 4000 -reportFile $reports_folder/$trojan_name.gds.rpt -merge { ASAP7/asap7sc7p5t_28_L_220121a_scaled4x.gds  ASAP7/asap7sc7p5t_28_SL_220121a_scaled4x.gds }
 
 ####
 # mark done; exit

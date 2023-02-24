@@ -10,6 +10,7 @@ out="scripts/TI_settings.tcl"
 err_rpt="reports/errors.rpt"
 
 trojan_name=$1
+dbg=$2
 
 ## sanity checks: all parameters provided?
 if [[ $trojan_name == "" ]]; then
@@ -84,3 +85,4 @@ fi
 echo "set design_name \"$design_name\"" > $out
 echo "set trojan_name \"$trojan_name\"" >> $out
 echo "set trojan_netlist \"$trojan_netlist\"" >> $out
+echo "set TI_dbg \"$dbg\"" >> $out
