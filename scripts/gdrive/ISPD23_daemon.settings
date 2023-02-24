@@ -12,7 +12,7 @@ mode="testing"
 ## wait time b/w cycles [s]
 check_interval="60"
 ## max runs allowed in parallel per team
-# TODO set to 1, per team; so, max 4 overall
+# TODO set to 1--4 for production
 max_parallel_runs="4"
 ## max uploads allowed to be started in parallel; based on experience of load behaviour w/ Google drive
 max_parallel_uploads="10"
@@ -54,7 +54,9 @@ innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as error though for design checks
 # NOTE 'IMPPP' errors are related to the check_design command, which is no reason to kill; should be reported as error though for design checks
 # NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain keywords like ERROR etc
-innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file"
+# NOTE 'IMPLIC-104' and 'IMPVL-909' errors are both related to license limitations, namely that flattening of designs w/ >50k instances fails (but designs w/ <=50k instances still
+# go through); shouldn't be checked, to enable error handling to consider this as interrupt, runtime error
+innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file|IMPLIC-104|IMPVL-909"
 ## NOTE use to disable verbose copying of script commands and comments into log file
 ## NOTE deprecated; turned off to enable better insights for teams as to which command is run at what point
 #export CDS_STYLUS_SOURCE_VERBOSE=0
