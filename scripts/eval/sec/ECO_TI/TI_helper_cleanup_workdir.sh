@@ -4,6 +4,8 @@ rm FAILED.TI_*
 rm PID.TI_*
 rm STARTED.TI_*
 rm *gds*
+rm reports/*gds*
 rm *ecoDesign*
+rm reports/*ecoDesign*
 rm TI_*
 rm scripts/TI_settings.tcl*
