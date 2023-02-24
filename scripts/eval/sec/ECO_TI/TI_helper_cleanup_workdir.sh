@@ -1,5 +1,5 @@
 rm DONE.source.*
-rm DONE.TI_random_misty_*
+rm DONE.TI_*
 rm FAILED.TI_*
 rm PID.TI_*
 rm STARTED.TI_*
