@@ -973,6 +973,7 @@ check_eval() {
 					status[inv_TI]=2
 				else
 					status[inv_TI]=0
+# TODO log currently running, done, failed, still to start
 					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working ..."
 				fi
 

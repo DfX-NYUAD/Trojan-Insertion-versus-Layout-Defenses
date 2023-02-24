@@ -196,6 +196,9 @@ echo " 4 for no DRC violations and no timing violations from ECO TI -- TI possib
 #echo " 2 each for no DRC, DRV  violations but {setup, hold} timing violations from ECO TI -- TI possible in principle; timing could be fixed w/ further clock dividers etc; design not really secure" | tee -a $rpt
 #echo " 6 for no DRC, DRC violations and no timing violations from ECO TI -- TI possible; design not secure" | tee -a $rpt
 
+## -1 for need of any opt steps
+## revise scale to 0--8
+
 echo "" | tee -a $rpt
 
 ## init rounding, depending on scale
