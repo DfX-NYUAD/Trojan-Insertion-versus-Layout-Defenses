@@ -144,10 +144,11 @@ monitor() {
 				# NOTE begin logging w/ linebreak, to differentiate from other ongoing logs like sleep progress bar
 				# NOTE id_run passed through as global var
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, some error occurred for Trojan \"$trojan\"."
-				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- details remain undisclosed, on purpose" >> $err_rpt
+
+#				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- details remain undisclosed, on purpose" >> $err_rpt
 #				# NOTE deprecated
 #				# (TODO) use for dbg only
-#				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
+				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
 
 				errors=1
 		
@@ -296,21 +297,25 @@ if [[ $trojan_counter == 0 ]]; then
 
 elif [[ $failed == 0 ]]; then
 
-	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, all $trojan_counter run(s) done without failure."
+#	# NOTE redundant to log in main daemon
+#	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, all $trojan_counter run(s) done without failure."
 
 	date > DONE.TI_ALL
 	exit 0
 
 elif [[ $failed == $trojan_counter ]]; then
 
-	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, ALL $failed/$trojan_counter runs failed."
+#	# NOTE redundant to log in main daemon
+#	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, ALL $failed/$trojan_counter runs failed."
 
 	date > FAILED.TI_ALL
 	exit 1
 
 # NOTE some but not all runs failed; still mark as done for main daemon
 else
-	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, $failed/$trojan_counter run(s) failed but remaining run(s) are done without failure."
+
+#	# NOTE redundant to log in main daemon
+#	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, $failed/$trojan_counter run(s) failed but remaining run(s) are done without failure."
 
 	date > DONE.TI_ALL
 	exit 0

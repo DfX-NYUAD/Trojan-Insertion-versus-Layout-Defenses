@@ -913,68 +913,105 @@ check_eval() {
 
 				## Innovus PPA evaluation
 				if [[ -e PASSED.inv_PPA ]]; then
+
 					status[inv_PPA]=1
+
 					echo "ISPD23 -- 3)  $id_run:  Innovus PPA evaluation: done"
+
 				elif [[ -e FAILED.inv_PPA ]]; then
+
 					status[inv_PPA]=2
+
 					echo "ISPD23 -- 3)  $id_run:  Innovus PPA evaluation: failed"
+
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
+
 					status[inv_PPA]=2
 				else
 					status[inv_PPA]=0
+
 					echo "ISPD23 -- 3)  $id_run:  Innovus PPA evaluation: still working ..."
 				fi
 
 				## Innovus design checks
 				if [[ -e PASSED.inv_checks ]]; then
+
 					status[inv_checks]=1
+
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: done"
+
 				elif [[ -e FAILED.inv_checks ]]; then
+
 					status[inv_checks]=2
+
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: failed"
+
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
+
 					status[inv_checks]=2
 				else
 					status[inv_checks]=0
+
 					echo "ISPD23 -- 3)  $id_run:  Innovus design checks: still working ..."
 				fi
 
 				## LEC design checks
 				if [[ -e PASSED.lec_checks ]]; then
+
 					status[lec_checks]=1
+
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: done"
+
 				elif [[ -e FAILED.lec_checks ]]; then
+
 					status[lec_checks]=2
+
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: failed"
+
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
+
 					status[lec_checks]=2
 				else
 					status[lec_checks]=0
+
 					echo "ISPD23 -- 3)  $id_run:  LEC design checks: still working ..."
 				fi
 
 				## Innovus Trojan insertion
 				# NOTE processes handled via TI_wrapper.sh, not above
 				if [[ -e DONE.TI_ALL ]]; then
+
 					status[inv_TI]=1
+
 					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: done"
+
 				elif [[ -e FAILED.TI_ALL ]]; then
+
 					status[inv_TI]=2
+
 					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: failed"
+
 				# in case init steps failed, this check is not running at all -- mark as failed but
 				# don't report on status
 				elif [[ ${status[init]} == 2 ]]; then
+
 					status[inv_TI]=2
 				else
 					status[inv_TI]=0
-# TODO log currently running, done, failed, still to start
-					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working ..."
+
+					runs_started=$(ls STARTED.TI_* 2> /dev/null | wc -l)
+					runs_done=$(ls DONE.TI_* 2> /dev/null | wc -l)
+					((runs_ongoing = runs_started - runs_done))
+					runs_failed=$(ls FAILED.TI_* 2> /dev/null | wc -l)
+					runs_total=$(ls TI/* 2> /dev/null | wc -l)
+					((runs_pending = runs_total - runs_started))
+					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working -- $runs_ongoing run(s) ongoing, $runs_done run(s) done, $runs_failed run(s) failed, $runs_pending run(s) pending, $runs_total run(s) in total ..."
 				fi
 
 				## 2) if not done yet, and no error occurred, then continue, i.e., skip the further processing for now
