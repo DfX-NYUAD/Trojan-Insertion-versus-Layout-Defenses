@@ -1266,7 +1266,7 @@ link_work_dir() {
 	cd scripts > /dev/null
 
 	for script in $scripts; do
-		ln -sf $scripts_folder/$script .
+		ln -sf $eval_scripts_folder/$script .
 	done
 	
 	cd - > /dev/null
@@ -2063,7 +2063,6 @@ start_eval() {
 				echo $! > PID.inv_PPA
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
-				daemon_settings_file="$scripts_folder/../gdrive/ISPD23_daemon.settings"
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
 				# NOTE separate subshell required such that interrupts on daemon still keep the monitoring subprocesses for TI running
 				# NOTE for id_run, we need quotes since the string itself contains spaces
