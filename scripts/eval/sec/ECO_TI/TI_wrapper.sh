@@ -113,7 +113,7 @@ monitor() {
 		# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant for the very first run just
 		# following right after starting the process, but should still be employed here as fail-safe measure
 		# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
-		sleep 5s
+		sleep 2s
 
 		errors=0
 
@@ -136,7 +136,8 @@ monitor() {
 
 			# check for any errors
 			# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
-			errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" TI_"$trojan".log* | grep -Ev "$innovus_errors_excluded_for_checking")
+			# NOTE mute stderr since log file might not exist yet for first few runs of check, depending on overall workload of backend
+			errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" TI_"$trojan".log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
 
 			if [[ $errors_run != "" ]]; then
 
@@ -309,7 +310,7 @@ elif [[ $failed == $trojan_counter ]]; then
 
 # NOTE some but not all runs failed; still mark as done for main daemon
 else
-	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, $failed/$trojan_counter run(s) failed and remaining run(s) are done without failure."
+	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, $failed/$trojan_counter run(s) failed but remaining run(s) are done without failure."
 
 	date > DONE.TI_ALL
 	exit 0
