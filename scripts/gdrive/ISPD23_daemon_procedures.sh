@@ -1050,10 +1050,12 @@ check_eval() {
 				# NOTE only mute regular stdout, but keep stderr
 				zip $uploads_folder/logs.zip *.log* > /dev/null
 
-# 				# (TODO) to be commented out/deactivated for dbg only
-#				# NOTE delete again the logs related to Trojan insertion; these details should not be disclosed to participants
-#				zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null
-#				zip -d $uploads_folder/logs.zip saveDesign.log > /dev/null
+				# delete again the logs related to Trojan insertion; these details should not be disclosed to participants
+				# NOTE but for dbg mode, we keep these log files
+				if [[ $dbg_files == "0" ]]; then
+					zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null
+					zip -d $uploads_folder/logs.zip saveDesign.log > /dev/null
+				fi
 
 				## status files
 				#
@@ -1063,11 +1065,12 @@ check_eval() {
 				cp reports/warnings.rpt $uploads_folder/warnings.txt 2> /dev/null
 				cp reports/scores.rpt $uploads_folder/scores.txt 2> /dev/null
 
-#				## processed files, share again
-#				#
-#				# NOTE deprecated
-#				echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
-#				mv processed_files.zip $uploads_folder/ #2> /dev/null
+				## processed files; only for dbg mode, share again
+				#
+				if [[ $dbg_files == "1" ]]; then
+					echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
+					mv processed_files.zip $uploads_folder/ #2> /dev/null
+				fi
 
 				## GDS from Trojan insertion
 				#
@@ -1100,7 +1103,7 @@ check_eval() {
 #				# though. Also, instead of deleting, moving to reports/ would be an option -- but, not for that 0-byte power.rpt file
 #				rm $folder/*.rpt > /dev/null 2>&1
 
-#				# silent cleanup of `false' rpt files
+#				# silent cleanup of particular `false' rpt files
 #				# NOTE As of now, only a 0-byte power.rpt file matches here (the proper file is already in reports/power.rpt). Not sure where this file comes from.
 				rm $folder/power.rpt > /dev/null 2>&1
 
@@ -1114,11 +1117,12 @@ check_eval() {
 				unzip $folder'.zip' $folder/reports/* > /dev/null #2>&1
 
 #				# NOTE deprecated; log files can be GBs large in case of interrupts
-				# unzip all log files again; log files should be readily accessible for debugging
-				# NOTE only mute regular stdout, but keep stderr
-#				#unzip $folder'.zip' $folder/*.log* > /dev/null #2>&1
+#				# unzip all log files again; log files should be readily accessible for debugging
+#				# NOTE only mute regular stdout, but keep stderr
+#				unzip $folder'.zip' $folder/*.log* > /dev/null #2>&1
 
-				# unzip Trojan ECO log files again; these log files should be readily accessible for debugging
+				# unzip Trojan ECO log files again; these log files should be readily accessible for debugging, even at the risk of large files (but haven't seen
+				# such issues yet)
 				# NOTE only mute regular stdout, but keep stderr
 				unzip $folder'.zip' $folder/TI_*.log* > /dev/null #2>&1
 
@@ -1968,10 +1972,11 @@ start_eval() {
 					# NOTE md5sum still needs quotes to capture files w/ spaces etc as one file
 					md5sum "$file" >> processed_files_MD5.rpt
 
-#					# NOTE deprecated
-#					# pack processed files again, to be shared again to teams for double-checking
-#					# NOTE only mute regular stdout, but keep stderr
-#					zip processed_files.zip $file > /dev/null
+					# pack processed files again; only for dbg mode, to be uploaded again for double-checking
+					# NOTE only mute regular stdout, but keep stderr
+					if [[ $dbg_files == "1" ]]; then
+						zip processed_files.zip $file > /dev/null
+					fi
 				done
 
 				## init reports folder (only now, to not include in md5 hashes)
@@ -2047,8 +2052,7 @@ start_eval() {
 				# 5) start processing for actual checks
 			
 				echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
-#				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as
-#				note for the related syntax
+#				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as note for the related syntax
 #				bash -c 'echo $$ > PID.lec_checks; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
 				$lec_call scripts/lec.do > lec.log &
 				echo $! > PID.lec_checks
