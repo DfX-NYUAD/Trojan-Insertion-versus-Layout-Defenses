@@ -16,7 +16,7 @@ warn_rpt="reports/warnings.rpt"
 ## other settings
 # runs
 max_current_runs_default=6
-max_current_runs_aes=2
+max_current_runs_aes=6
 # dbg
 dbg_log=0
 dbg_log_verbose=0
@@ -60,7 +60,7 @@ start_TI() {
 			sleep 1s
 
 			## wait -- at least -- until prior TI call has fully started (i.e., Innovus session has started up and the TI_settings.tcl file has been sourced)
-			if [[ -e DONE.source.$previous_trojan_name ]]; then
+			if [[ -e DONE.source.TI_$previous_trojan_name ]]; then
 
 				# wait further in case max runs are already ongoing
 				#
@@ -88,7 +88,7 @@ start_TI() {
 
 			## sanity check and exit handling; process might have been cancelled in the meantime, namely for any failure for PPA eval, LEC checks, and/or design checks,
 			## as well as for any runtime error for other Trojans
-			## NOTE cannot be merged with the above, as DONE.source might be there already, but still gets marked as failure
+			## NOTE cannot be merged with the above, as DONE.source.TI_* might be there already, but still gets marked as failure
 			if [[ -e FAILED.TI_$trojan_name ]]; then
 
 				# dbg_log
@@ -101,7 +101,7 @@ start_TI() {
 		done
 	fi
 
-	echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, starting for Trojan \"$trojan_name\"."
+	echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, initializing for Trojan \"$trojan_name\"."
 
 	## init TI_settings.tcl for current Trojan
 	# NOTE only mute regular stdout, which is put into log file already, but keep stderr
@@ -130,7 +130,10 @@ start_TI() {
 
 	## actual Innovus call
 	date > STARTED.TI_$trojan_name
-	$inv_call scripts/TI.tcl -log TI_$trojan_name > /dev/null &
+
+	arguments="scripts/TI.tcl -log TI_$trojan_name"
+	call_invs_only > /dev/null &
+
 	echo $! > PID.TI_$trojan_name
 
 	# dbg_log
