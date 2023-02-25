@@ -1007,7 +1007,9 @@ check_eval() {
 					status[inv_TI]=0
 
 					runs_total=$(ls TI/* 2> /dev/null | wc -l)
-					runs_started=$(ls STARTED.TI_* 2> /dev/null | wc -l)
+					# NOTE STARTED.TI_* would cover all runs that are started by TI_wrapper, but some might still wait for licenses, whereas DONE.source.TI_*
+					# files relate to processes that have really started
+					runs_started=$(ls DONE.source.TI_* 2> /dev/null | wc -l)
 					runs_done=$(ls DONE.TI_* 2> /dev/null | wc -l)
 					runs_failed=$(ls FAILED.TI_* 2> /dev/null | wc -l)
 					((runs_pending = runs_total - runs_started))
@@ -1054,7 +1056,7 @@ check_eval() {
 
 				# delete again the logs related to Trojan insertion; these details should not be disclosed to participants
 				# NOTE but for dbg mode, we keep these log files
-				if [[ $dbg_files == "0" ]]; then
+				if [[ $dbg_files == 0 ]]; then
 					zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null
 				fi
 
@@ -1068,7 +1070,7 @@ check_eval() {
 
 				## processed files; only for dbg mode, share again
 				#
-				if [[ $dbg_files == "1" ]]; then
+				if [[ $dbg_files == 1 ]]; then
 					echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 					mv processed_files.zip $uploads_folder/ #2> /dev/null
 				fi
@@ -1079,7 +1081,7 @@ check_eval() {
 				cp *.gds.gz $uploads_folder/ 2> /dev/null
 
 				## DEF and netlist from Trojan insertion; only for dbg mode
-				if [[ $dbg_files == "1" ]]; then
+				if [[ $dbg_files == 1 ]]; then
 
 					#
 					## NOTE code for listing Trojans is copied from TI_wrapper.sh
@@ -1107,11 +1109,14 @@ check_eval() {
 				## 6) backup work dir
 				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
 
-				# NOTE in case the same backup folder already exists (which probably only happens for manual re-runs), store away that previous folder, marking it with its timestamp
+				# in case the same backup folder already exists (which probably only happens for manual re-runs), store away that previous folder, marking it with its timestamp
 				if [[ -d $backup_work_folder/$folder ]]; then
 
 					previous_backup_work_folder_date=$(ls -l --time-style=+%s $backup_work_folder/$folder -d | awk '{print $(NF-1)}')
 					mv $backup_work_folder/$folder $backup_work_folder/$folder"__"$previous_backup_work_folder_date
+
+					# also move the zip archive in that backup folder
+					mv $backup_work_folder/$folder'.zip' $backup_work_folder/$folder"__"$previous_backup_work_folder_date/
 				fi
 				
 				# actual backup; move from work folder to backup folder
@@ -1151,7 +1156,7 @@ check_eval() {
 				# unzip Trojan ECO log files again; these log files should be readily accessible for debugging, even at the risk of large files (but haven't seen
 				# such issues yet)
 				# NOTE only mute regular stdout, but keep stderr
-				unzip $folder'.zip' $folder/TI_*.log* > /dev/null #2>&1
+				unzip $folder'.zip' $folder/TI_*.log* 2> /dev/null #2>&1
 
 				cd - > /dev/null
 			done
@@ -2004,7 +2009,7 @@ start_eval() {
 
 					# pack processed files again; only for dbg mode, to be uploaded again for double-checking
 					# NOTE only mute regular stdout, but keep stderr
-					if [[ $dbg_files == "1" ]]; then
+					if [[ $dbg_files == 1 ]]; then
 						zip processed_files.zip $file > /dev/null
 					fi
 				done
@@ -2082,28 +2087,42 @@ start_eval() {
 				# 5) start processing for actual checks
 			
 				echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
-#				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as note for the related syntax
-#				bash -c 'echo $$ > PID.lec_checks; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
-				$call_lec scripts/lec.do > lec.log &
+
+				arguments="scripts/lec.do"
+				call_lec > lec.log 2>&1 &
 				echo $! > PID.lec_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
 
-				# NOTE for timing-unaware design checks, vdi is sufficient. Still, vdi may also overestimate DRCs
-				# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) so that's ruled out for aes w/ its ~260k instances
+				# NOTE for design checks and evaluation, vdi is sufficient.
+				# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) --> ruled out for aes w/ its ~260k instances
 				if [[ $benchmark == "aes" ]]; then
 
+					arguments="scripts/checks.tcl -stylus -log checks"
 					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-					$call_invs_only scripts/checks.tcl -stylus -log checks > /dev/null &
+					call_invs_only > /dev/null &
 				else
+					arguments="scripts/checks.tcl -stylus -log checks"
 					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-					$call_vdi_only scripts/checks.tcl -stylus -log checks > /dev/null &
+					call_vdi_invs > /dev/null &
 				fi
 				echo $! > PID.inv_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus PPA evaluation ..."
-				# NOTE for PPA eval, invs is preferred but vdi still acceptable
-				$call_invs_vdi scripts/PPA.tcl -log PPA > /dev/null &
+
+				# NOTE for design checks and evaluation, vdi is sufficient.
+				# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) --> ruled out for aes w/ its ~260k instances
+				if [[ $benchmark == "aes" ]]; then
+
+					arguments="scripts/PPA.tcl -log PPA"
+					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+					call_invs_only > /dev/null &
+
+				else
+					arguments="scripts/PPA.tcl -log PPA"
+					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+					call_vdi_invs > /dev/null &
+				fi
 				echo $! > PID.inv_PPA
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."

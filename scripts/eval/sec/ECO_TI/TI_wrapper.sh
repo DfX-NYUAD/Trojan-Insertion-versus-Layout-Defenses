@@ -60,7 +60,7 @@ start_TI() {
 			sleep 1s
 
 			## wait -- at least -- until prior TI call has fully started (i.e., Innovus session has started up and the TI_settings.tcl file has been sourced)
-			if [[ -e DONE.source.$previous_trojan_name ]]; then
+			if [[ -e DONE.source.TI_$previous_trojan_name ]]; then
 
 				# wait further in case max runs are already ongoing
 				#
@@ -88,7 +88,7 @@ start_TI() {
 
 			## sanity check and exit handling; process might have been cancelled in the meantime, namely for any failure for PPA eval, LEC checks, and/or design checks,
 			## as well as for any runtime error for other Trojans
-			## NOTE cannot be merged with the above, as DONE.source might be there already, but still gets marked as failure
+			## NOTE cannot be merged with the above, as DONE.source.TI_* might be there already, but still gets marked as failure
 			if [[ -e FAILED.TI_$trojan_name ]]; then
 
 				# dbg_log
@@ -101,7 +101,7 @@ start_TI() {
 		done
 	fi
 
-	echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, starting for Trojan \"$trojan_name\"."
+	echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, initializing for Trojan \"$trojan_name\"."
 
 	## init TI_settings.tcl for current Trojan
 	# NOTE only mute regular stdout, which is put into log file already, but keep stderr
@@ -131,14 +131,8 @@ start_TI() {
 	## actual Innovus call
 	date > STARTED.TI_$trojan_name
 
-	if [[ "$trojan_name" == *"aes"* ]]; then
-		# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) --> ruled out for aes w/ its ~260k instances
-		$call_invs_only scripts/TI.tcl -log TI_$trojan_name > /dev/null &
-	else
-		# NOTE vdi does not support si-aware timing --> does underestimate negative slacks/overestimate positive slacks a little and also overestimate DRCs a little. Since
-		# we only care about timing met or not and DRCs triggered or not, this should be acceptable. And, if vdi licenses are already used, consider using invs still
-		$call_vdi_invs scripts/TI.tcl -log TI_$trojan_name > /dev/null &
-	fi
+	arguments="scripts/TI.tcl -log TI_$trojan_name"
+	call_invs_only > /dev/null &
 
 	echo $! > PID.TI_$trojan_name
 
