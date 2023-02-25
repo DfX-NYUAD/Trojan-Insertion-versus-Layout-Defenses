@@ -8,14 +8,22 @@
 
 out="scripts/TI_settings.tcl"
 err_rpt="reports/errors.rpt"
+warn_rpt="reports/warnings.rpt"
 
 trojan_name=$1
 dbg=$2
 
 ## sanity checks: all parameters provided?
 if [[ $trojan_name == "" ]]; then
+
 	echo "ISPD23 -- ERROR: cannot init Trojan insertion -- 1st parameter, trojan_name, is not provided. Examples: camellia_burn_8_32, camellia_fault_16_5, camellia_leak_16_5; note that this parameter is to be provided w/ design prefix." | tee -a $err_rpt
 	exit 1
+fi
+# NOTE unknown dbg flag provided
+if [[ $dbg != "0" && $dbg != "1" ]]; then
+
+	dbg=0
+	echo "ISPD23 -- WARNING: For init Trojan insertion -- 2nd parameter, dbg, an unknown option other than '0' and '1' is provided. Setting to dbg=$dbg" | tee -a $warn_rpt
 fi
 
 trojan_netlist="TI/"$trojan_name".v"

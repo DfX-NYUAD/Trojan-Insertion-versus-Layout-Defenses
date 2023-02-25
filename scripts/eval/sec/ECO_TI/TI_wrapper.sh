@@ -8,22 +8,42 @@
 
 ## fixed settings; typically not to be modified
 #
-id_run=$1
-daemon_settings_file=$2
+daemon_settings_file=$1
+id_run=$2
 err_rpt="reports/errors.rpt"
+warn_rpt="reports/warnings.rpt"
 
 ## other settings
+# runs
 max_current_runs_default=6
 max_current_runs_aes=2
-dbg=1
-dbg_verbose=0
+# dbg
+dbg_log=0
+dbg_log_verbose=0
+# NOTE dbg_files is sourced from $daemon_settings_file below
+
+## init stuff; main code further below
+
+source $daemon_settings_file
+
+# sanity checks: all parameters provided?
+if [[ $daemon_settings_file == "" ]]; then
+
+	echo "ISPD23 -- ERROR: cannot run Trojan insertion -- 1st parameter, daemon_settings_file, is not provided." | tee -a $err_rpt
+	exit 1
+fi
+if [[ $id_run == "" ]]; then
+
+	id_run="Dummy ID -- make sure to provide 2nd parameter to TI_wrapper.sh for an actual ID of choice"
+	echo "ISPD23 -- WARNING: For Trojan insertion -- 2nd parameter, id_run, is not provided. Setting to \"$id_run\"." | tee -a $warn_rpt
+fi
 
 ## procedures
 #
 start_TI() {
 
-	# dbg
-	if [[ $dbg == 1 ]]; then
+	# dbg_log
+	if [[ $dbg_log == 1 ]]; then
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI ENTRY for Trojan \"$trojan_name\"."
 	fi
 
@@ -32,8 +52,8 @@ start_TI() {
 
 		while true; do
 
-			# dbg_verbose
-			if [[ $dbg_verbose == 1 ]]; then
+			# dbg_log_verbose
+			if [[ $dbg_log_verbose == 1 ]]; then
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI WHILE for Trojan \"$trojan_name\"."
 			fi
 
@@ -71,8 +91,8 @@ start_TI() {
 			## NOTE cannot be merged with the above, as DONE.source might be there already, but still gets marked as failure
 			if [[ -e FAILED.TI_$trojan_name ]]; then
 
-				# dbg
-				if [[ $dbg == 1 ]]; then
+				# dbg_log
+				if [[ $dbg_log == 1 ]]; then
 					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan_name\"."
 				fi
 
@@ -85,7 +105,7 @@ start_TI() {
 
 	## init TI_settings.tcl for current Trojan
 	# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-	scripts/TI_init.sh $trojan_name $dbg > /dev/null
+	scripts/TI_init.sh $trojan_name $dbg_files > /dev/null
 
 	## some error occurred
 	# NOTE specific error is already logged via TI_init.sh; no need to log again
@@ -100,8 +120,8 @@ start_TI() {
 #		# also unmark start again
 #		rm STARTED.TI_$trojan_name
 
-		# dbg
-		if [[ $dbg == 1 ]]; then
+		# dbg_log
+		if [[ $dbg_log == 1 ]]; then
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan_name\"."
 		fi
 
@@ -113,8 +133,8 @@ start_TI() {
 	$inv_call scripts/TI.tcl -log TI_$trojan_name > /dev/null &
 	echo $! > PID.TI_$trojan_name
 
-	# dbg
-	if [[ $dbg == 1 ]]; then
+	# dbg_log
+	if [[ $dbg_log == 1 ]]; then
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 0 for Trojan \"$trojan_name\"."
 	fi
 }
@@ -124,15 +144,15 @@ monitor() {
 	## monitor subshell
 	# NOTE derived from scripts/gdrive/ISPD23_daemon_procedures.sh, check_eval(), but also revised here, mainly for use of STARTED.TI_* files
 
-	# dbg
-	if [[ $dbg == 1 ]]; then
+	# dbg_log
+	if [[ $dbg_log == 1 ]]; then
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor ENTRY for Trojan \"$trojan_name\"."
 	fi
 
 	while true; do
 
-		# dbg_verbose
-		if [[ $dbg_verbose == 1 ]]; then
+		# dbg_log_verbose
+		if [[ $dbg_log_verbose == 1 ]]; then
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor WHILE for Trojan \"$trojan\"."
 		fi
 
@@ -179,8 +199,8 @@ monitor() {
 
 		# has started, but not done yet
 		else
-			# dbg_verbose
-			if [[ $dbg_verbose == 1 ]]; then
+			# dbg_log_verbose
+			if [[ $dbg_log_verbose == 1 ]]; then
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, still going on for Trojan \"$trojan\"."
 			fi
 
@@ -196,8 +216,8 @@ monitor() {
 				# NOTE id_run passed through as global var
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, some failure occurred for Trojan \"$trojan\"."
 
-				if [[ $dbg == 1 ]]; then
-					# NOTE deprecated; use for dbg only
+				if [[ $dbg_files == 1 ]]; then
+					# NOTE deprecated; use for dbg_files only, which arranges more access to result files, unlike regular non-dbg/production mode
 					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
 				else
 					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- details remain undisclosed, on purpose" >> $err_rpt
@@ -285,8 +305,8 @@ monitor() {
 			# NOTE mute stderr for cat, as the process might not have been started yet (then the PID file won't exist)
 			cat PID.TI_$trojan 2> /dev/null | xargs kill 2> /dev/null
 
-			# dbg
-			if [[ $dbg == 1 ]]; then
+			# dbg_log
+			if [[ $dbg_log == 1 ]]; then
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor EXIT 1 for Trojan \"$trojan\"."
 			fi
 
@@ -298,8 +318,6 @@ monitor() {
 #
 ## main code
 #
-
-source $daemon_settings_file
 
 ## 0) wait until design db becomes available (db is generated through scripts/eval/des/PPA.tcl)
 #

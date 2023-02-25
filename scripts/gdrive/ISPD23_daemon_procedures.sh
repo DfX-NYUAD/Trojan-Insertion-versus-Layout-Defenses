@@ -376,7 +376,7 @@ google_downloads() {
 					fi
 
 					# unpack archive, if applicable
-					if [[ $(file $downloads_folder_/$local_file_name | awk '{print $2}') == 'Zip' ]]; then
+					if [[ $(file $downloads_folder_/$local_file_name | awk '{print $2}') == "Zip" ]]; then
 
 						echo "ISPD23 -- 1)   Unpacking zip file \"$local_file_name\" into \"$downloads_folder_\" ..."
 						# NOTE only mute regular stdout, but keep stderr
@@ -1026,7 +1026,7 @@ check_eval() {
 				## 3) compute scores
 				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
 				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-				scripts/scores.sh 6 $baselines_root_folder/$benchmark > /dev/null
+				scripts/scores.sh 6 $baselines_root_folder/$benchmark $dbg_files > /dev/null
 
 				## 4) create related upload folder, w/ same timestamp as work and download folder
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
@@ -2066,7 +2066,7 @@ start_eval() {
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
 				# NOTE separate subshell required such that interrupts on daemon still keep the monitoring subprocesses for TI running
 				# NOTE for id_run, we need quotes since the string itself contains spaces
-				( scripts/TI_wrapper.sh "$id_run" $daemon_settings_file ) &
+				( scripts/TI_wrapper.sh $daemon_settings_file "$id_run" ) &
 
 				# 6) cleanup downloads dir, to avoid processing again
 				rm -r $downloads_folder/$folder #2> /dev/null
