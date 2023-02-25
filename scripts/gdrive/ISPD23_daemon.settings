@@ -36,7 +36,7 @@ daemon_settings_file+="/ISPD23_daemon.settings"
 
 ## benchmarks
 ##
-benchmarks="aes camellia cast misty seed sha256"
+benchmarks="camellia cast misty seed sha256 aes"
 ## NOTE use this for testing
 #benchmarks="aes"
 ## NOTE will be set automatically via initialize()
