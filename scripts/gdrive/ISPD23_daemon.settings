@@ -53,15 +53,20 @@ emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 ##
 inv_call="innovus -nowin -wait 120 -files"
 # NOTE as above, use pipe as separate and provide at least one term
+# NOTE generic ones
 innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
+# NOTE specific ones
+innovus_errors_for_checking+="#WARNING (NRDB-955) Invalid option value -routeBottomRoutingLayer 2. It is in conflict with already existing routed wires on layer 1." # we don't want to allow routing in M1 as that makes ECO TI fail.
 # NOTE as above, use pipe as separate and provide at least one term
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as error though for design checks
 # NOTE 'IMPPP' errors are related to the check_design command, which is no reason to kill; should be reported as error though for design checks
-# NOTE '@file' lines source the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain keywords like ERROR etc
+# NOTE '@file' lines appear in Stylus mode, and are sourced from the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain
+# keywords like ERROR etc
 # NOTE 'IMPLIC-104' and 'IMPVL-909' errors are both related to license limitations, namely that flattening of designs w/ >50k instances fails (but designs w/ <=50k instances still
 # go through); shouldn't be checked, to enable error handling to consider this as interrupt, runtime error
-innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file|IMPLIC-104|IMPVL-909"
+# NOTE 'IMPFP-735' errors are related to nets not found when loading the design db; can be ignored
+innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file|IMPLIC-104|IMPVL-909|IMPFP-735"
 ## NOTE use to disable verbose copying of script commands and comments into log file
 ## NOTE deprecated; turned off to enable better insights for teams as to which command is run at what point
 #export CDS_STYLUS_SOURCE_VERBOSE=0
