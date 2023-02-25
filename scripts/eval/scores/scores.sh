@@ -8,9 +8,10 @@
 
 ## fixed settings; typically not to be modified
 #
-# NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark
+# NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark; dbg_files=$dbg_files (from ISPD23_daemon.settings)
 scale=$1
 baseline=$2
+dbg_files=$3
 files="reports/exploitable_regions.rpt reports/track_utilization.rpt reports/area.rpt reports/power.rpt reports/timing.rpt"
 rpt=reports/scores.rpt
 rpt_summ=reports/scores.rpt.summary
@@ -21,8 +22,6 @@ rm $rpt 2> /dev/null
 error=0
 
 ## 1) init for ECO Trojans
-#
-
 # NOTE list all Trojans to consider
 # NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
 declare -A trojans
@@ -42,10 +41,14 @@ for trojan in "${trojans[@]}"; do
 
 	trojans_rpt_timing[$trojan]="reports/timing."$trojan".rpt"
 
-	# (TODO) use for dbg only
-	trojans_rpt_DRC[$trojan]="reports/*.geom."$trojan".rpt"
-	## NOTE related report file is placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
-	#trojans_rpt_DRC[$trojan]="*.geom."$trojan".rpt"
+	# dbg
+	if [[ $dbg_files == 1 ]]; then
+
+		trojans_rpt_DRC[$trojan]="reports/*.geom."$trojan".rpt"
+	else
+		# NOTE related report file is placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
+		trojans_rpt_DRC[$trojan]="*.geom."$trojan".rpt"
+	fi
 done
 
 ## NOTE deprecated, disabled on purpose; see https://wp.nyu.edu/ispd23_contest/qa/#scoring QA5
@@ -87,6 +90,7 @@ for file in $files; do
 done
 
 # NOTE for TI files, we don't require the baseline part
+# TODO don't error out; only assume worst score for such cases --> no need to check here
 for file in "${trojans_rpt_timing[@]}"; do
 
 	if ! [[ -e $file ]]; then
@@ -134,6 +138,9 @@ weights[sec_ti_eco]="(2/3)"
 for trojan in "${trojans[@]}"; do
 
 	weights[sec_ti_eco_$trojan]="(1/"${#trojans[@]}")"
+
+# TODO update values
+# TODO add new ones
 
 	id="sec_ti_eco_"$trojan"_DRC_vio"
 	# NOTE this are not weights but actual score values; also see NOTE below
@@ -184,22 +191,38 @@ for weight in "${!weights[@]}"; do
 	echo "	$weight_ : $value" | tee -a $rpt
 done
 
+# TODO update to new scale
 echo "NOTE sec_ti_eco_*_vio components are not weights but values for scoring as follows:" | tee -a $rpt
 echo " 0 for any DRC violations triggered by ECO TI -- TI fails; design is secure" | tee -a $rpt
 echo " 1 each for no DRC violations but {setup, hold} timing violations from ECO TI -- TI possible in principle; timing could be fixed w/ further clock dividers etc; design not really secure" | tee -a $rpt
 echo " 4 for no DRC violations and no timing violations from ECO TI -- TI possible; design not secure" | tee -a $rpt
-
-# TODO parsing of DRVs from rpt is bit more difficult: not in the same line as VIEW: ALL
-#echo "NOTE sec_ti_eco_*_vio components are not weights but values for scoring as follows:" | tee -a $rpt
-#echo " 0 for any DRC violations triggered by ECO TI -- TI fails; design is secure" | tee -a $rpt
-#1 for any DRV violations
-#echo " 2 each for no DRC, DRV  violations but {setup, hold} timing violations from ECO TI -- TI possible in principle; timing could be fixed w/ further clock dividers etc; design not really secure" | tee -a $rpt
-#echo " 6 for no DRC, DRC violations and no timing violations from ECO TI -- TI possible; design not secure" | tee -a $rpt
-
-## -1 for need of any opt steps
-## revise scale to 0--8
-
 echo "" | tee -a $rpt
+
+# TODO new scale
+#
+# 0 design failures, for advanced-advanced insertion
+# 1 design failures, for advanced insertion
+# 2 design failures, for regular insertion
+#
+# 5 DRC violations, for advanced-advanced insertion
+# 6 DRC violations, for advanced insertion
+# 7 DRC violations, for regular insertion
+# 
+# 10 setup AND hold violations, for advanced-advanced insertion
+# 11 setup AND hold violations, for advanced insertion
+# 12 setup AND hold violations, for regular insertion
+# 
+# 15 setup XOR hold violations, for advanced-advanced insertion
+# 16 setup XOR hold violations, for advanced insertion
+# 17 setup XOR hold violations, for regular insertion
+# 
+# 20 DRV, clock check violations, for advanced-advanced insertion
+# 21 DRV, clock check violations, for advanced insertion
+# 22 DRV, clock check violations, for regular insertion
+# 
+# 25 no violations, for advanced-advanced insertion
+# 26 no violations, for advanced insertion
+# 27 no violations, for regular insertion
 
 ## init rounding, depending on scale
 
@@ -247,6 +270,28 @@ for trojan in "${trojans[@]}"; do
 
 	id="sec_ti_eco_"$trojan"_prf_hld_vio"
 	metrics_submission[$id]=$(grep "View : ALL" ${trojans_rpt_timing[$trojan]} | awk 'NR==2' | awk '{print $NF}')
+done
+## DRV, clock checks
+for trojan in "${trojans[@]}"; do
+
+	id="sec_ti_eco_"$trojan"_DRV_clk_vio"
+
+	# NOTE there are multiple lines for these checks, while the number of lines/checks changes also with the design --> just sum up
+	metrics_submission[$id]=0
+
+	while read line; do
+
+		if [[ "$line" != *"Check : "* ]]; then
+			continue
+		fi
+
+		curr_line_FEPs=$(echo $line | awk '{print $NF}')
+
+# TODO BREAK
+# TODO not sure whether this syntax works. could just use bc w/o scale, floating point, but following the same syntax as for other calc steps in here
+		((metrics_submission[$id] = ${metrics_submission[$id]} + curr_line_FEPs))
+
+	done < ${trojans_rpt_timing[$trojan]}
 done
 
 ### Design quality

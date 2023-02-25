@@ -1023,10 +1023,11 @@ check_eval() {
 					continue
 				fi
 
-				## 3) compute scores
-				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
-				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-				scripts/scores.sh 6 $baselines_root_folder/$benchmark $dbg_files > /dev/null
+# TODO commented out for now; still WIP
+#				## 3) compute scores
+#				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
+#				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+#				scripts/scores.sh 6 $baselines_root_folder/$benchmark $dbg_files > /dev/null
 
 				## 4) create related upload folder, w/ same timestamp as work and download folder
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
@@ -1054,7 +1055,6 @@ check_eval() {
 				# NOTE but for dbg mode, we keep these log files
 				if [[ $dbg_files == "0" ]]; then
 					zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null
-					zip -d $uploads_folder/logs.zip saveDesign.log > /dev/null
 				fi
 
 				## status files
