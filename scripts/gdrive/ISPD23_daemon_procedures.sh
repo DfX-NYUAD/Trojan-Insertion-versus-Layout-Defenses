@@ -2084,16 +2084,26 @@ start_eval() {
 				echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
 #				# NOTE deprecated, not needed to wrap again in another subshell -- still kept here as note for the related syntax
 #				bash -c 'echo $$ > PID.lec_checks; exec lec_64 -nogui -xl -dofile scripts/lec.do > lec.log' &
-				$lec_call scripts/lec.do > lec.log &
+				$call_lec scripts/lec.do > lec.log &
 				echo $! > PID.lec_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
-				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-				$inv_call scripts/checks.tcl -stylus -log checks > /dev/null &
+
+				# NOTE for timing-unaware design checks, vdi is sufficient. Still, vdi may also overestimate DRCs
+				# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) so that's ruled out for aes w/ its ~260k instances
+				if [[ $benchmark == "aes" ]]; then
+
+					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+					$call_invs_only scripts/checks.tcl -stylus -log checks > /dev/null &
+				else
+					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+					$call_vdi_only scripts/checks.tcl -stylus -log checks > /dev/null &
+				fi
 				echo $! > PID.inv_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus PPA evaluation ..."
-				$inv_call scripts/PPA.tcl -log PPA > /dev/null &
+				# NOTE for PPA eval, invs is preferred but vdi still acceptable
+				$call_invs_vdi scripts/PPA.tcl -log PPA > /dev/null &
 				echo $! > PID.inv_PPA
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."

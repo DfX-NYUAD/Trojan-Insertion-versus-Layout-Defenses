@@ -16,7 +16,7 @@ warn_rpt="reports/warnings.rpt"
 ## other settings
 # runs
 max_current_runs_default=6
-max_current_runs_aes=2
+max_current_runs_aes=6
 # dbg
 dbg_log=0
 dbg_log_verbose=0
@@ -130,7 +130,16 @@ start_TI() {
 
 	## actual Innovus call
 	date > STARTED.TI_$trojan_name
-	$inv_call scripts/TI.tcl -log TI_$trojan_name > /dev/null &
+
+	if [[ "$trojan_name" == *"aes"* ]]; then
+		# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) --> ruled out for aes w/ its ~260k instances
+		$call_invs_only scripts/TI.tcl -log TI_$trojan_name > /dev/null &
+	else
+		# NOTE vdi does not support si-aware timing --> does underestimate negative slacks/overestimate positive slacks a little and also overestimate DRCs a little. Since
+		# we only care about timing met or not and DRCs triggered or not, this should be acceptable. And, if vdi licenses are already used, consider using invs still
+		$call_vdi_invs scripts/TI.tcl -log TI_$trojan_name > /dev/null &
+	fi
+
 	echo $! > PID.TI_$trojan_name
 
 	# dbg_log

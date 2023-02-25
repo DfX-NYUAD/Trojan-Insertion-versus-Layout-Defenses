@@ -8,7 +8,8 @@
 # general settings
 ####
 
-set_multi_cpu_usage -local_cpu 8 -keep_license true
+# NOTE we can do 9 CPUs since the license checkout provides 1+8 the moment we ask for >1
+set_multi_cpu_usage -local_cpu 9 -keep_license true
 
 set_db design_process_node 7
 set_db design_tech_node N7
