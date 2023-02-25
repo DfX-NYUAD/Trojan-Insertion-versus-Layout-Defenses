@@ -132,6 +132,9 @@ initialize() {
 
 		echo "ISPD23 -- 0)    Checking for team \"$team\" (Google folder ID \"$google_team_folder\") ..."
 
+		## fix, if needed, the json file for current session in json file
+		google_fix_json
+
 		google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
 
 		## NOTE initialized here, but also to be updated during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
@@ -205,9 +208,6 @@ initialize() {
 
 google_downloads() {
 
-	## fix, if needed, the json file for current session in json file
-	google_fix_json
-
 	## query quota
 	google_quota "ISPD23 -- 1)  " 
 
@@ -218,6 +218,9 @@ google_downloads() {
 		team_folder="$teams_root_folder/$team"
 
 		echo "ISPD23 -- 1)  Checking all benchmark folders for team \"$team\" for new submission files ..."
+
+		## fix, if needed, the json file for current session in json file
+		google_fix_json
 
 		for benchmark in $benchmarks; do
 
@@ -401,11 +404,11 @@ google_uploads() {
 
 	parallel_uploads=0
 
-	## check and fix, if needed, the json file for current session in json file
-	google_fix_json
-
 	## iterate over keys / google IDs
 	for google_team_folder in "${!google_team_folders[@]}"; do
+
+		## check and fix, if needed, the json file for current session in json file
+		google_fix_json
 
 		team=${google_team_folders[$google_team_folder]}
 		ongoing_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
@@ -1904,6 +1907,9 @@ start_eval() {
 
 		team="${google_team_folders[$google_team_folder]}"
 		team_=$(printf "%-"$teams_string_max_length"s" $team)
+
+		## fix, if needed, the json file for current session in json file
+		google_fix_json
 
 		## NOTE updated here, that is once during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
 		##
