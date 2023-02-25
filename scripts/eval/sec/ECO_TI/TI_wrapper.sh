@@ -323,7 +323,7 @@ monitor() {
 #
 while true; do
 
-	if [[ -e design.enc && -d design.enc.dat ]]; then
+	if [[ -e DONE.saveDesign ]]; then
 		break
 	fi
 

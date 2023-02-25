@@ -62,10 +62,18 @@ timeDesign -postroute
 # write out db
 #####################
 #
-# NOTE -timingGraph triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable.
-#  Sounds like timing graph is not stored properly. Interestingly, restoreDesign works fine with -timingGraph generated db.
-# NOTE -rc works fine, but also does not provide much runtime benefit, probably because rc_model.bin is already there as well
-saveDesign design.enc -rc -no_wait saveDesign.log
+# NOTE deprecated
+# NOTE -timingGraph triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable. Sounds like timing graph is not stored properly.
+# Interestingly, restoreDesign works fine with -timingGraph generated db.
+# NOTE -rc works fine, but also does not provide much runtime benefit, probably because rc_model.bin is already there as well. Furthermore, it triggers/results in warnings
+# `Mismatch between RCDB and Verilog netlist' so it's dropped as well
+# NOTE -no_wait and checking only for existence of design.enc, design.enc.dat in TI_wrapper could easily lead to race conditions, as in ECO TI already loading the db when it's not
+# completed yet
+#saveDesign design.enc -timingGraph -rc -no_wait saveDesign.log
+#
+saveDesign design.enc
+# NOTE mark once db writeout is done
+date > DONE.saveDesign
 
 #####################
 # reports
