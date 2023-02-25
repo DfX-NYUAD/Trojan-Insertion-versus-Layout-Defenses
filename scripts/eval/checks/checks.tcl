@@ -8,7 +8,7 @@
 # general settings
 ####
 
-set_multi_cpu_usage -local_cpu 24
+set_multi_cpu_usage -local_cpu 8 -keep_license true
 
 set_db design_process_node 7
 set_db design_tech_node N7
