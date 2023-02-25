@@ -56,7 +56,8 @@ inv_call="innovus -nowin -wait 120 -files"
 # NOTE generic ones
 innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
 # NOTE specific ones
-innovus_errors_for_checking+="#WARNING (NRDB-955) Invalid option value -routeBottomRoutingLayer 2. It is in conflict with already existing routed wires on layer 1." # we don't want to allow routing in M1 as that makes ECO TI fail.
+innovus_errors_for_checking+="|NRDB-955" # errors are related to conflict of existing routes below the bottom layer. Since the default setting is "-routeBottomRoutingLayer 2" this
+# means there are routes in M1. But, we don't want to allow routing in M1 as that makes ECO TI fail.
 # NOTE as above, use pipe as separate and provide at least one term
 # NOTE 'IMPOAX' errors are related to OA loading, which is no reason to kill; OA is not used
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as error though for design checks

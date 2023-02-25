@@ -1005,12 +1005,12 @@ check_eval() {
 				else
 					status[inv_TI]=0
 
+					runs_total=$(ls TI/* 2> /dev/null | wc -l)
 					runs_started=$(ls STARTED.TI_* 2> /dev/null | wc -l)
 					runs_done=$(ls DONE.TI_* 2> /dev/null | wc -l)
-					((runs_ongoing = runs_started - runs_done))
 					runs_failed=$(ls FAILED.TI_* 2> /dev/null | wc -l)
-					runs_total=$(ls TI/* 2> /dev/null | wc -l)
 					((runs_pending = runs_total - runs_started))
+					((runs_ongoing = runs_started - runs_done - runs_failed ))
 					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working -- $runs_ongoing run(s) ongoing, $runs_done run(s) done, $runs_failed run(s) failed, $runs_pending run(s) pending, $runs_total run(s) in total ..."
 				fi
 
@@ -1076,6 +1076,32 @@ check_eval() {
 				#
 				# NOTE mute stderr which occurs in case the files are not there
 				cp *.gds.gz $uploads_folder/ 2> /dev/null
+
+				## DEF and netlist from Trojan insertion; only for dbg mode
+				if [[ $dbg_files == "1" ]]; then
+
+					#
+					## NOTE code for listing Trojans is copied from TI_wrapper.sh
+					#
+
+					# key: running ID; value: trojan_name
+					# NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
+					declare -A trojans
+					trojan_counter=0
+
+					for file in TI/*; do
+
+						trojan_name=${file##TI/}
+						trojan_name=${trojan_name%%.v}
+						trojans[$trojan_counter]=$trojan_name
+
+						((trojan_counter = trojan_counter + 1))
+					done
+
+					for trojan in "${trojans[@]}"; do
+						zip $uploads_folder/Trojan_designs.zip design."$trojan".* > /dev/null
+					done
+				fi
 
 				## 6) backup work dir
 				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
