@@ -625,7 +625,7 @@ check_eval() {
 								fi
 
 								echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks got interrupted."
-								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- INTERRUPT, runtime error -- please re-submit" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- INTERRUPT, runtime error" >> reports/errors.rpt
 
 								errors=1
 							fi
@@ -737,7 +737,7 @@ check_eval() {
 								fi
 
 								echo -e "\nISPD23 -- 2)  $id_run:  Innovus PPA evaluation got interrupted."
-								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- INTERRUPT, runtime error -- please re-submit" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- INTERRUPT, runtime error" >> reports/errors.rpt
 
 								errors=1
 							fi
@@ -849,7 +849,7 @@ check_eval() {
 								fi
 
 								echo -e "\nISPD23 -- 2)  $id_run:  LEC design checks got interrupted."
-								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT, runtime error -- please re-submit" >> reports/errors.rpt
+								echo "ISPD23 -- ERROR: process failed for LEC design checks -- INTERRUPT, runtime error" >> reports/errors.rpt
 
 								errors=1
 							fi

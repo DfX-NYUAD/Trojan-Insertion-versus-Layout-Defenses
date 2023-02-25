@@ -171,7 +171,7 @@ monitor() {
 			if [[ -e FAILED.TI_$trojan ]]; then
 
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, cancelled for Trojan \"$trojan\", via an interrupt for some other Trojan."
-				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled, runtime error; triggered by an runtime error for some other Trojan -- please re-submit" >> $err_rpt
+				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled, runtime error; triggered by an runtime error for some other Trojan" >> $err_rpt
 
 				# stop to wait, exit monitor process (w/ error) directly here, as there's no need for killing
 				exit 1
@@ -192,7 +192,7 @@ monitor() {
 		elif [[ -e FAILED.TI_$trojan ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, interrupt for Trojan \"$trojan\", indirectly via an interrupt for some other Trojan process."
-			echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error; triggered indirectly by an runtime error for some other Trojan process -- please re-submit" >> $err_rpt
+			echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error; triggered indirectly by an runtime error for some other Trojan process" >> $err_rpt
 
 			# mark as error, to enable killing further below
 			errors=1
@@ -252,7 +252,7 @@ monitor() {
 					fi
 
 					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, interrupt for Trojan \"$trojan\"."
-					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error -- please re-submit" >> $err_rpt
+					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error" >> $err_rpt
 
 					errors=1
 
