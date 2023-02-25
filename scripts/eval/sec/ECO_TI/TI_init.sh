@@ -33,6 +33,7 @@ if ! [[ -e design.enc ]]; then
 	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- database description file \"design.enc\" is missing in working directory." | tee -a $err_rpt
 	error=1
 fi
+# NOTE does not/cannot check the db folde in full for correctness, just checks whether folder exists at all
 if ! [[ -d design.enc.dat ]]; then
 	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- database folder \"design.enc.dat\" is missing in working directory." | tee -a $err_rpt
 	error=1

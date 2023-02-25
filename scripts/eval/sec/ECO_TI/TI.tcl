@@ -29,7 +29,7 @@ if { $TI_dbg == 0 } {
 	set reports_folder "reports/"
 }
 
-## dbg: restoring session as is
+## manual dbg: restoring session as is
 #restoreDesign design.enc.dat $design_name
 
 #####################
@@ -55,6 +55,7 @@ verify_drc -limit 100000 -report $reports_folder/$design_name.geom.$trojan_name.
 # simultaneous setup, hold analysis
 # NOTE applicable for (faster) timing analysis, but not for subsequent ECO runs or so -- OK for our scope here, after actual ECO commands
 set_global timing_enable_simultaneous_setup_hold_mode true
+# NOTE irrespective of dbg mode, this report should always be shared and thus stored into reports/
 report_timing_summary > reports/timing.$trojan_name.rpt
 
 #####################
