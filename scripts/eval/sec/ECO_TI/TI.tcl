@@ -39,7 +39,8 @@ if { $TI_dbg == 0 } {
 ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace -reportFile $reports_folder/$trojan_name.ecoDesign.rpt
 setPlaceMode -place_detail_preroute_as_obs 3
 ecoPlace -fixPlacedInsts
-setDesignMode -bottomRoutingLayer 1
+# NOTE deprecated; while this would help for passing through on some submissions that route in M1, it hinders others --> better to disallow M1 routing in general
+#setDesignMode -bottomRoutingLayer 1
 setNanoRouteMode -drouteEndIteration 20
 ecoRoute
 
@@ -62,11 +63,13 @@ report_timing_summary > reports/timing.$trojan_name.rpt
 # write out TI-infected design
 #####################
 #
-## netlist, DEF
-#set defOutLefVia 1
-#set defOutLefNDR 1
-#defOut -netlist -routing -allLayers design.$trojan_name.def
-#saveNetlist design.$trojan_name.v
+# netlist, DEF
+if { $TI_dbg == 1 } {
+	set defOutLefVia 1
+	set defOutLefNDR 1
+	defOut -netlist -routing -allLayers design.$trojan_name.def
+	saveNetlist design.$trojan_name.v
+}
 
 # GDS
 set_global timing_enable_simultaneous_setup_hold_mode false

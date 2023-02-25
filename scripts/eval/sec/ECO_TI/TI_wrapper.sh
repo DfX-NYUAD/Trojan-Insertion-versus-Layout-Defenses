@@ -231,7 +231,10 @@ monitor() {
 			# also check for interrupts
 			#
 			# NOTE merged with check for errors into 'elif', as errors might lead to immediate process exit, which would then result in both
-			# errors reported at once; whereas we like to keep sole interrupt, runtime errors separate
+			# case covered at once; whereas we like to keep actual interrupt, runtime errors separate
+			#
+			# NOTE this will also capture any run where some error occurs that is listed specifically in $innovus_errors_excluded_for_checking but results in
+			# termination by innovus itself
 			#
 			# NOTE only check when PID file already exist; might not be the case even though the STARTED file exists (which is the pre-requisite to reach here), as the
 			# STARTED file was set ASAP in start_TI(), to avoid race condition for starting jobs
