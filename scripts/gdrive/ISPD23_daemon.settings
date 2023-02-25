@@ -8,7 +8,7 @@
 ##
 round="final"
 ## work mode
-mode="production"
+mode="testing"
 ## dbg for files: arranges results files differently, such that more details for ECO TI are uploaded to the Drive
 dbg_files="1"
 ## wait time b/w cycles [s]
@@ -25,7 +25,7 @@ issues_margin="10"
 ##
 google_root_folder="1G1EENqSquzCQbxI1Ij-4vbD8C3yrC_FF"
 google_json_file="$HOME/.config/gdrive/USERNAME_v2.json"
-local_root_folder="/data/nyu_projects/ISPD23_prod"
+local_root_folder="/data/nyu_projects/ISPD23"
 tmp_root_folder="$local_root_folder/data/tmp/"
 teams_root_folder="$local_root_folder/data/$round"
 eval_scripts_folder="$local_root_folder/scripts/eval"
@@ -36,7 +36,7 @@ daemon_settings_file+="/ISPD23_daemon.settings"
 
 ## benchmarks
 ##
-benchmarks="camellia cast misty seed sha256 aes"
+benchmarks="aes camellia cast misty seed sha256"
 ## NOTE use this for testing
 #benchmarks="aes"
 ## NOTE will be set automatically via initialize()
