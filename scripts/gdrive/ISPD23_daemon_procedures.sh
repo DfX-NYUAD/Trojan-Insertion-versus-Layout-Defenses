@@ -17,6 +17,9 @@ google_fix_json() {
 google_quota() {
 	local prefix=$1
 
+	## fix, if needed, the json file for current session in json file
+	google_fix_json
+
 	status=$(./gdrive about)
 
 	echo $prefix
@@ -38,7 +41,7 @@ send_email() {
 
 	# NOTE suppress warnings for certificate issue not recognized (won't fail email sending, more like a warning)
 	# but keep any others
-	echo -e "$text" | mailx -A ispd23contest -s "$subject" $emails_string 2>&1 | grep -v "Error in certificate: Peer's certificate issuer is not recognized."
+#	echo -e "$text" | mailx -A ispd23contest -s "$subject" $emails_string 2>&1 | grep -v "Error in certificate: Peer's certificate issuer is not recognized."
 }
 
 # https://unix.stackexchange.com/a/415450
@@ -88,9 +91,6 @@ initialize() {
 	echo "ISPD23 -- 0)  Time: $(date)"
 	echo "ISPD23 -- 0)  Time stamp: $(date +%s)"
 	echo "ISPD23 -- 0)"
-
-	## fix, if needed, the json file for current session in json file
-	google_fix_json
 	
 	## query drive for root folder, extract columns 1 and 2 from response
 	## store into associative array; key is google file/folder ID, value is actual file/folder name
@@ -99,6 +99,9 @@ initialize() {
 
 	## query quota
 	google_quota "ISPD23 -- 0)   " 
+
+	## fix, if needed, the json file for current session in json file
+	google_fix_json
 
 	if [[ "$1" == "testing" ]]; then
 
@@ -144,6 +147,9 @@ initialize() {
 	
 			id_internal="$team---$benchmark"
 
+			## fix, if needed, the json file for current session in json file
+			google_fix_json
+
 			# obtain drive references per benchmark
 			google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
 
@@ -152,10 +158,16 @@ initialize() {
 
 				echo "ISPD23 -- 0)     Init missing Google folder for round \"$round\", benchmark \"$benchmark\" ..."
 
+				## fix, if needed, the json file for current session in json file
+				google_fix_json
+
 				# work with empty dummy folders in tmp dir
 				mkdir -p $tmp_root_folder/$benchmark
 				./gdrive upload -p $google_round_folder -r $tmp_root_folder/$benchmark
 				rmdir $tmp_root_folder/$benchmark
+
+				## fix, if needed, the json file for current session in json file
+				google_fix_json
 
 				# update the reference for the just created folder
 				google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
@@ -217,9 +229,6 @@ google_downloads() {
 
 		echo "ISPD23 -- 1)  Checking all benchmark folders for team \"$team\" for new submission files ..."
 
-		## fix, if needed, the json file for current session in json file
-		google_fix_json
-
 		for benchmark in $benchmarks; do
 
 		(
@@ -236,6 +245,9 @@ google_downloads() {
 			declare -A google_folder_files=()
 			# array of [google_ID]=file_type
 			declare -A google_folder_files_type=()
+
+			## fix, if needed, the json file for current session in json file
+			google_fix_json
 
 			while read -r a b c; do
 
@@ -266,11 +278,17 @@ google_downloads() {
 					continue
 				fi
 
+				## fix, if needed, the json file for current session in json file
+				google_fix_json
+
 				# add files of subfolder to google_folder_files
 				while read -r a b c; do
+
 					google_folder_files[$a]=$b
 					google_folder_files_type[$a]=$c
-				# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines; see note above
+
+					# NOTE no error handling for the gdrive call itself; would have to jump in before awk and array assignment -- not really needed, since the error can be inferred from other log lines; see note above
+
 				done < <(./gdrive list --no-header -q "parents in '$folder' and trashed = false and not (name contains 'results')" 2> /dev/null | awk '{print $1" "$2" "$(NF-2)}')
 			done
 
@@ -315,6 +333,9 @@ google_downloads() {
 				#
 				if [[ "$basename" == "$google_file_name" || "$google_file_name" == *"..."* ]]; then
 
+					## fix, if needed, the json file for current session in json file
+					google_fix_json
+
 					# another call to gdrive, to get the full file name including any spaces etc
 					google_file_name=$(./gdrive info $file | grep "Name: ")
 					google_file_name=${google_file_name##Name: }
@@ -357,6 +378,9 @@ google_downloads() {
 					## DBG
 					#echo "ISPD23 -- existing downloads_folder_: $downloads_folder_"
 				fi
+
+				## fix, if needed, the json file for current session in json file
+				google_fix_json
 
 				echo "ISPD23 -- 1)  Download new submission file \"$google_file_name\" (Google file ID \"$file\") to \"$downloads_folder_\" ..."
 				./gdrive download -f --path $downloads_folder_ $file #> /dev/null 2>&1
@@ -436,8 +460,12 @@ google_uploads() {
 				benchmark_=$(printf "%-"$benchmarks_string_max_length"s" $benchmark)
 				team_=$(printf "%-"$teams_string_max_length"s" $team)
 				id_run="[ $round -- $team_ -- $benchmark_ -- $folder_ ]"
+
 			(
 				echo "ISPD23 -- 4)  $id_run: Upload results folder \"$uploads_folder/$folder\" into team's benchmark folder (Google folder ID \"$google_benchmark_folder\") ..."
+
+				## fix, if needed, the json file for current session in json file
+				google_fix_json
 
 				./gdrive upload -p $google_benchmark_folder -r $uploads_folder/$folder #> /dev/null 2>&1
 
@@ -449,6 +477,9 @@ google_uploads() {
 
 				## cleanup
 				rm -rf $uploads_folder/$folder
+
+				## fix, if needed, the json file for current session in json file
+				google_fix_json
 
 				## also send out email notification of successful upload
 				#
@@ -1057,7 +1088,7 @@ check_eval() {
 				# delete again the logs related to Trojan insertion; these details should not be disclosed to participants
 				# NOTE but for dbg mode, we keep these log files
 				if [[ $dbg_files == 0 ]]; then
-					zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null
+					zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null 2>&1
 				fi
 
 				## status files
@@ -1102,7 +1133,7 @@ check_eval() {
 					done
 
 					for trojan in "${trojans[@]}"; do
-						zip $uploads_folder/Trojan_designs.zip design."$trojan".* > /dev/null
+						zip $uploads_folder/Trojan_designs.zip design."$trojan".* > /dev/null 2>&1
 					done
 				fi
 
@@ -1113,10 +1144,10 @@ check_eval() {
 				if [[ -d $backup_work_folder/$folder ]]; then
 
 					previous_backup_work_folder_date=$(ls -l --time-style=+%s $backup_work_folder/$folder -d | awk '{print $(NF-1)}')
-					mv $backup_work_folder/$folder $backup_work_folder/$folder"__"$previous_backup_work_folder_date
+					mv $backup_work_folder/$folder $backup_work_folder/$previous_backup_work_folder_date"__"$folder
 
 					# also move the zip archive in that backup folder
-					mv $backup_work_folder/$folder'.zip' $backup_work_folder/$folder"__"$previous_backup_work_folder_date/
+					mv $backup_work_folder/$folder'.zip' $backup_work_folder/$previous_backup_work_folder_date"__"$folder/
 				fi
 				
 				# actual backup; move from work folder to backup folder
@@ -1134,19 +1165,19 @@ check_eval() {
 #				# NOTE As of now, only a 0-byte power.rpt file occurs here (the proper file is in reports/power.rpt). Not sure why this happens
 #				# though. Also, instead of deleting, moving to reports/ would be an option -- but, not for that 0-byte power.rpt file
 #				rm $folder/*.rpt > /dev/null 2>&1
-
+#
 #				# silent cleanup of particular `false' rpt files
 #				# NOTE As of now, only a 0-byte power.rpt file matches here (the proper file is already in reports/power.rpt). Not sure where this file comes from.
 				rm $folder/power.rpt > /dev/null 2>&1
 
-				# NOTE only mute regular stdout, but keep stderr
-				zip -y -r $folder'.zip' $folder/ > /dev/null #2>&1
+				# actual compress call
+				zip -y -r $folder'.zip' $folder/ > /dev/null 2>&1
 
+				# cleanup
 				rm -r $folder/
 
 				# unzip all rpt files again, also those *.rpt.ext etc; rpt files should be readily accessible for debugging
-				# NOTE only mute regular stdout, but keep stderr
-				unzip $folder'.zip' $folder/reports/* > /dev/null #2>&1
+				unzip $folder'.zip' $folder/reports/* > /dev/null 2>&1
 
 #				# NOTE deprecated; log files can be GBs large in case of interrupts
 #				# unzip all log files again; log files should be readily accessible for debugging
@@ -1155,8 +1186,7 @@ check_eval() {
 
 				# unzip Trojan ECO log files again; these log files should be readily accessible for debugging, even at the risk of large files (but haven't seen
 				# such issues yet)
-				# NOTE only mute regular stdout, but keep stderr
-				unzip $folder'.zip' $folder/TI_*.log* 2> /dev/null #2>&1
+				unzip $folder'.zip' $folder/TI_*.log* > /dev/null 2>&1
 
 				cd - > /dev/null
 			done
@@ -2094,36 +2124,37 @@ start_eval() {
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
 
+				arguments="scripts/checks.tcl -stylus -log checks"
+
 				# NOTE for design checks and evaluation, vdi is sufficient.
 				# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) --> ruled out for aes w/ its ~260k instances
 				if [[ $benchmark == "aes" ]]; then
 
-					arguments="scripts/checks.tcl -stylus -log checks"
 					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 					call_invs_only > /dev/null &
+					echo $! > PID.inv_checks
 				else
-					arguments="scripts/checks.tcl -stylus -log checks"
-					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 					call_vdi_invs > /dev/null &
+#					call_invs_only > /dev/null &
+					echo $! > PID.inv_checks
 				fi
-				echo $! > PID.inv_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus PPA evaluation ..."
 
+				arguments="scripts/PPA.tcl -log PPA"
+
 				# NOTE for design checks and evaluation, vdi is sufficient.
 				# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) --> ruled out for aes w/ its ~260k instances
 				if [[ $benchmark == "aes" ]]; then
 
-					arguments="scripts/PPA.tcl -log PPA"
 					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 					call_invs_only > /dev/null &
-
+					echo $! > PID.inv_PPA
 				else
-					arguments="scripts/PPA.tcl -log PPA"
-					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 					call_vdi_invs > /dev/null &
+#					call_invs_only > /dev/null &
+					echo $! > PID.inv_PPA
 				fi
-				echo $! > PID.inv_PPA
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files

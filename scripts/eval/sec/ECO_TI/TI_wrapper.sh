@@ -131,9 +131,12 @@ start_TI() {
 	## actual Innovus call
 	date > STARTED.TI_$trojan_name
 
-	arguments="scripts/TI.tcl -log TI_$trojan_name"
-	call_invs_only > /dev/null &
+# TODO for regular runs, we could consider vdi_invs, for advanced invs_vdi, and for advanced-advanced invs_only
+# TODO invs_only for aes
 
+	arguments="scripts/TI.tcl -log TI_$trojan_name"
+#	call_invs_only > /dev/null &
+	call_vdi_only > /dev/null &
 	echo $! > PID.TI_$trojan_name
 
 	# dbg_log
