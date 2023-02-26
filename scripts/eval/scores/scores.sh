@@ -8,7 +8,7 @@
 
 ## fixed settings; typically not to be modified
 #
-# NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark; dbg_files=$dbg_files (from ISPD23_daemon.settings)
+# NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark; dbg_files=$dbg_files
 scale=$1
 baseline=$2
 dbg_files=$3
@@ -20,36 +20,6 @@ err_rpt=reports/errors.rpt
 ## 1) basic init
 rm $rpt 2> /dev/null
 error=0
-
-## 1) init for ECO Trojans
-# NOTE list all Trojans to consider
-# NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
-declare -A trojans
-trojan_counter=0
-for file in TI/*; do
-
-	trojan_name=${file##TI/}
-	trojan_name=${trojan_name%%.v}
-
-	trojans[$trojan_counter]=$trojan_name
-	((trojan_counter = trojan_counter + 1))
-done
-
-declare -A trojans_rpt_timing
-declare -A trojans_rpt_DRC
-for trojan in "${trojans[@]}"; do
-
-	trojans_rpt_timing[$trojan]="reports/timing."$trojan".rpt"
-
-	# dbg
-	if [[ $dbg_files == 1 ]]; then
-
-		trojans_rpt_DRC[$trojan]="reports/*.geom."$trojan".rpt"
-	else
-		# NOTE related report file is placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
-		trojans_rpt_DRC[$trojan]="*.geom."$trojan".rpt"
-	fi
-done
 
 ## NOTE deprecated, disabled on purpose; see https://wp.nyu.edu/ispd23_contest/qa/#scoring QA5
 ### 1) check for any other errors that might have occurred during actual processing
@@ -89,30 +59,61 @@ for file in $files; do
 	fi
 done
 
-# NOTE for TI files, we don't require the baseline part
-# TODO don't error out; only assume worst score for such cases --> no need to check here
-for file in "${trojans_rpt_timing[@]}"; do
-
-	if ! [[ -e $file ]]; then
-		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
-		error=1
-	fi
-done
-for file in "${trojans_rpt_DRC[@]}"; do
-
-	errors=$(ls $file > /dev/null 2>&1; echo $?)
-	if [[ $errors != 0 ]]; then
-		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
-		error=1
-	fi
-done
+## NOTE deprecated; Trojans that have failed won't have such reports, but that's no reason to cancel the scoring altogether (such Trojans will be assigned worst scores)
+## NOTE for TI files, we don't require the baseline part
+#for file in "${trojans_rpt_timing[@]}"; do
+#
+#	if ! [[ -e $file ]]; then
+#		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
+#		error=1
+#	fi
+#done
+#for file in "${trojans_rpt_DRC[@]}"; do
+#
+#	errors=$(ls $file > /dev/null 2>&1; echo $?)
+#	if [[ $errors != 0 ]]; then
+#		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
+#		error=1
+#	fi
+#done
 
 ## 1) exit for errors
 if [[ $error == 1 ]]; then
 	exit 1
 fi
 
-## 1) only now, if run calculation can proceed, we start with init procedures
+## 1) only now, if all checks pass, we start with init procedures
+
+### init ECO Trojans
+#
+# NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
+declare -A trojans
+trojan_counter=0
+for file in TI/*; do
+
+	trojan_name=${file##TI/}
+	trojan_name=${trojan_name%%.v}
+
+	trojans[$trojan_counter]=$trojan_name
+	((trojan_counter = trojan_counter + 1))
+done
+
+declare -A trojans_rpt_timing
+declare -A trojans_rpt_DRC
+for trojan in "${trojans[@]}"; do
+
+	# dbg
+	if [[ $dbg_files == 1 ]]; then
+
+		trojans_rpt_DRC[$trojan]="reports/*.geom."$trojan".rpt"
+	else
+		# NOTE related report file is placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
+		trojans_rpt_DRC[$trojan]="*.geom."$trojan".rpt"
+	fi
+
+	# NOTE timing rpts are always in reports/ folder and to be shared, independent of dbg mode
+	trojans_rpt_timing[$trojan]="reports/timing."$trojan".rpt"
+done
 
 ### weights
 

@@ -219,7 +219,7 @@ monitor() {
 				# NOTE id_run passed through as global var
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, some failure occurred for Trojan \"$trojan\"."
 
-				if [[ $dbg_files == 1 ]]; then
+				if [[ $dbg_files == "1" ]]; then
 					# NOTE deprecated; use for dbg_files only, which arranges more access to result files, unlike regular non-dbg/production mode
 					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
 				else

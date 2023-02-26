@@ -1056,7 +1056,7 @@ check_eval() {
 
 				# delete again the logs related to Trojan insertion; these details should not be disclosed to participants
 				# NOTE but for dbg mode, we keep these log files
-				if [[ $dbg_files == 0 ]]; then
+				if [[ $dbg_files == "0" ]]; then
 					zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null
 				fi
 
@@ -1070,7 +1070,7 @@ check_eval() {
 
 				## processed files; only for dbg mode, share again
 				#
-				if [[ $dbg_files == 1 ]]; then
+				if [[ $dbg_files == "1" ]]; then
 					echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
 					mv processed_files.zip $uploads_folder/ #2> /dev/null
 				fi
@@ -1081,7 +1081,7 @@ check_eval() {
 				cp *.gds.gz $uploads_folder/ 2> /dev/null
 
 				## DEF and netlist from Trojan insertion; only for dbg mode
-				if [[ $dbg_files == 1 ]]; then
+				if [[ $dbg_files == "1" ]]; then
 
 					#
 					## NOTE code for listing Trojans is copied from TI_wrapper.sh
@@ -2009,7 +2009,7 @@ start_eval() {
 
 					# pack processed files again; only for dbg mode, to be uploaded again for double-checking
 					# NOTE only mute regular stdout, but keep stderr
-					if [[ $dbg_files == 1 ]]; then
+					if [[ $dbg_files == "1" ]]; then
 						zip processed_files.zip $file > /dev/null
 					fi
 				done
