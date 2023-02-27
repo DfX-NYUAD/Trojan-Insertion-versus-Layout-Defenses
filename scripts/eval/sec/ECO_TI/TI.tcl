@@ -7,15 +7,15 @@
 #####################
 # general settings
 #####################
-#
+
 setMultiCpuUsage -localCpu 8 -keepLicense true
 
 #####################
 # init
 #####################
-#
+
 # source dynamic config file; generated through the TI_init.sh helper script
-source "scripts/TI_settings.tcl"
+source scripts/TI_settings.tcl
 # NOTE mark once the config file is sourced; this signals to the TI_wrapper.sh helper script that the next config file can be written out
 date > DONE.source.TI_$trojan_name
 
@@ -35,12 +35,41 @@ if { $TI_dbg == 0 } {
 #####################
 # Trojan insertion
 #####################
-#
+
+# ECO integration
 ecoDesign design.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace -reportFile $reports_folder/$trojan_name.ecoDesign.rpt
+
+# check placement, to catch issues like overlaps after ECO integration, which should be refined before moving on
+set rpt $reports_folder/$trojan_name.ecoDesign.checkPlace.rpt
+checkPlace
+violationBrowserReport -report $rpt 
+
+# extract violating instances
+scripts/TI_helper_checkPlace.sh $rpt
+set fp [open $rpt.parsed r]
+set refine_list [split [read $fp] '\n']
+close $fp
+
+# NOTE consider already routed wires as OBS; required to avoid DRCs around PDN stripes
 setPlaceMode -place_detail_preroute_as_obs 3
+
+# refine initial placement, but only if needed
+if {[llength $refine_list] != 0} {
+
+	# trim last entry which is empty, arising from split '\n'
+	set refine_list [lrange $refine_list 0 end-1]     
+
+	refineplace -inst $refine_list
+}
+
+# ECO placement
 ecoPlace -fixPlacedInsts
+
 # NOTE deprecated; while this would help for passing through on some submissions that route in M1, it hinders others --> better to disallow M1 routing in general
 #setDesignMode -bottomRoutingLayer 1
+
+# ECO routing
+# NOTE limit optimization iterations; value is suggested in Cadence support and matches own observations -- going beyond rarely helps
 setNanoRouteMode -drouteEndIteration 20
 ecoRoute
 
@@ -50,7 +79,7 @@ ecoRoute
 # NOTE other checks in checks.tcl are skipped here, since 1) accounting for all them during scoring seems difficult and, more importantly, 2) these checks were more to try to catch
 # any cheating/trivial defenses
 #####################
-#
+
 verify_drc -limit 100000 -report $reports_folder/$design_name.geom.$trojan_name.rpt
 
 # simultaneous setup, hold analysis
@@ -62,7 +91,7 @@ report_timing_summary > reports/timing.$trojan_name.rpt
 #####################
 # write out TI-infected design
 #####################
-#
+
 # netlist, DEF
 if { $TI_dbg == 1 } {
 	set defOutLefVia 1
@@ -79,6 +108,6 @@ streamOut $trojan_name.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName Desi
 ####
 # mark done; exit
 ####
-#
+
 date > DONE.TI_$trojan_name
 exit
