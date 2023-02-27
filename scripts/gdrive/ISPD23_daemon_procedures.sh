@@ -2004,8 +2004,7 @@ start_eval() {
 				## 0) only max_runs runs in parallel should be running at once per team
 				if [[ $ongoing_runs -ge $max_parallel_runs ]]; then
 
-#					# NOTE do not break, only continue, to continue evaluating queued runs for all benchmarks
-#					break 2
+#					# NOTE do not break, only continue, to allow evaluating queued runs for all benchmarks
 					continue
 				fi
 
