@@ -1,7 +1,9 @@
 #!/bin/bash
 
-## NOTE deprecated; while this is needed to catches and correctly parses the instance names for issues like 'Inst a10_S4_0_S_0/g20958's vertical pin AO32x1_ASAP7_75t_SL/Y is not
-## aligned with correct track', these issues should actually not be addressed/fixed for the teams' submissions but rather ignored
-#grep "Inst " $1 | awk '{print $2}' | sed "s/'s//g" > $1".parsed"
-
-grep "Inst " $1 | grep -v "is not aligned with correct track" | awk '{print $2}' > $1".parsed"
+# NOTE we want to explicitly ignore issues for vertical pin alignment -- these arise from different innovus version's handling of tracks, more specifically from using Innovus 21 in
+# the backend versus use of an older version by the participants. See also https://github.com/Centre-for-Hardware-Security/asap7_reference_design/blob/main/scripts/innovus.tcl for
+# lines marked 'this series of commands makes innovus 21 happy :)' but note that we _cannot_ use these commands here in the backend when loading up the design for evaluation, as
+# that would purge placement and routing altogether
+#
+# NOTE the .* to match any number of chars between for the wildcard
+grep "Inst " $1 | grep -v "vertical pin .* is not aligned with correct track" | awk '{print $2}' > $1".parsed"

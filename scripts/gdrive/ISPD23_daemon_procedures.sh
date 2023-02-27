@@ -1641,7 +1641,7 @@ parse_inv_PPA() {
 
 	errors=0
 
-	# timing; check timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
+	# timing; see timing.rpt for "View : ALL" and extract FEPs for setup, hold checks
 	#
 	## NOTE failure on those is considered as error/constraint violation
 	#
@@ -1711,7 +1711,7 @@ parse_inv_checks() {
 
 	errors=0
 
-	# routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt -- we need "*" for file since name is defined by module name, not the verilog file name
+	# routing issues like dangling wires, floating metals, open pins, etc.; see *.conn.rpt -- we need "*" for file since name is defined by module name, not the verilog file name
 	# NOTE the related file floating_signals.rpt does not have to be parsed; it just provides more details but metrics/values are already covered in the lec.log file
 # Example:
 #    5 total info(s) created.
@@ -1738,7 +1738,7 @@ parse_inv_checks() {
 
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
-	# IO pins; check *.checkPin.rpt for illegal and unplaced pins from summary
+	# IO pins; see *.checkPin.rpt for illegal and unplaced pins from summary
 # Example:
 #	====================================================================================================================================
 #	                                                     checkPinAssignment Summary
@@ -1771,7 +1771,7 @@ parse_inv_checks() {
 
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
-	# DRC routing issues; check *.geom.rpt for "Total Violations"
+	# DRC routing issues; see *.geom.rpt for "Total Violations"
 	#
 	## NOTE failure on those is considered as error/constraint violation
 	#
@@ -1793,7 +1793,7 @@ parse_inv_checks() {
 
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
-	# placement and routing; check check_design.rpt file for summary
+	# placement and routing issues; see check_design.rpt file for summary
 # Example:
 #	**INFO: Identified 21 error(s) and 0 warning(s) during 'check_design -type {place cts route}'.
 
@@ -1819,11 +1819,11 @@ parse_inv_checks() {
 
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
-	# more placement; check check_place.rpt file for summary
+	# more placement issues; see check_place.rpt file for summary
 # Example:
-#########################################################
-## Total instances with placement violations: 30
-#########################################################
+# #########################################################
+# ## Total instances with placement violations: 30
+# #########################################################
 #
 # NOTE such line is only present if errors/issues found at all; otherwise the below appears
 ## No violations found ##
@@ -1833,15 +1833,26 @@ parse_inv_checks() {
 
 	if [[ $issues != "" ]]; then
 
+		# NOTE we want to explicitly ignore issues for vertical pin alignment -- these arise from different innovus version's handling of tracks, more specifically from using Innovus 21 in
+		# the backend versus use of an older version by the participants. See also https://github.com/Centre-for-Hardware-Security/asap7_reference_design/blob/main/scripts/innovus.tcl for
+		# lines marked 'this series of commands makes innovus 21 happy :)' but note that we _cannot_ use these commands here in the backend when loading up the design for evaluation, as
+		# that would purge placement and routing altogether
+# Example:
+# ### 2022 Vertical Pin-Track Alignment Violation>
+		issues__vertical_pin_not_aligned=$(grep "Vertical Pin-Track Alignment Violation" reports/check_place.rpt | awk '{print $2}')
+		if [[ $issues__vertical_pin_not_aligned != "" ]]; then
+			((issues = issues - issues__vertical_pin_not_aligned))
+		fi
+
 		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
 
-			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see check_place.rpt for more details." >> reports/errors.rpt
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see check_place.rpt for more details, but note that vertical-pin violations can be, and are, safely ignored." >> reports/errors.rpt
 		else
-			echo "ISPD23 -- WARNING: $string $issues -- see check_place.rpt for more details." >> reports/warnings.rpt
+			echo "ISPD23 -- WARNING: $string $issues -- see check_place.rpt for more details, but note that vertical-pin violations can be, and are, safely ignored." >> reports/warnings.rpt
 		fi
 	else
 		issues=0
@@ -1853,7 +1864,7 @@ parse_inv_checks() {
 # NOTE only parse peak noises; ignore violations as we have to use NLDM libs as CCS libs gave larger mismatch in timing
 # NOTE make sure to differentiate b/w VH and VL peak noises correctly
 #
-#	# noise issues; check noise.rpt for summary
+#	# noise issues; see noise.rpt for summary
 ## Example:
 ## Glitch Violations Summary :
 ## --------------------------
@@ -1924,7 +1935,7 @@ parse_inv_checks() {
 #
 #	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
 
-	# PDN stripes checks; check reports/check_stripes.rpt for false versus valid results
+	# PDN stripes checks; see reports/check_stripes.rpt for false versus valid results
 	#
 	## NOTE failure on those is considered as error/constraint violation
 	#
