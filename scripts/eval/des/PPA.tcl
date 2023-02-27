@@ -7,7 +7,7 @@
 #####################
 # general settings
 #####################
-#
+
 setMultiCpuUsage -localCpu 8 -keepLicense true
 
 set mmmc_path scripts/mmmc.tcl
@@ -18,7 +18,7 @@ set netlist_path design.v
 #####################
 # init
 #####################
-#
+
 set init_mmmc_file $mmmc_path
 set init_lef_file $lef_path
 set init_verilog $netlist_path
@@ -43,7 +43,7 @@ deleteFiller -cell [ get_db -u [ get_db insts -if { .is_physical } ] .base_cell.
 #####################
 # clock propagation
 #####################
-#
+
 set_interactive_constraint_modes [all_constraint_modes -active]
 reset_propagated_clock [all_clocks]
 update_io_latency -source -verbose
@@ -52,7 +52,7 @@ set_propagated_clock [all_clocks]
 #####################
 # timing
 #####################
-#
+
 setAnalysisMode -analysisType onChipVariation
 # removes clock pessimism
 setAnalysisMode -cppr both
@@ -61,7 +61,7 @@ timeDesign -postroute
 #####################
 # write out db
 #####################
-#
+
 # NOTE deprecated
 # NOTE -timingGraph triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable. Sounds like timing graph is not stored properly.
 # Interestingly, restoreDesign works fine with -timingGraph generated db.
@@ -69,8 +69,8 @@ timeDesign -postroute
 # `Mismatch between RCDB and Verilog netlist' so it's dropped as well
 # NOTE -no_wait and checking only for existence of design.enc, design.enc.dat in TI_wrapper could easily lead to race conditions, as in ECO TI already loading the db when it's not
 # completed yet
-#saveDesign design.enc -timingGraph -rc -no_wait saveDesign.log
-#
+##saveDesign design.enc -timingGraph -rc -no_wait saveDesign.log
+
 saveDesign design.enc
 # NOTE mark once db writeout is done
 date > DONE.saveDesign
@@ -78,7 +78,7 @@ date > DONE.saveDesign
 #####################
 # reports
 #####################
-#
+
 report_power > reports/power.rpt
 
 # simultaneous setup, hold analysis
@@ -94,6 +94,6 @@ close $out
 #####################
 # mark done; exit
 #####################
-#
+
 date > DONE.inv_PPA
 exit
