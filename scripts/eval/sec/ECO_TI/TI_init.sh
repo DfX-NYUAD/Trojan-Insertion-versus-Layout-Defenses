@@ -59,10 +59,10 @@ if [[ "$design_name" == "" ]]; then
 	exit 1
 fi
 
-### specific settings, in LUT-style
-## TODO clk divider stuff: clk name, instance name for generate_clock command, etc
-## TODO inner case statements for leak, burn, fault as needed
-## TODO merge cases as useful, using eg aes|camellia)
+### (TODO) specific settings as needed, in LUT-style
+## NOTE multi-cycle path constraints: clk name, instance name for generate_clock command, etc
+## NOTE merge cases as useful, using eg aes|camellia)
+## NOTE use, merge inner case statements for leak, burn, fault as needed
 ##
 #case $design_name in
 #
