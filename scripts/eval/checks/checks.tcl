@@ -52,6 +52,9 @@ mv *.geom.rpt reports/
 # NOTE false positives for VDD, VSS vias at M4, M5, M6; report file has incomplete info, full details are in check.logv
 check_design -type {place route} > reports/check_design.rpt
 
+# covers more placement issues
+check_place reports/check_place.rpt
+
 # custom checks for PDN stripes
 set out [open reports/check_stripes.rpt w]
 puts $out "PDN stripes checks"

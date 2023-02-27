@@ -1388,6 +1388,7 @@ parse_lec_checks() {
 	if [[ $issues != "" ]]; then
 
 		errors=1
+
 		echo "ISPD23 -- ERROR: $string $issues -- see check_equivalence.rpt for more details." >> reports/errors.rpt
 	else
 		issues=0
@@ -1418,6 +1419,7 @@ parse_lec_checks() {
 	if [[ $issues != "" ]]; then
 
 		errors=1
+
 		echo "ISPD23 -- ERROR: $string $issues -- see check_equivalence.rpt for more details." >> reports/errors.rpt
 	else
 		issues=0
@@ -1448,6 +1450,7 @@ parse_lec_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
+
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
 			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
@@ -1476,6 +1479,7 @@ parse_lec_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
+
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
 			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
@@ -1506,6 +1510,7 @@ parse_lec_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
+
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
 			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
@@ -1546,6 +1551,7 @@ parse_lec_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
+
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
 			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
@@ -1574,6 +1580,7 @@ parse_lec_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
+
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
 			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
@@ -1602,6 +1609,7 @@ parse_lec_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
+
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see lec.log for more details." >> reports/errors.rpt
 		else
 			echo "ISPD23 -- WARNING: $string $issues -- see lec.log for more details." >> reports/warnings.rpt
@@ -1654,6 +1662,7 @@ parse_inv_PPA() {
 	if [[ $issues != 0 ]]; then
 
 		errors=1
+
 		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
 	fi
 
@@ -1675,6 +1684,7 @@ parse_inv_PPA() {
 	if [[ $issues != 0 ]]; then
 
 		errors=1
+
 		echo "ISPD23 -- ERROR: $string $issues -- see timing.rpt for more details." >> reports/errors.rpt
 	fi
 
@@ -1717,6 +1727,7 @@ parse_inv_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
+
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see *.conn.rpt and floating_signals.rpt for more details." >> reports/errors.rpt
 		else
 			echo "ISPD23 -- WARNING: $string $issues -- see *.conn.rpt and floating_signals.rpt for more details." >> reports/warnings.rpt
@@ -1749,6 +1760,7 @@ parse_inv_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
+
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see *.checkPin.rpt for more details." >> reports/errors.rpt
 		else
 			echo "ISPD23 -- WARNING: $string $issues -- see *.checkPin.rpt for more details." >> reports/warnings.rpt
@@ -1767,12 +1779,13 @@ parse_inv_checks() {
 #  Total Violations : 2 Viols.
 # NOTE such line is only present if errors/issues found at all
 
-	issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $4}')
+	issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $(NF-1)}')
 	string="Innovus: DRC issues:"
 
 	if [[ $issues != "" ]]; then
 
 		errors=1
+
 		echo "ISPD23 -- ERROR: $string $issues -- see *.geom.rpt for more details." >> reports/errors.rpt
 	else
 		issues=0
@@ -1794,9 +1807,41 @@ parse_inv_checks() {
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
+
+			# NOTE false positives for VDD, VSS vias at M4, M5, M6; report file has incomplete info, full details are in check.logv
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see check_design.rpt and checks.logv for more details." >> reports/errors.rpt
 		else
 			echo "ISPD23 -- WARNING: $string $issues -- see check_design.rpt and checks.logv for more details." >> reports/warnings.rpt
+		fi
+	else
+		issues=0
+	fi
+
+	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
+
+	# more placement; check check_place.rpt file for summary
+# Example:
+#########################################################
+## Total instances with placement violations: 30
+#########################################################
+#
+# NOTE such line is only present if errors/issues found at all; otherwise the below appears
+## No violations found ##
+
+	issues=$(grep "Total instances with placement violations:" reports/check_place.rpt | awk '{print $NF}')
+	string="Innovus: Further placement issues:"
+
+	if [[ $issues != "" ]]; then
+
+		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
+
+		if (( issues > (issues_baseline + issues_margin) )); then
+
+			errors=1
+
+			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see check_place.rpt for more details." >> reports/errors.rpt
+		else
+			echo "ISPD23 -- WARNING: $string $issues -- see check_place.rpt for more details." >> reports/warnings.rpt
 		fi
 	else
 		issues=0
@@ -1826,6 +1871,7 @@ parse_inv_checks() {
 #		if (( issues > (issues_baseline + issues_margin) )); then
 #
 #			errors=1
+#
 #			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see noise.rpt for more details." >> reports/errors.rpt
 #		else
 #			echo "ISPD23 -- WARNING: $string $issues -- see noise.rpt for more details." >> reports/warnings.rpt
@@ -1846,6 +1892,7 @@ parse_inv_checks() {
 #		if (( issues > (issues_baseline + issues_margin) )); then
 #
 #			errors=1
+#
 #			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see noise.rpt for more details." >> reports/errors.rpt
 #		else
 #			echo "ISPD23 -- WARNING: $string $issues -- see noise.rpt for more details." >> reports/warnings.rpt
@@ -1866,6 +1913,7 @@ parse_inv_checks() {
 #		if (( issues > (issues_baseline + issues_margin) )); then
 #
 #			errors=1
+#
 #			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see noise.rpt for more details." >> reports/errors.rpt
 #		else
 #			echo "ISPD23 -- WARNING: $string $issues -- see noise.rpt for more details." >> reports/warnings.rpt
@@ -1912,6 +1960,7 @@ parse_inv_checks() {
 	if [[ $issues != 0 ]]; then
 
 		errors=1
+
 		echo "ISPD23 -- ERROR: $string $issues -- see check_stripes.rpt for more details." >> reports/errors.rpt
 	fi
 
