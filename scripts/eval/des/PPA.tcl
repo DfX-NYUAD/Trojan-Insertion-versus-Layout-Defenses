@@ -72,7 +72,7 @@ timeDesign -postroute
 ##saveDesign design.enc -timingGraph -rc -no_wait saveDesign.log
 
 saveDesign design.enc
-# NOTE mark once db writeout is done
+# NOTE mark once db writeout is done, so that ECO TI can go ahead already at this point
 date > DONE.saveDesign
 
 #####################
