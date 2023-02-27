@@ -317,7 +317,7 @@ monitor() {
 			fi
 
 			# NOTE mute stderr for cat, as the process might not have been started yet (then the PID file won't exist)
-			cat PID.TI_$trojan 2> /dev/null | xargs kill 2> /dev/null
+			cat PID.TI_$trojan 2> /dev/null | xargs kill -9 2> /dev/null
 
 			# dbg_log
 			if [[ $dbg_log == 1 ]]; then

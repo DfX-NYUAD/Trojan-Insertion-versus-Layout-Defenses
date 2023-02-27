@@ -692,14 +692,14 @@ check_eval() {
 							if [[ $errors != 0 ]]; then
 
 								# NOTE not all cases/conditions require killing, but for simplicity this is unified here; trying again to kill wont hurt
-								cat PID.inv_checks | xargs kill 2> /dev/null
+								cat PID.inv_checks | xargs kill -9 2> /dev/null
 								date > FAILED.inv_checks
 
 								# NOTE as this important eval process failed, the other eval process(es) should be killed as well
 								# NOTE not all cases/conditions require killing again, but for simplicity this is unified here; trying to kill again wont hurt
 								# NOTE do not set FAILED file for the other process(es) here; this is covered by the other monitoring subshell(s)
-								cat PID.lec_checks | xargs kill 2> /dev/null
-								cat PID.inv_PPA | xargs kill 2> /dev/null
+								cat PID.lec_checks | xargs kill -9 2> /dev/null
+								cat PID.inv_PPA | xargs kill -9 2> /dev/null
 
 								exit 1
 							fi
@@ -804,14 +804,14 @@ check_eval() {
 							if [[ $errors != 0 ]]; then
 
 								# NOTE not all cases/conditions require killing, but for simplicity this is unified here; trying again to kill wont hurt
-								cat PID.inv_PPA | xargs kill 2> /dev/null
+								cat PID.inv_PPA | xargs kill -9 2> /dev/null
 								date > FAILED.inv_PPA
 
 								# NOTE as this important eval process failed, the other eval process(es) should be killed as well
 								# NOTE not all cases/conditions require killing again, but for simplicity this is unified here; trying to kill again wont hurt
 								# NOTE do not set FAILED file for the other process(es) here; this is covered by the other monitoring subshell(s)
-								cat PID.lec_checks | xargs kill 2> /dev/null
-								cat PID.inv_checks | xargs kill 2> /dev/null
+								cat PID.lec_checks | xargs kill -9 2> /dev/null
+								cat PID.inv_checks | xargs kill -9 2> /dev/null
 
 								exit 1
 							fi
@@ -916,14 +916,14 @@ check_eval() {
 							if [[ $errors != 0 ]]; then
 
 								# NOTE not all cases/conditions require killing, but for simplicity this is unified here; trying again to kill wont hurt
-								cat PID.lec_checks | xargs kill 2> /dev/null
+								cat PID.lec_checks | xargs kill -9 2> /dev/null
 								date > FAILED.lec_checks
 
 								# NOTE as this important eval process failed, the other eval process(es) should be killed as well
 								# NOTE not all cases/conditions require killing again, but for simplicity this is unified here; trying to kill again wont hurt
 								# NOTE do not set FAILED file for the other process(es) here; this is covered by the other monitoring subshell(s)
-								cat PID.inv_checks | xargs kill 2> /dev/null
-								cat PID.inv_PPA | xargs kill 2> /dev/null
+								cat PID.inv_checks | xargs kill -9 2> /dev/null
+								cat PID.inv_PPA | xargs kill -9 2> /dev/null
 
 								exit 1
 							fi
