@@ -131,13 +131,18 @@ start_TI() {
 	## actual Innovus call
 	date > STARTED.TI_$trojan_name
 
-# TODO for regular runs, we could consider vdi_invs, for advanced invs_vdi, and for advanced-advanced invs_only
-# TODO invs_only for aes
+	# NOTE for ECO TI, vdi should be sufficient, but also use invs license if vdi ones are already busy; this should help to get the many parallel ECO runs through the
+	# pipeline, but minor limitation or impact is that, if the backend is already busy, 'aes' submissions for some team w/o other runs would still not get started
+	#
+	# NOTE vdi is limited to 50k instances per license --> ruled out for aes w/ its ~260k instances
+	if [[ "$trojan_name" == *"aes"* ]]; then
 
-	arguments="scripts/TI.tcl -log TI_$trojan_name"
-#	call_invs_only > /dev/null &
-	call_vdi_only > /dev/null &
-	echo $! > PID.TI_$trojan_name
+		call_invs_only scripts/TI.tcl -log TI_$trojan_name > /dev/null &
+		echo $! > PID.TI_$trojan_name
+	else
+		call_vdi_invs scripts/TI.tcl -log TI_$trojan_name > /dev/null &
+		echo $! > PID.TI_$trojan_name
+	fi
 
 	# dbg_log
 	if [[ $dbg_log == 1 ]]; then

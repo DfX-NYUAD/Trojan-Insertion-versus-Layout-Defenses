@@ -4,6 +4,10 @@
 #
 ####
 
+## misc bash settings
+##
+shopt -s expand_aliases
+
 ## misc key parameters
 ##
 round="final"
@@ -15,7 +19,7 @@ dbg_files="1"
 check_interval="60"
 ## max runs allowed in parallel per team
 # TODO set to 1--4 for production, probably best is 2
-max_parallel_runs="4"
+max_parallel_runs="8"
 ## max uploads allowed to be started in parallel; based on experience of load behaviour w/ Google drive
 max_parallel_uploads="10"
 ## margin/tolerance for soft constraints to be classified as errors
@@ -52,17 +56,20 @@ emails_excluded_for_notification="ispd23contest.drive@gmail.com"
 ## Innovus
 ##
 # calls
-# NOTE when interrupted, these functions/procedures raise warnings like 'shell-init: error retrieving current directory: getcwd: cannot access parent directories: No such file or
-# directory' which can be safely ignored
 #
-call_invs_only() { innovus -nowin -lic_startup invs -wait 360 -files $arguments; }
-# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) --> ruled out for aes w/ its ~260k instances
-# NOTE also, vdi seems limited for design efforts, should not be used for ECO
-call_vdi_only() { innovus -nowin -lic_startup vdi -wait 360 -files $arguments; }
-# NOTE also use invs license as 2nd option, that is when vdi license are already busy --> drawback: this may stall some invs calls
-call_vdi_invs() { innovus -nowin -lic_startup "vdi invs" -wait 360 -files $arguments; }
-# NOTE also use vdi license as 2nd option, that is when invs license are already busy --> drawback: this may stall some vdi calls
-call_invs_vdi() { innovus -nowin -lic_startup "invs vdi" -wait 360 -files $arguments; }
+alias call_invs_only='innovus -nowin -lic_startup invs -wait 360 -files'
+# NOTE vdi is limited to 50k instances per license --> ruled out for aes w/ its ~260k instances
+alias call_vdi_only='innovus -nowin -lic_startup vdi -wait 360 -files'
+# NOTE also use invs license as 2nd option, that is when vdi license are already busy --> drawback: this may stall invs_only calls
+alias call_vdi_invs='innovus -nowin -lic_startup "vdi invs" -wait 360 -files'
+# NOTE also use vdi license as 2nd option, that is when invs license are already busy --> drawback: this may stall vdi_only calls
+alias call_invs_vdi='innovus -nowin -lic_startup "invs vdi" -wait 360 -files'
+#
+# NOTE Refactoring the above into procedures, like 'call_invs_only() { innovus -nowin -lic_startup invs -wait 360 -files $arguments; }' didn't work properly, as in when cancelled
+# the process was still running, and the shell itself raised errors/warnings like 'shell-init: error retrieving current directory: getcwd: cannot access parent directories: No such
+# file or directory'. Also, just declaring as string, and then invoking the string as command, like $call_vdi_invs scripts/PPA.tcl, did not work, namely for the quotes for the
+# license list. Finally, did not try the 'eval' command, as using alias seemed simpler then
+# (https://unix.stackexchange.com/questions/356534/how-to-run-string-with-values-as-a-command-in-bash#comment1387543_356534)
 #
 # error checking
 #
@@ -79,7 +86,7 @@ innovus_errors_for_checking+="|NRDB-955" # errors are related to conflict of exi
 # NOTE '@file' lines appear in Stylus mode, and are sourced from the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain
 # keywords like ERROR etc
 # NOTE 'IMPLIC-104' and 'IMPVL-909' errors are both related to license limitations, namely that flattening of designs w/ >50k instances fails (but designs w/ <=50k instances still
-# go through); shouldn't be checked, to enable error handling to consider this as interrupt, runtime error -- update: w/ the revised and more specific calls to invs, vdi, this
+# go through); shouldn't be checked, to enable error handling to consider this as interrupt, runtime error -- update: w/ the revised and more specific calls to invs and vdi, this
 # error should not appear anymore
 # NOTE 'IMPFP-735' errors are related to nets not found when loading the design db; can be ignored
 innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file|IMPLIC-104|IMPVL-909|IMPFP-735"
@@ -90,7 +97,7 @@ innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file|IMPLIC-104|IMPVL
 ## LEC
 ##
 # call
-call_lec() { lec_64 -nogui -xl -dofile $arguments; }
+alias call_lec='lec_64 -nogui -xl -dofile'
 #
 # error checking
 # NOTE as above, use pipe as separate and provide at least one term

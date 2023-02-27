@@ -2050,6 +2050,7 @@ start_eval() {
 				mv processed_files_MD5.rpt reports/
 
 				# 2) send out email notification of start 
+
 				echo "ISPD23 -- 2)  $id_run:  Send out email about processing start ..."
 
 				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
@@ -2119,51 +2120,46 @@ start_eval() {
 			
 				echo "ISPD23 -- 2)  $id_run:  Starting LEC design checks ..."
 
-				arguments="scripts/lec.do"
-				call_lec > lec.log 2>&1 &
+				# NOTE redirect both stdout and stderr to log file; stderr mainly because the license checkout message is put into stderr which is otherwise filling
+				# the the log as well
+				call_lec scripts/lec.do > lec.log 2>&1 &
 				echo $! > PID.lec_checks
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus design checks ..."
 
-				arguments="scripts/checks.tcl -stylus -log checks"
-
-				# NOTE for design checks and evaluation, vdi is sufficient.
-				# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) --> ruled out for aes w/ its ~260k instances
+				# NOTE for design checks and evaluation, vdi are sufficient.
+				#
+				# NOTE vdi is limited to 50k instances per license --> ruled out for aes w/ its ~260k instances
 				if [[ $benchmark == "aes" ]]; then
 
 					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-					call_invs_only > /dev/null &
+					call_invs_only scripts/checks.tcl -stylus -log checks > /dev/null &
 					echo $! > PID.inv_checks
 				else
-					call_vdi_invs > /dev/null &
-#					call_invs_only > /dev/null &
+					call_vdi_only scripts/checks.tcl -stylus -log checks > /dev/null &
 					echo $! > PID.inv_checks
 				fi
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus PPA evaluation ..."
 
-				arguments="scripts/PPA.tcl -log PPA"
-
-				# NOTE for design checks and evaluation, vdi is sufficient.
-				# NOTE vdi is limited to 50k instances per license (and can only stack 2 licenses, I think) --> ruled out for aes w/ its ~260k instances
 				if [[ $benchmark == "aes" ]]; then
 
-					# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-					call_invs_only > /dev/null &
+					call_invs_only scripts/PPA.tcl -log PPA > /dev/null &
 					echo $! > PID.inv_PPA
 				else
-					call_vdi_invs > /dev/null &
-#					call_invs_only > /dev/null &
+					call_vdi_only scripts/PPA.tcl -log PPA > /dev/null &
 					echo $! > PID.inv_PPA
 				fi
 
 				echo "ISPD23 -- 2)  $id_run:  Starting Innovus Trojan insertion ..."
+
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
 				# NOTE separate subshell required such that interrupts on daemon still keep the monitoring subprocesses for TI running
 				# NOTE for id_run, we need quotes since the string itself contains spaces
 				( scripts/TI_wrapper.sh $daemon_settings_file "$id_run" ) &
 
 				# 6) cleanup downloads dir, to avoid processing again
+
 				rm -r $downloads_folder/$folder #2> /dev/null
 			) &
 
