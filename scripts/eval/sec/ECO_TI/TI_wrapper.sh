@@ -60,13 +60,13 @@ start_TI() {
 			sleep 1s
 
 			## wait -- at least -- until prior TI call has fully started (i.e., Innovus session has started up and the TI_settings.tcl file has been sourced)
-			if [[ -e DONE.source.TI_$previous_trojan_name ]]; then
+			if [[ -e DONE.source.TI.$previous_trojan_name ]]; then
 
 				# wait further in case max runs are already ongoing
 				#
-				runs_started=$(ls STARTED.TI_* 2> /dev/null | wc -l)
+				runs_started=$(ls STARTED.TI.* 2> /dev/null | wc -l)
 				# NOTE must also cover any failed run
-				runs_done=$(ls {DONE.TI_*,FAILED.TI_*} 2> /dev/null | wc -l)
+				runs_done=$(ls {DONE.TI.*,FAILED.TI.*} 2> /dev/null | wc -l)
 				((runs_ongoing = runs_started - runs_done))
 
 				# design-specific limits
@@ -80,7 +80,7 @@ start_TI() {
 				if [[ $runs_ongoing -lt $max_current_runs ]]; then
 
 					# NOTE might trigger race condition w/ other start_TI processes that also want to start their job; thus, mark start right away
-					date > STARTED.TI_$trojan_name
+					date > STARTED.TI.$trojan_name
 
 					break
 				fi
@@ -88,8 +88,8 @@ start_TI() {
 
 			## sanity check and exit handling; process might have been cancelled in the meantime, namely for any failure for PPA eval, LEC checks, and/or design checks,
 			## as well as for any runtime error for other Trojans
-			## NOTE cannot be merged with the above, as DONE.source.TI_* might be there already, but still gets marked as failure
-			if [[ -e FAILED.TI_$trojan_name ]]; then
+			## NOTE cannot be merged with the above, as DONE.source.TI.* might be there already, but still gets marked as failure
+			if [[ -e FAILED.TI.$trojan_name ]]; then
 
 				# dbg_log
 				if [[ $dbg_log == 1 ]]; then
@@ -114,11 +114,11 @@ start_TI() {
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, failed to start for Trojan \"$trojan_name\". More details are reported in \"$err_rpt\"."
 
 		# set failure flag/file for this Trojan; this helps the monitor subshells below to kill other processes as well
-		date > FAILED.TI_$trojan_name
+		date > FAILED.TI.$trojan_name
 
 #		# NOTE deprecated; not needed anymore, to fix possible race conditions w/ other start_TI processs, as the relevant code above also checks for FAILED_TI.* status files
 #		# also unmark start again
-#		rm STARTED.TI_$trojan_name
+#		rm STARTED.TI.$trojan_name
 
 		# dbg_log
 		if [[ $dbg_log == 1 ]]; then
@@ -129,7 +129,7 @@ start_TI() {
 	fi
 
 	## actual Innovus call
-	date > STARTED.TI_$trojan_name
+	date > STARTED.TI.$trojan_name
 
 	# NOTE for ECO TI, vdi should be sufficient, but also use invs license if vdi ones are already busy; this should help to get the many parallel ECO runs through the
 	# pipeline, but minor limitation or impact is that, if the backend is already busy, 'aes' submissions for some team w/o other runs would still not get started
@@ -137,11 +137,11 @@ start_TI() {
 	# NOTE vdi is limited to 50k instances per license --> ruled out for aes w/ its ~260k instances
 	if [[ "$trojan_name" == *"aes"* ]]; then
 
-		call_invs_only scripts/TI.tcl -log TI_$trojan_name > /dev/null &
-		echo $! > PID.TI_$trojan_name
+		call_invs_only scripts/TI.tcl -log TI.$trojan_name > /dev/null &
+		echo $! > PID.TI.$trojan_name
 	else
-		call_vdi_invs scripts/TI.tcl -log TI_$trojan_name > /dev/null &
-		echo $! > PID.TI_$trojan_name
+		call_vdi_invs scripts/TI.tcl -log TI.$trojan_name > /dev/null &
+		echo $! > PID.TI.$trojan_name
 	fi
 
 	# dbg_log
@@ -153,7 +153,7 @@ start_TI() {
 monitor() {
 
 	## monitor subshell
-	# NOTE derived from scripts/gdrive/ISPD23_daemon_procedures.sh, check_eval(), but also revised here, mainly for use of STARTED.TI_* files
+	# NOTE derived from scripts/gdrive/ISPD23_daemon_procedures.sh, check_eval(), but also revised here, mainly for use of STARTED.TI.* files
 
 	# dbg_log
 	if [[ $dbg_log == 1 ]]; then
@@ -176,10 +176,10 @@ monitor() {
 		bring_down_other_runs_as_well=0
 
 		# hasn't started yet
-		if ! [[ -e STARTED.TI_$trojan ]]; then
+		if ! [[ -e STARTED.TI.$trojan ]]; then
 
 			# is already marked as failure (by some other run; see below)
-			if [[ -e FAILED.TI_$trojan ]]; then
+			if [[ -e FAILED.TI.$trojan ]]; then
 
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, cancelled for Trojan \"$trojan\", via an interrupt for some other Trojan."
 				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled, runtime error; triggered by an runtime error for some other Trojan" >> $err_rpt
@@ -192,7 +192,7 @@ monitor() {
 			# NOTE it's important to _not_ explicitly use continue here, but rather follow the remaining part (which checks for failures in other processes)
 
 		# has started, and already done (w/o errors and w/o mark for failure)
-		elif [[ -e DONE.TI_$trojan ]]; then
+		elif [[ -e DONE.TI.$trojan ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, done for Trojan \"$trojan\"."
 
@@ -200,7 +200,7 @@ monitor() {
 			exit 0
 
 		# has started, but got marked as failure (by some other run; see below)
-		elif [[ -e FAILED.TI_$trojan ]]; then
+		elif [[ -e FAILED.TI.$trojan ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, interrupt for Trojan \"$trojan\", indirectly via an interrupt for some other Trojan process."
 			echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error; triggered indirectly by an runtime error for some other Trojan process" >> $err_rpt
@@ -219,7 +219,7 @@ monitor() {
 			#
 			# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
 			# NOTE mute stderr since log file might not exist yet for first few runs of check, depending on overall workload of backend
-			errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" TI_"$trojan".log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
+			errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" TI."$trojan".log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
 
 			if [[ $errors_run != "" ]]; then
 
@@ -250,15 +250,15 @@ monitor() {
 			# NOTE only check when PID file already exist; might not be the case even though the STARTED file exists (which is the pre-requisite to reach here), as the
 			# STARTED file was set ASAP in start_TI(), to avoid race condition for starting jobs
 
-			elif [[ -e PID.TI_$trojan ]]; then
+			elif [[ -e PID.TI.$trojan ]]; then
 
-				errors_interrupt=$(ps --pid $(cat PID.TI_$trojan) > /dev/null 2>&1; echo $?)
+				errors_interrupt=$(ps --pid $(cat PID.TI.$trojan) > /dev/null 2>&1; echo $?)
 				if [[ $errors_interrupt != 0 ]]; then
 
 					# NOTE also check again for DONE flag file, to avoid race condition where
 					# process just finished but DONE did not write out yet
 					sleep 1s
-					if [[ -e DONE.TI_$trojan ]]; then
+					if [[ -e DONE.TI.$trojan ]]; then
 						break
 					fi
 
@@ -308,16 +308,16 @@ monitor() {
 			if [[ $bring_down_other_runs_as_well == 1 ]]; then
 
 				for trojan_ in "${trojans[@]}"; do
-					date > FAILED.TI_$trojan_
+					date > FAILED.TI.$trojan_
 				done
 
 			# else, only mark this as failed
 			else
-				date > FAILED.TI_$trojan
+				date > FAILED.TI.$trojan
 			fi
 
 			# NOTE mute stderr for cat, as the process might not have been started yet (then the PID file won't exist)
-			cat PID.TI_$trojan 2> /dev/null | xargs kill -9 2> /dev/null
+			cat PID.TI.$trojan 2> /dev/null | xargs kill -9 2> /dev/null
 
 			# dbg_log
 			if [[ $dbg_log == 1 ]]; then
@@ -350,7 +350,7 @@ while true; do
 		echo "ISPD23 -- ERROR: $err_string" >> $err_rpt
 
 		# set failure flag/file for all Trojan insertion
-		date > FAILED.TI_ALL
+		date > FAILED.TI.ALL
 		exit 1
 	fi
 
@@ -399,12 +399,12 @@ wait
 # 4) final status checks across all Trojans
 #
 
-failed=$(ls FAILED.TI_* 2> /dev/null | wc -l)
+failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
 
 # NOTE sanity check on 0 Trojans; just exit quietly
 if [[ $trojan_counter == 0 ]]; then
 
-	date > DONE.TI_ALL
+	date > DONE.TI.ALL
 	exit 0
 
 elif [[ $failed == 0 ]]; then
@@ -412,7 +412,7 @@ elif [[ $failed == 0 ]]; then
 #	# NOTE redundant to log in main daemon
 #	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, all $trojan_counter run(s) done without failure."
 
-	date > DONE.TI_ALL
+	date > DONE.TI.ALL
 	exit 0
 
 elif [[ $failed == $trojan_counter ]]; then
@@ -420,7 +420,7 @@ elif [[ $failed == $trojan_counter ]]; then
 #	# NOTE redundant to log in main daemon
 #	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, ALL $failed/$trojan_counter runs failed."
 
-	date > FAILED.TI_ALL
+	date > FAILED.TI.ALL
 	exit 1
 
 # NOTE some but not all runs failed; still mark as done for main daemon
@@ -429,6 +429,6 @@ else
 #	# NOTE redundant to log in main daemon
 #	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, $failed/$trojan_counter run(s) failed but remaining run(s) are done without failure."
 
-	date > DONE.TI_ALL
+	date > DONE.TI.ALL
 	exit 0
 fi

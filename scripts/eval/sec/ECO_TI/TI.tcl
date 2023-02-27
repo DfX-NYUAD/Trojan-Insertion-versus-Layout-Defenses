@@ -17,7 +17,7 @@ setMultiCpuUsage -localCpu 8 -keepLicense true
 # source dynamic config file; generated through the TI_init.sh helper script
 source scripts/TI_settings.tcl
 # NOTE mark once the config file is sourced; this signals to the TI_wrapper.sh helper script that the next config file can be written out
-date > DONE.source.TI_$trojan_name
+date > DONE.source.TI.$trojan_name
 
 # dbg related settings
 # NOTE TI_dbg is also sourced from scripts/TI_settings.tcl
@@ -109,5 +109,5 @@ streamOut $trojan_name.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName Desi
 # mark done; exit
 ####
 
-date > DONE.TI_$trojan_name
+date > DONE.TI.$trojan_name
 exit

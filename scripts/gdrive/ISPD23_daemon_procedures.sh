@@ -666,7 +666,7 @@ check_eval() {
 							#
 							# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
 							# process; use elif statemets to abort each process only once
-							if [[ -e FAILED.TI_ALL ]]; then
+							if [[ -e FAILED.TI.ALL ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus design checks ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
@@ -778,7 +778,7 @@ check_eval() {
 							#
 							# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
 							# process; use elif statemets to abort each process only once
-							if [[ -e FAILED.TI_ALL ]]; then
+							if [[ -e FAILED.TI.ALL ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort Innovus PPA evaluation ..."
 								echo "ISPD23 -- ERROR: process failed for Innovus PPA evaluation -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
@@ -890,7 +890,7 @@ check_eval() {
 							#
 							# NOTE no need to abort process multiple times in case all is cancelled/brought down due to some failure for some single
 							# process; use elif statemets to abort each process only once
-							if [[ -e FAILED.TI_ALL ]]; then
+							if [[ -e FAILED.TI.ALL ]]; then
 
 								echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus Trojan insertion failed. Also abort LEC design checks ..."
 								echo "ISPD23 -- ERROR: process failed for LEC design checks -- aborted due to failure for Innovus Trojan insertion" >> reports/errors.rpt
@@ -1017,13 +1017,13 @@ check_eval() {
 
 				## Innovus Trojan insertion
 				# NOTE processes handled via TI_wrapper.sh, not above
-				if [[ -e DONE.TI_ALL ]]; then
+				if [[ -e DONE.TI.ALL ]]; then
 
 					status[inv_TI]=1
 
 					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: done"
 
-				elif [[ -e FAILED.TI_ALL ]]; then
+				elif [[ -e FAILED.TI.ALL ]]; then
 
 					status[inv_TI]=2
 
@@ -1038,11 +1038,11 @@ check_eval() {
 					status[inv_TI]=0
 
 					runs_total=$(ls TI/* 2> /dev/null | wc -l)
-					# NOTE STARTED.TI_* would cover all runs that are started by TI_wrapper, but some might still wait for licenses, whereas DONE.source.TI_*
+					# NOTE STARTED.TI.* would cover all runs that are started by TI_wrapper, but some might still wait for licenses, whereas DONE.source.TI.*
 					# files relate to processes that have really started
-					runs_started=$(ls DONE.source.TI_* 2> /dev/null | wc -l)
-					runs_done=$(ls DONE.TI_* 2> /dev/null | wc -l)
-					runs_failed=$(ls FAILED.TI_* 2> /dev/null | wc -l)
+					runs_started=$(ls DONE.source.TI.* 2> /dev/null | wc -l)
+					runs_done=$(ls DONE.TI.* 2> /dev/null | wc -l)
+					runs_failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
 					((runs_pending = runs_total - runs_started))
 					((runs_ongoing = runs_started - runs_done - runs_failed ))
 					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working -- $runs_ongoing run(s) ongoing, $runs_done run(s) done, $runs_failed run(s) failed, $runs_pending run(s) pending, $runs_total run(s) in total ..."
@@ -1089,7 +1089,7 @@ check_eval() {
 				# NOTE but for dbg mode, we keep these log files
 				if [[ $dbg_files == "0" ]]; then
 					# NOTE mute also stderr, as files might not exist in case some runs failed
-					zip -d $uploads_folder/logs.zip TI_*.log* > /dev/null 2>&1
+					zip -d $uploads_folder/logs.zip TI.*.log* > /dev/null 2>&1
 				fi
 
 				## status files
@@ -1187,7 +1187,7 @@ check_eval() {
 
 				# unzip Trojan ECO log files again; these log files should be readily accessible for debugging, even at the risk of large files (but haven't seen
 				# such issues yet)
-				unzip $folder'.zip' $folder/TI_*.log* > /dev/null 2>&1
+				unzip $folder'.zip' $folder/TI.*.log* > /dev/null 2>&1
 
 				cd - > /dev/null
 			done
