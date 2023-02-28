@@ -640,6 +640,9 @@ done
 
 ## also print out warning in case any other error occurred. Note that, at this point, this would be some violation of design checks. That is, the evaluation went through all fine,
 ## just some check/metric exceeds the budget
+#
+# NOTE this should work for both the backend and local runs; asssuming for the latter that the downloaded $err_rpt (if any) did not get removed; if it did get removed, there is
+# nothing we can do here
 if [[ -e $err_rpt ]]; then
 
 	echo "" | tee -a $rpt $rpt_summ
