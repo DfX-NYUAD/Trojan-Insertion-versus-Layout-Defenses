@@ -2137,10 +2137,7 @@ start_eval() {
 				# NOTE the number for queued runs is getting more accurate here the further we progress, but does not account for empty folders (arising from failed
 				# downloads) that are not yet processed
 
-				# NOTE this is an approximation, possibly including failed downloads
-				total_queued_runs_approx=$(ls $teams_root_folder/$team/*/downloads/downloads_* -d 2> /dev/null | wc -l)
-
-				text+="Processing status: You have currently around $total_ongoing_runs run(s) ongoing in total, around $total_queued_runs_approx more run(s) queued in total, and out of those $queued_runs more run(s) queued for this particular benchmark."
+				text+="Processing status: You have currently around $total_ongoing_runs run(s) ongoing in total, and around $queued_runs more run(s) queued for this particular benchmark."
 				text+=" "
 				text+="At this point, the evaluation server may start around $((max_parallel_runs - $total_ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
 				text+=" "
