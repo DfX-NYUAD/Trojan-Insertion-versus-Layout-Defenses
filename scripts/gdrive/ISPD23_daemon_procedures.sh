@@ -1839,13 +1839,17 @@ parse_inv_checks() {
 		# that would purge placement and routing altogether
 # Example:
 # ### 2022 Vertical Pin-Track Alignment Violation>
-		issues__vertical_pin_not_aligned=$(grep "Vertical Pin-Track Alignment Violation" reports/check_place.rpt | awk '{print $2}')
-		if [[ $issues__vertical_pin_not_aligned != "" ]]; then
-			((issues = issues - issues__vertical_pin_not_aligned))
+
+		# NOTE there can be multiple lines like the above; we need to handle them all
+		for vertical_pin_vio in $(grep "Vertical Pin-Track Alignment Violation" reports/check_place.rpt | awk '{print $2}')
+
+			((issues = issues - vertical_pin_vio))
 		fi
 
 		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
+		# NOTE as with other checks, we want to see if the margin is maintained or not. Again, only violations other than vertical pin alignment are considered here.
+		#
 		if (( issues > (issues_baseline + issues_margin) )); then
 
 			errors=1
