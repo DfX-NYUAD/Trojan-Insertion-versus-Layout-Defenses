@@ -433,7 +433,8 @@ google_uploads() {
 		google_fix_json
 
 		team=${google_team_folders[$google_team_folder]}
-		ongoing_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
+		total_ongoing_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
+		total_queued_runs=$(ls $teams_root_folder/$team/*/downloads/downloads_* -d 2> /dev/null | wc -l)
 
 		for benchmark in $benchmarks; do
 
@@ -531,9 +532,11 @@ google_uploads() {
 					text+="\n\n"
 				fi
 
-				text+="Processing status: You have currently $ongoing_runs more run(s) ongoing in total, and ${runs_queued[$id_internal]} more run(s) queued for this particular benchmark."
+				# NOTE total_queued_runs is only approximate since there might be some failed downloads included in there
+				# NOTE total_ongoing_runs is only approximate since there might be some runs that just failed/interrupted
+				text+="Processing status: You have currently around $total_ongoing_runs more run(s) ongoing in total, around $total_queued_runs more run(s) queued in total, and ${runs_queued[$id_internal]} more run(s) queued for this particular benchmark."
 				text+=" "
-				text+="At this point, the evaluation server may start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
+				text+="At this point, the evaluation server may start around $((max_parallel_runs - $total_ongoing_runs)) more concurrent run(s), for any benchmark(s), for you."
 				text+=" "
 				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
 
@@ -2010,9 +2013,13 @@ start_eval() {
 #		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
 #		google_share_emails[$team]=$(./gdrive share list $google_team_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
 
-		queued_runs_sum=0
+		# NOTE this will be the accurate count, excluding any failed downloads; but it's only available at the end of the procedure
+		total_queued_runs=0
+
+		# NOTE this is an approximation, possibly including failed downloads
+		total_queued_runs_approx=$(ls $teams_root_folder/$team/*/downloads/downloads_* -d 2> /dev/null | wc -l)
 		# NOTE init the current runs from all work folders of all benchmarks; ignore errors for ls, which are probably only due to empty folders
-		ongoing_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
+		total_ongoing_runs=$(ls $teams_root_folder/$team/*/work/* -d 2> /dev/null | wc -l)
 
 		for benchmark in $benchmarks; do
 
@@ -2062,7 +2069,7 @@ start_eval() {
 				fi
 
 				## 0) only max_runs runs in parallel should be running at once per team
-				if [[ $ongoing_runs -ge $max_parallel_runs ]]; then
+				if [[ $total_ongoing_runs -ge $max_parallel_runs ]]; then
 
 #					# NOTE do not break, only continue, to allow evaluating queued runs for all benchmarks
 					continue
@@ -2070,7 +2077,7 @@ start_eval() {
 
 				## 0) start process, and update run counts
 				((queued_runs = queued_runs - 1))
-				((ongoing_runs = ongoing_runs + 1))
+				((total_ongoing_runs = total_ongoing_runs + 1))
 
 				echo "ISPD23 -- 2)  $id_run: Start processing within work folder \"$work_folder/$folder\" ..."
 
@@ -2124,9 +2131,9 @@ start_eval() {
 				text+="\n\n"
 
 				# NOTE the number for queued runs is more accurate here, but still does not account for empty folders that are not yet processed
-				text+="Processing status: You have currently $ongoing_runs run(s) ongoing in total, and $queued_runs more run(s) queued for this particular benchmark."
+				text+="Processing status: You have currently around $total_ongoing_runs run(s) ongoing in total, around $total_queued_runs_approx more run(s) queued in total, and $queued_runs more run(s) queued for this particular benchmark."
 				text+=" "
-				text+="At this point, the evaluation server may start $((max_parallel_runs - $ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
+				text+="At this point, the evaluation server may start around $((max_parallel_runs - $total_ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
 				text+=" "
 				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
 
@@ -2225,12 +2232,14 @@ start_eval() {
 			done
 
 		# once all folders are processed, we should have the exact number of still queued runs for this benchmark
+		# NOTE store also in global var, for access w/in other procedures
 		runs_queued[$id_internal]=$queued_runs
-		((queued_runs_sum = queued_runs_sum + queued_runs))
+
+		((total_queued_runs = total_queued_runs + queued_runs))
 
 		done
 
-	echo "ISPD23 -- 2)  [ $team_ ]: Currently $ongoing_runs run(s) ongoing, $queued_runs_sum more run(s) queued, and would be allowed to start $((max_parallel_runs - $ongoing_runs)) more run(s)."
+	echo "ISPD23 -- 2)  [ $team_ ]: Currently around $total_ongoing_runs run(s) ongoing (including any just recently failed), $total_queued_runs more run(s) queued, and would be allowed to start around $((max_parallel_runs - $total_ongoing_runs)) more run(s)."
 
 	done
 
