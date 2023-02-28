@@ -1840,10 +1840,10 @@ parse_inv_checks() {
 # ### 2022 Vertical Pin-Track Alignment Violation>
 
 		# NOTE there can be multiple lines like the above; we need to handle them all
-		for vertical_pin_vio in $(grep "Vertical Pin-Track Alignment Violation" reports/check_place.rpt | awk '{print $2}')
+		for vertical_pin_vio in $(grep "Vertical Pin-Track Alignment Violation" reports/check_place.rpt | awk '{print $2}'); do
 
 			((issues = issues - vertical_pin_vio))
-		fi
+		done
 
 		issues_baseline=$(grep "ISPD23 -- $string" $baselines_root_folder/$benchmark/reports/checks_summary.rpt | awk '{print $NF}')
 
