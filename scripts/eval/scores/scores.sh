@@ -212,7 +212,8 @@ weights[sec_ti_eco_drc_vio]="(7/27)"
 weights[sec_ti_eco_set_and_hld_vio]="(12/27)"
 weights[sec_ti_eco_set_xor_hld_vio]="(17/27)"
 weights[sec_ti_eco_drv_clk_vio]="(22/27)"
-weights[sec_ti_eco_no_vio]="1.0"
+# NOTE use 27/27 for easier reading of the report
+weights[sec_ti_eco_no_vio]="(27/27)"
 
 # NOTE each Trojan has the same normalized weight. This is fair, given that, despite the different nature and implementation of the Trojans, the success for Trojan insertion at our
 # end depends on many aspects of the participants' submissions; it cannot be easily differentiated b/w the different Trojans and their requirements for successful insertion
