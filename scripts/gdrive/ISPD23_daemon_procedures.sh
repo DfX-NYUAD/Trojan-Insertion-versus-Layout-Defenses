@@ -1126,9 +1126,14 @@ check_eval() {
 					for file in TI/*; do
 
 						trojan_name=${file##TI/}
-						trojan_name=${trojan_name%%.v}
-						trojans[$trojan_counter]=$trojan_name
+						trojan_name=${trojan_name%%.*}
 
+						# NOTE this is required to sort out duplicate files that differ only in the file suffix
+						if [[ "${trojans[$((trojan_counter-1))]}" == $trojan_name ]]; then
+							continue	
+						fi
+
+						trojans[$trojan_counter]=$trojan_name
 						((trojan_counter = trojan_counter + 1))
 					done
 
