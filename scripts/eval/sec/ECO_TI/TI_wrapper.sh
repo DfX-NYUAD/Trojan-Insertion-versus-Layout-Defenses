@@ -182,7 +182,11 @@ monitor() {
 			if [[ -e FAILED.TI.$trojan ]]; then
 
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, cancelled for Trojan \"$trojan\", via an interrupt for some other Trojan."
-				echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled, runtime error; triggered by an runtime error for some other Trojan" >> $err_rpt
+
+				# NOTE Importantly, this, and all other process issues below, are to be handled only as warnings for the logs/reports. This is to not flag scores as invalid; any
+				# Trojan run may fail while still providing valid scores (namely, that the submission layout is "stronger" than our Trojan insertion)
+
+				echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled, runtime error; triggered by an runtime error for some other Trojan" >> $warn_rpt
 
 				# stop to wait, exit monitor process (w/ error) directly here, as there's no need for killing
 				exit 1
@@ -203,7 +207,7 @@ monitor() {
 		elif [[ -e FAILED.TI.$trojan ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, interrupt for Trojan \"$trojan\", indirectly via an interrupt for some other Trojan process."
-			echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error; triggered indirectly by an runtime error for some other Trojan process" >> $err_rpt
+			echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error; triggered indirectly by an runtime error for some other Trojan process" >> $warn_rpt
 
 			# mark as error, to enable killing further below
 			errors=1
@@ -227,11 +231,13 @@ monitor() {
 				# NOTE id_run passed through as global var
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, some failure occurred for Trojan \"$trojan\"."
 
+				# NOTE only in dbg mode we want to share details directly into this report to be uploaded; also note, in the backend all details are available
+				# anyway in the logs
 				if [[ $dbg_files == "1" ]]; then
-					# NOTE deprecated; use for dbg_files only, which arranges more access to result files, unlike regular non-dbg/production mode
-					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $err_rpt
+
+					echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- $errors_run" >> $warn_rpt
 				else
-					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- details remain undisclosed, on purpose" >> $err_rpt
+					echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- details remain undisclosed, on purpose" >> $warn_rpt
 				fi
 
 				errors=1
@@ -263,7 +269,7 @@ monitor() {
 					fi
 
 					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, interrupt for Trojan \"$trojan\"."
-					echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error" >> $err_rpt
+					echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- INTERRUPT, runtime error" >> $warn_rpt
 
 					errors=1
 
@@ -281,21 +287,21 @@ monitor() {
 		if [[ -e FAILED.lec_checks ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  For some reason, LEC design checks failed. Also cancel/interrupt Innovus Trojan insertion, Trojan \"$trojan\" ..."
-			echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled or interrupted due to failure for LEC design checks" >> $err_rpt
+			echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled or interrupted due to failure for LEC design checks" >> $warn_rpt
 
 			errors=1
 
 		elif [[ -e FAILED.inv_PPA ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus PPA evaluation failed. Also cancel/interrupt Innovus Trojan insertion, Trojan \"$trojan\" ..."
-			echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled or interrupted due to failure for Innovus PPA evaluation" >> $err_rpt
+			echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled or interrupted due to failure for Innovus PPA evaluation" >> $warn_rpt
 
 			errors=1
 
 		elif [[ -e FAILED.inv_checks ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  For some reason, Innovus design checks failed. Also cancel/interrupt Innovus Trojan insertion, Trojan \"$trojan\" ..."
-			echo "ISPD23 -- ERROR: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled or interrupted due to failure for Innovus design checks" >> $err_rpt
+			echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\" -- cancelled or interrupted due to failure for Innovus design checks" >> $warn_rpt
 
 			errors=1
 		fi
@@ -347,7 +353,7 @@ while true; do
 
 		err_string="Innovus Trojan insertion: failed altogether as design database was not initialized since, for some reason, Innovus PPA evaluation failed."
 		echo -e "\nISPD23 -- 2)  $id_run: $err_string"
-		echo "ISPD23 -- ERROR: $err_string" >> $err_rpt
+		echo "ISPD23 -- WARNING: $err_string" >> $warn_rpt
 
 		# set failure flag/file for all Trojan insertion
 		date > FAILED.TI.ALL

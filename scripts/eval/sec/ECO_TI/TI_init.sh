@@ -13,6 +13,9 @@ warn_rpt="reports/warnings.rpt"
 trojan_name=$1
 dbg=$2
 
+# NOTE Importantly, this, and most other issues below, are to be handled as errors for the logs/reports, not only as warnings. This is to flag scores as invalid; any initialization
+# issue means the score evaluation was done not properly and should be fixed.
+
 ## sanity checks: all parameters provided?
 if [[ $trojan_name == "" ]]; then
 
