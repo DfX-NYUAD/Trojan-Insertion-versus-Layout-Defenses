@@ -25,56 +25,64 @@ dbg_files=$4
 files="reports/exploitable_regions.rpt reports/track_utilization.rpt reports/area.rpt reports/power.rpt reports/timing.rpt"
 rpt=reports/scores.rpt
 rpt_back=reports/scores.rpt.back
+rpt_log=scores.log
 rpt_summ=reports/scores.rpt.summary
 err_rpt=reports/errors.rpt
 
-## 1) basic init
+## 0) basic init
 mv $rpt $rpt_back 2> /dev/null
 error=0
 
 ## NOTE deprecated, disabled on purpose; see also https://wp.nyu.edu/ispd23_contest/qa/#scoring QA-5
-### 1) check for any other errors that might have occurred during actual processing
+### 0) check for any other errors that might have occurred during actual processing
 #if [[ -e $err_rpt ]]; then
-#	echo "ISPD23 -- ERROR: cannot compute scores -- some evaluation step had some errors." | tee -a $err_rpt
+#	echo "ISPD23 -- ERROR: cannot compute scores -- some evaluation step had some errors." | tee -a $err_rpt $rpt_log
 #	error=1
 #fi
 
-## 1) parameter checks
+## 0) parameter checks
 if [[ $scale == "" ]]; then
-	echo "ISPD23 -- ERROR: cannot compute scores -- 1st parameter, scale, is not provided." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot compute scores -- 1st parameter, scale, is not provided." | tee -a $err_rpt $rpt_log
 	error=1
 fi
 if ! [[ -d $baseline ]]; then
-	echo "ISPD23 -- ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder." | tee -a $err_rpt $rpt_log
 	error=1
 fi
-if ! [[ $run_on_backend == "" ]]; then
+if [[ $run_on_backend == "" ]]; then
 	run_on_backend=0
 fi
 if [[ $dbg_files == "" ]]; then
 	dbg_files=0
 fi
 
-## 1) files check
+echo "Settings: " | tee -a $rpt_log
+echo " scale=$scale" | tee -a $rpt_log
+echo " baseline=$baseline" | tee -a $rpt_log
+echo " run_on_backend=$run_on_backend" | tee -a $rpt_log
+echo " dbg_files=$dbg_files" | tee -a $rpt_log
+echo "" | tee -a $rpt_log
+
+## 0) files check
 for file in $files; do
 
 	if ! [[ -e $baseline/$file ]]; then
-		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$baseline/$file\" is missing." | tee -a $err_rpt
+		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$baseline/$file\" is missing." | tee -a $err_rpt $rpt_log
 		error=1
 	fi
 
 	if ! [[ -e $file ]]; then
-		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
+		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt $rpt_log
 		error=1
 	fi
 done
 
 if ! [[ -d TI ]]; then
-	echo "ISPD23 -- ERROR: cannot compute scores -- sub-folder folder \"TI\" is missing." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot compute scores -- sub-folder folder \"TI\" is missing." | tee -a $err_rpt $rpt_log
 	error=1
 fi
 
-## 1) error handling
+## 0) error handling
 if [[ $error == 1 ]]; then
 	exit 1
 fi
@@ -563,7 +571,7 @@ for trojan in "${trojans[@]}"; do
 done
 calc_string+=$calc_string_rounding
 scores[sec_ti_eco]=$(bc -l <<< "scale=$scale; ($calc_string)")
-echo "sec_ti_eco: $calc_string"
+#echo "sec_ti_eco: $calc_string"
 
 ## security, combined
 calc_string="${weights[sec_ti_gen]}*${scores[sec_ti_gen]}"
@@ -619,7 +627,7 @@ echo "Scores (weighted; last digit subject to rounding):" | tee -a $rpt $rpt_sum
 for score in "${!scores[@]}"; do
 
 	if [[ "${scores[$score]}" == "" ]]; then
-		echo "ISPD23 -- ERROR: computation for score component \"$score\" failed." | tee -a $err_rpt $rpt_summ
+		echo "ISPD23 -- ERROR: computation for score component \"$score\" failed." | tee -a $err_rpt $rpt_log
 		error=1
 	fi
 
