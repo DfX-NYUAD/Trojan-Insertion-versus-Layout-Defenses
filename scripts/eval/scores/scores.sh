@@ -69,6 +69,11 @@ for file in $files; do
 	fi
 done
 
+if ! [[ -d TI ]]; then
+	echo "ISPD23 -- ERROR: cannot compute scores -- sub-folder folder \"TI\" is missing." | tee -a $err_rpt
+	error=1
+fi
+
 ## 1) error handling
 if [[ $error == 1 ]]; then
 	exit 1
