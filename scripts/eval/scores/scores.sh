@@ -6,22 +6,21 @@
 #
 ####
 
-# NOTE FOR PARTICIPANTS: When re-running locally, you MUST provide '0' for 3rd parameter for correct calculation
-
-# NOTE FOR PARTICIPANTS: Make sure that you have your submission reports ready in some local work folder. All reports should go into a 'reports/' sub-folder. You are flexible
-# flexible while calling this script, as long as you provide correct paths (ideally absolute paths) as parameters. For example,
-# 	[USER@HOST results_1245 ]$ $path_unzipped_release/_scripts/scores.sh 6 $path_unzipped_release/_final/aes 0
-# should work fine, where results_12345 would be the current path, that is the local copy of the submission's results download, with reports/ as sub-folder, and
+# NOTE FOR PARTICIPANTS: Make sure that you have your submission reports ready. You want to have individual work directories per submission, and all reports for one submission
+# should go into a 'reports/' sub-folder. You are flexible though while calling this script, as long as you provide correct paths as parameters. For example,
+# 	[USER@HOST results_1245 ]$ $path_unzipped_release/_scripts/scores.sh 6 $path_unzipped_release/_final/aes
+# should work fine, where results_12345 would be your current path, e.g., the local copy of the submission's results download, with reports/ as sub-folder, and
 # $path_unzipped_release points to the path to the unzipped release bundle.
 
 ## fixed settings; typically not to be modified
 #
-# NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark; run_on_backend=1; dbg_files=$dbg_files
+# NOTE: default values in evaluation backend: scale=6; baseline=_$round/$benchmark; run_on_backend=1; dbg_files=$dbg_files
 #
 scale=$1
 baseline=$2
+# NOTE FOR PARTICIPANTS: this is by default set to '0' -- do not override this to '1' as that would give you incorrect scores!
 run_on_backend=$3
-# NOTE FOR PARTICIPANTS: when re-running locally, dbg_files has no effect
+# NOTE FOR PARTICIPANTS: dbg_files has no meaning and no effect for you; it's only relevant for the backend
 dbg_files=$4
 files="reports/exploitable_regions.rpt reports/track_utilization.rpt reports/area.rpt reports/power.rpt reports/timing.rpt"
 rpt=reports/scores.rpt
@@ -48,6 +47,9 @@ fi
 if ! [[ -d $baseline ]]; then
 	echo "ISPD23 -- ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder." | tee -a $err_rpt
 	error=1
+fi
+if ! [[ $run_on_backend == "" ]]; then
+	run_on_backend=0
 fi
 if [[ $dbg_files == "" ]]; then
 	dbg_files=0
@@ -103,8 +105,7 @@ declare -A trojans_rpt_drc
 
 for trojan in "${trojans[@]}"; do
 
-	# NOTE FOR PARTICIPANTS -- tl;dr: you can just run the script as is -- with '0' provided as 3rd parameter -- as there's an automated work-around for you not having direct
-	# access to the DRC reports locally.
+	# NOTE FOR PARTICIPANTS -- tl;dr: you can just run the script as is; the code below works around the fact that you're not given the actual DRC reports.
 	#
 	# We do not share the full DRC reports with you (on purpose, to discourage any benchmark-specific tuning of your defense based on insights from the
 	# DRC checks). You may run this script right away without any action, but -- unless your defense does indeed render insertion for this particular $trojan failing at our end, which
@@ -114,13 +115,16 @@ for trojan in "${trojans[@]}"; do
 	# where $DRC_violations is the number of violations, which is listed as sec_ti_eco_drc_vio___$trojan in the original scores.rpt returned to you.
 	# Note that this task could be easily automated; this is already done right below.
 	if [[ $run_on_backend == 0 ]]; then
-		echo -n "Total Violations : " > submission.geom."$trojan".rpt
-		grep "sec_ti_eco_drc_vio___$trojan" $rpt_back | awk '{print $NF}' >> submission.geom."$trojan".rpt
+
+		# NOTE that we can put this dummy rpt always in the work folder, irrespective of dbg_files; this is because of the ordered conditional check just below.
+		dummy_drc_rpt="submission.geom."$trojan".rpt"
+		echo -n "Total Violations : " > $dummy_drc_rpt
+		grep "sec_ti_eco_drc_vio___$trojan" $rpt_back | awk '{print $NF}' >> $dummy_drc_rpt
 	fi
 
 	# NOTE in regular mode, related report file have been placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related
 	# details back to participants
-	# NOTE order of the two condition matters here; if we run on the backend, we still need to evaluate whether dbg_files is off or not
+	# NOTE order of the two condition matters here; if we do not run on the backend, we have the file in the work dir, but if we do run on the backend, we still need to check dbg_files
 	if [[ $run_on_backend == 0 || $dbg_files == 0 ]]; then
 		trojans_rpt_drc[$trojan]="*.geom."$trojan".rpt"
 	else
@@ -271,18 +275,19 @@ for trojan in "${trojans[@]}"; do
 
 	id="sec_ti_eco_drc_vio___$trojan"
 
-	# NOTE checking for files with '-e' does not work with *.geom wildcards --> go through ls 
+	# NOTE checking for files with * wildcards using '-e' does not work; go by files count instead
 	drc_rpt=$(ls ${trojans_rpt_drc[$trojan]} 2> /dev/null | wc -l)
 
-	# NOTE if the files does not exist, it means either that the related run has failed, the dbg_files parameter was misconfigured, or -- NOTE FOR PARTICIPANTS -- when running
-	# locally, you forgot to provide '0' for the 3rd call parameter (see above).
-	# NOTE For the backend, we can double-check against the process status file.
+	# NOTE if the files does not exist, it means either that the related run has failed, the dbg_files parameter was misconfigured (as in not in sync with dbg_files for
+	# TI_wrapper.sh) , or -- NOTE FOR PARTICIPANTS -- when running locally, you _falsely_ did override the 3rd parameter to '1' (see above).
+	#
+	# NOTE For the backend, we double-check against the process status file.
 	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
 
 		metrics_submission[$id]="fail"
 
-	# NOTE this case is not redundant; it serves both for running locally as well as fail-safe for the backend, in case the above does not hold (the FAILED status file might be
-	# deleted/cleaned up again) while the reports are still not available 
+	# NOTE this case is not redundant; it serves both for running locally as well as fail-safe for the backend, in case the above does not hold (e.g., the FAILED status file
+	# might have been deleted/cleaned up again while the reports are still not available)
 	elif [[ $drc_rpt == 0 ]]; then
 
 		metrics_submission[$id]="fail"
@@ -420,8 +425,7 @@ for trojan in "${trojans[@]}"; do
 	# violations (if any) depend on both the submission as well as the Trojan; it is difficult to separate these parts. Also, we can argue that attackers would only care/hope that
 	# violations did not occur. Thus, if violations occur, the related score for the participants will improve.
 
-	# NOTE As safety measure, prepare to double-check whether any of the checks has not failed, or rather whose results are available. If so, we would consider that one for
-	# scoring, still following the same order as with regular scoring where nothing has failed.
+	# NOTE sanity check whether all evaluation steps have failed.
 	#
 	all_has_failed=1
 	for id in "sec_ti_eco_drc_vio___$trojan" "sec_ti_eco_prf_hld_vio___$trojan" "sec_ti_eco_prf_set_vio___$trojan" "sec_ti_eco_drv_clk_vio___$trojan"; do
@@ -434,23 +438,25 @@ for trojan in "${trojans[@]}"; do
 	## actual score evaluation
 	#
 	# NOTE order is important here; check from worst to best scenario (for attacker) to assign best-possible score for defender/participants
-	#
-	# NOTE shortcut or rather preferred check for backend
+	
+	# NOTE short-cut check for backend
 	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
 
 		outcome="fail"
 
-	# NOTE for running locally, and as fail-safe for backend
+	# NOTE sanity check for both running locally and on the backend 
 	elif [[ $all_has_failed == 1 ]]; then
 
 		outcome="fail"
 
-	# NOTE at this point, we know that at least some evaluation has not failed -- this will be used for scoring, following the same order as in cases where all evaluation steps
-	# go through
-	
-	# NOTE in case the actual value is 'fail' the particular syntax below and the cases are evaluated to false, thus not entered. This is preferred/safe from the perspective of
-	# not scoring a failing run better than it should be, as we then continue "raising up" the score until we find the value for another non-failing check (or reach the safe
-	# conclusion that there are no violations). Again, that's only for not scoring a failing run falsely as too good; it's still not a correct scoring.
+	# NOTE at this point, we know that at least one evaluation has not failed -- this will selected for scoring, following the same order as when all evaluation steps went
+	# through w/o failure; see also next note.
+	#	
+	# NOTE in case the actual value is 'fail' the particular syntax below for conditional checks equals to false, thus the related case/outcome is skipped. This is
+	# preferred/safe from the perspective of scoring: a failing run must not be scored better than it might be if the run would not have failed. We then continue "raising"
+	# the score, by "climbing up" the score categories in order, until we find some non-failing check or eventually reach to the safe conclusion that there are no violations at all.
+	# Again, this is about to _not_ score a failing run as too good; 'fail' scenarios still cannot, by definition, represent the correct scoring that would have been achieved
+	# if the evaluation would not have failed.
 
 	elif [[ ${metrics_submission[sec_ti_eco_drc_vio___$trojan]} -gt 0 ]]; then
 
@@ -472,8 +478,7 @@ for trojan in "${trojans[@]}"; do
 
 		outcome="drv_clk_vio"
 
-	# NOTE we reach here only once no violations occurred at all OR in case all of the evaluation runs had status 'fail'. For the latter, this is a fail-safe here to not score
-	# such failing runs too good.
+	# NOTE we reach here only once no violations occurred at all
 	else
 		outcome="no_vio"
 	fi
