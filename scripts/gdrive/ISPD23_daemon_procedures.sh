@@ -41,7 +41,7 @@ send_email() {
 
 	# NOTE suppress warnings for certificate issue not recognized (won't fail email sending, more like a warning)
 	# but keep any others
-#	echo -e "$text" | mailx -A ispd23contest -s "$subject" $emails_string 2>&1 | grep -v "Error in certificate: Peer's certificate issuer is not recognized."
+	echo -e "$text" | mailx -A ispd23contest -s "$subject" $emails_string 2>&1 | grep -v "Error in certificate: Peer's certificate issuer is not recognized."
 }
 
 # https://unix.stackexchange.com/a/415450

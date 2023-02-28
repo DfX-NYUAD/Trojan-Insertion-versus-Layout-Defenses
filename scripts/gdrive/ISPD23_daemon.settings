@@ -18,7 +18,7 @@ dbg_files="1"
 ## wait time b/w cycles [s]
 check_interval="60"
 ## max runs allowed in parallel per team
-# TODO set to 1--4 for production, probably best is 2
+# TODO set to 1--4 for production, probably best is 3
 max_parallel_runs="8"
 ## max uploads allowed to be started in parallel; based on experience of load behaviour w/ Google drive
 max_parallel_uploads="10"
