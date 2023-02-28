@@ -1036,7 +1036,7 @@ check_eval() {
 				else
 					status[inv_TI]=0
 
-					runs_total=$(ls TI/* 2> /dev/null | wc -l)
+					runs_total=$(ls TI/*.v 2> /dev/null | wc -l)
 					# NOTE STARTED.TI.* would cover all runs that are started by TI_wrapper, but some might still wait for licenses, whereas DONE.source.TI.*
 					# files relate to processes that have really started
 					runs_started=$(ls DONE.source.TI.* 2> /dev/null | wc -l)
