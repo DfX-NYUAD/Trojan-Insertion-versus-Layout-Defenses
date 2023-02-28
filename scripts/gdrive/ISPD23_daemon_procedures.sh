@@ -1854,7 +1854,9 @@ parse_inv_checks() {
 			errors=1
 
 			echo "ISPD23 -- ERROR: $string $issues -- exceeds the allowed margin of $((issues_baseline + issues_margin)) issues -- see check_place.rpt for more details, but note that vertical-pin violations can be, and are, safely ignored." >> reports/errors.rpt
-		else
+
+		elif [[ $issues != 0 ]]; then
+
 			echo "ISPD23 -- WARNING: $string $issues -- see check_place.rpt for more details, but note that vertical-pin violations can be, and are, safely ignored." >> reports/warnings.rpt
 		fi
 	else
