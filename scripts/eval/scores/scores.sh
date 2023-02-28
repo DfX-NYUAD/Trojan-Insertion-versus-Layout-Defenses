@@ -637,6 +637,14 @@ for score in "${!scores[@]}"; do
 	echo "	$score_ : $value" | tee -a $rpt $rpt_summ
 done
 
+## also print out warning in case any other error occurred. Note that, at this point, this would be some violation of design checks. That is, the evaluation went through all fine,
+## just some check/metric exceeds the budget
+if [[ -e $err_rpt ]]; then
+
+	echo "" | tee -a $rpt $rpt_summ
+	echo "SCORES ONLY FOR INFORMATION. THIS SUBMISSION IS INVALID AS SOME DESIGN CHECK FAILED AND/OR SOME ERROR OCCURRED." | tee -a $rpt $rpt_summ
+fi
+
 ## sanity check; move failed report such that it's not to accounted for during ranking in the backend
 if [[ $error == 1 ]]; then
 

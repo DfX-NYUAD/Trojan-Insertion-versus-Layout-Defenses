@@ -499,6 +499,7 @@ google_uploads() {
 
 				rpt=$backup_work_folder/downloads_$folder_/reports/errors.rpt
 				if [[ -e $rpt ]]; then
+
 					# NOTE only indicate on errors, do not print out in email
 					#text+=$(cat $rpt)
 					text+="Errors: Some errors occurred -- see errors.txt for details. (Note: errors.txt is the same as reports.zip/errors.rpt;";
@@ -511,6 +512,7 @@ google_uploads() {
 
 				rpt=$backup_work_folder/downloads_$folder_/reports/warnings.rpt
 				if [[ -e $rpt ]]; then
+
 					# NOTE only indicate on warnings, do not print out in email
 					#text+=$(cat $rpt)
 					text+="Warnings: Some warnings occurred -- see warnings.txt for details. (Note: warnings.txt is the same as reports.zip/warnings.rpt;";
@@ -523,12 +525,6 @@ google_uploads() {
 
 				rpt=$backup_work_folder/downloads_$folder_/reports/scores.rpt.summary
 				if [[ -e $rpt ]]; then
-
-					rpt_=$backup_work_folder/downloads_$folder_/reports/errors.rpt
-					if [[ -e $rpt_ ]]; then
-						text+="SCORES ONLY FOR INFORMATION. THIS SUBMISSION IS INVALID DUE TO SOME ERRORS."
-						text+="\n\n"
-					fi
 
 					# NOTE print out scores summary in email
 					text+=$(cat $rpt)
