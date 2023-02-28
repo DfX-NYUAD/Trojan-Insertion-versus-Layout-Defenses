@@ -6,22 +6,34 @@
 #
 ####
 
+# NOTE FOR PARTICIPANTS: When re-running locally, you MUST provide '0' for 3rd parameter for correct calculation
+
+# NOTE FOR PARTICIPANTS: Make sure that you have your submission reports ready in some local work folder. All reports should go into a 'reports/' sub-folder. You are flexible
+# flexible while calling this script, as long as you provide correct paths (ideally absolute paths) as parameters. For example,
+# 	[USER@HOST results_1245 ]$ $path_unzipped_release/_scripts/scores.sh 6 $path_unzipped_release/_final/aes 0
+# should work fine, where results_12345 would be the current path, that is the local copy of the submission's results download, with reports/ as sub-folder, and
+# $path_unzipped_release points to the path to the unzipped release bundle.
+
 ## fixed settings; typically not to be modified
 #
-# NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark; dbg_files=$dbg_files
+# NOTE: default values in evaluation backbone: scale=6; baseline=_$round/$benchmark; run_on_backend=1; dbg_files=$dbg_files
+#
 scale=$1
 baseline=$2
-dbg_files=$3
+run_on_backend=$3
+# NOTE FOR PARTICIPANTS: when re-running locally, dbg_files has no effect
+dbg_files=$4
 files="reports/exploitable_regions.rpt reports/track_utilization.rpt reports/area.rpt reports/power.rpt reports/timing.rpt"
 rpt=reports/scores.rpt
+rpt_back=reports/scores.rpt.back
 rpt_summ=reports/scores.rpt.summary
 err_rpt=reports/errors.rpt
 
 ## 1) basic init
-rm $rpt 2> /dev/null
+mv $rpt $rpt_back 2> /dev/null
 error=0
 
-## NOTE deprecated, disabled on purpose; see https://wp.nyu.edu/ispd23_contest/qa/#scoring QA5
+## NOTE deprecated, disabled on purpose; see also https://wp.nyu.edu/ispd23_contest/qa/#scoring QA-5
 ### 1) check for any other errors that might have occurred during actual processing
 #if [[ -e $err_rpt ]]; then
 #	echo "ISPD23 -- ERROR: cannot compute scores -- some evaluation step had some errors." | tee -a $err_rpt
@@ -33,16 +45,12 @@ if [[ $scale == "" ]]; then
 	echo "ISPD23 -- ERROR: cannot compute scores -- 1st parameter, scale, is not provided." | tee -a $err_rpt
 	error=1
 fi
-
-## 1) folder check
 if ! [[ -d $baseline ]]; then
 	echo "ISPD23 -- ERROR: cannot compute scores -- 2nd parameter, baseline folder \"$baseline\", is not a valid folder." | tee -a $err_rpt
 	error=1
 fi
-
-## 1) exit for errors
-if [[ $error == 1 ]]; then
-	exit 1
+if [[ $dbg_files == "" ]]; then
+	dbg_files=0
 fi
 
 ## 1) files check
@@ -59,59 +67,67 @@ for file in $files; do
 	fi
 done
 
-## NOTE deprecated; Trojans that have failed won't have such reports, but that's no reason to cancel the scoring altogether (such Trojans will be assigned worst scores)
-## NOTE for TI files, we don't require the baseline part
-#for file in "${trojans_rpt_timing[@]}"; do
-#
-#	if ! [[ -e $file ]]; then
-#		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
-#		error=1
-#	fi
-#done
-#for file in "${trojans_rpt_DRC[@]}"; do
-#
-#	errors=$(ls $file > /dev/null 2>&1; echo $?)
-#	if [[ $errors != 0 ]]; then
-#		echo "ISPD23 -- ERROR: cannot compute scores -- file \"$file\" is missing." | tee -a $err_rpt
-#		error=1
-#	fi
-#done
-
-## 1) exit for errors
+## 1) error handling
 if [[ $error == 1 ]]; then
 	exit 1
 fi
 
 ## 1) only now, if all checks pass, we start with init procedures
 
-### init ECO Trojans
-#
+### init data structure for ECO Trojan insertion (TI)
+
 # NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
 declare -A trojans
 trojan_counter=0
+
 for file in TI/*; do
 
 	trojan_name=${file##TI/}
-	trojan_name=${trojan_name%%.v}
+	trojan_name=${trojan_name%%.*}
+
+	# NOTE this is required for the backend, to sort out duplicate files that differ only in the file suffix
+	# minor NOTE FOR PARTICIPANTS: this runs fine locally without any side-effect
+	if [[ "${trojans[$((trojan_counter-1))]}" == $trojan_name ]]; then
+		continue	
+	fi
 
 	trojans[$trojan_counter]=$trojan_name
 	((trojan_counter = trojan_counter + 1))
 done
+#declare -p trojans
+
+## handling of DRC, timing report files
 
 declare -A trojans_rpt_timing
-declare -A trojans_rpt_DRC
+declare -A trojans_rpt_drc
+
 for trojan in "${trojans[@]}"; do
 
-	# dbg
-	if [[ $dbg_files == 1 ]]; then
-
-		trojans_rpt_DRC[$trojan]="reports/*.geom."$trojan".rpt"
-	else
-		# NOTE related report file is placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
-		trojans_rpt_DRC[$trojan]="*.geom."$trojan".rpt"
+	# NOTE FOR PARTICIPANTS -- tl;dr: you can just run the script as is -- with '0' provided as 3rd parameter -- as there's an automated work-around for you not having direct
+	# access to the DRC reports locally.
+	#
+	# We do not share the full DRC reports with you (on purpose, to discourage any benchmark-specific tuning of your defense based on insights from the
+	# DRC checks). You may run this script right away without any action, but -- unless your defense does indeed render insertion for this particular $trojan failing at our end, which
+	# you can check from errors.rpt -- your related score will be off. To reproduce the correct scores, you need to generate some simple dummy DRC report file at your end. This file
+	# must follow the below path selection and it suffices to hold one line as follows:
+	# "Total Violations : $DRC_violations"
+	# where $DRC_violations is the number of violations, which is listed as sec_ti_eco_drc_vio___$trojan in the original scores.rpt returned to you.
+	# Note that this task could be easily automated; this is already done right below.
+	if [[ $run_on_backend == 0 ]]; then
+		echo -n "Total Violations : " > submission.geom."$trojan".rpt
+		grep "sec_ti_eco_drc_vio___$trojan" $rpt_back | awk '{print $NF}' >> submission.geom."$trojan".rpt
 	fi
 
-	# NOTE timing rpts are always in reports/ folder and to be shared, independent of dbg mode
+	# NOTE in regular mode, related report file have been placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related
+	# details back to participants
+	# NOTE order of the two condition matters here; if we run on the backend, we still need to evaluate whether dbg_files is off or not
+	if [[ $run_on_backend == 0 || $dbg_files == 0 ]]; then
+		trojans_rpt_drc[$trojan]="*.geom."$trojan".rpt"
+	else
+		trojans_rpt_drc[$trojan]="reports/*.geom."$trojan".rpt"
+	fi
+
+	# NOTE timing rpts are always placed in reports/ folder, independent of dbg mode, as they are meant to be shared with participants in any case
 	trojans_rpt_timing[$trojan]="reports/timing."$trojan".rpt"
 done
 
@@ -122,7 +138,7 @@ declare -A weights=()
 ### security
 #
 weights[sec]="0.5"
-#
+
 ## Trojan insertion; generic evaluation of resources
 weights[sec_ti_gen]="(1/3)"
 # placement sites of exploitable regions
@@ -133,73 +149,22 @@ weights[sec_ti_gen_sts_med]="(1/6)"
 # routing resources (free tracks) of whole layout
 weights[sec_ti_gen_fts]="0.5"
 weights[sec_ti_gen_fts_sum]="1.0"
-#
+
 ## Trojan insertion; actual ECO insertion
+#
 weights[sec_ti_eco]="(2/3)"
-for trojan in "${trojans[@]}"; do
 
-	weights[sec_ti_eco_$trojan]="(1/"${#trojans[@]}")"
-
-# TODO update values
-# TODO add new ones
-
-	id="sec_ti_eco_"$trojan"_DRC_vio"
-	# NOTE this are not weights but actual score values; also see NOTE below
-	weights[$id]="0.0"
-
-	id="sec_ti_eco_"$trojan"_prf_hld_vio"
-	# NOTE this are not weights but actual score values; also see NOTE below
-	weights[$id]="1.0"
-
-	id="sec_ti_eco_"$trojan"_prf_set_vio"
-	# NOTE this are not weights but actual score values; also see NOTE below
-	weights[$id]="1.0"
-
-	id="sec_ti_eco_"$trojan"_no_vio"
-	# NOTE this are not weights but actual score values; also see NOTE below
-	weights[$id]="4.0"
-done
-
-### Design quality
-#
-weights[des]="0.5"
-#
-## power
-weights[des_pwr]="(1/3)"
-weights[des_pwr_tot]="1.0"
-## performance
-weights[des_prf]="(1/3)"
-weights[des_prf_WNS_set]="0.5"
-weights[des_prf_WNS_hld]="0.5"
-## area
-weights[des_area]="(1/3)"
-weights[des_area_die]="1.0"
-
-### helper for log formating: max length of components, required for alignment
-#
-cmp_max_length="0"
-for cmp in "${!weights[@]}"; do
-
-	if [[ ${#cmp} -gt $cmp_max_length ]]; then
-		cmp_max_length=${#cmp}
-	fi
-done
-
-echo "Metrics' weights:" | tee -a $rpt
-for weight in "${!weights[@]}"; do
-	value="${weights[$weight]}"
-	weight_=$(printf "%-"$cmp_max_length"s" $weight)
-	echo "	$weight_ : $value" | tee -a $rpt
-done
-
-# TODO update to new scale
-echo "NOTE sec_ti_eco_*_vio components are not weights but values for scoring as follows:" | tee -a $rpt
-echo " 0 for any DRC violations triggered by ECO TI -- TI fails; design is secure" | tee -a $rpt
-echo " 1 each for no DRC violations but {setup, hold} timing violations from ECO TI -- TI possible in principle; timing could be fixed w/ further clock dividers etc; design not really secure" | tee -a $rpt
-echo " 4 for no DRC violations and no timing violations from ECO TI -- TI possible; design not secure" | tee -a $rpt
-echo "" | tee -a $rpt
-
-# TODO new scale
+## NOTE scores table
+##
+## 1) Lower scores means more difficulty for Trojan insertion, means better defense. The categories are formulated
+##    from the perspective of the attacker.
+## 2) All scores will be normalized to the worst case for defenders, i.e., 27.
+## 3) The gap of 3 b/w categories is on purpose. The reasoning is as follows: for attackers (versus defenders),
+##    it is more important whether a Trojan has, e.g., no DRC violations at all versus what effort is required
+##    to reach (versus hinder) reaching zero DRC violations.
+## 4) For now, only regular insertion is active in the backend. By already preparing the scale like below,
+##    once the other techniques become active, the participants wouldn't be at
+##    loss for very same submission; however, they can further improve scores.
 #
 # 0 design failures, for advanced-advanced insertion
 # 1 design failures, for advanced insertion
@@ -225,8 +190,56 @@ echo "" | tee -a $rpt
 # 26 no violations, for advanced insertion
 # 27 no violations, for regular insertion
 
-## init rounding, depending on scale
+weights[sec_ti_eco_fail]="(2/27)"
+weights[sec_ti_eco_drc_vio]="(7/27)"
+weights[sec_ti_eco_set_and_hld_vio]="(12/27)"
+weights[sec_ti_eco_set_xor_hld_vio]="(17/27)"
+weights[sec_ti_eco_drv_clk_vio]="(22/27)"
+weights[sec_ti_eco_no_vio]="1.0"
 
+# NOTE each Trojan has the same normalized weight. This is fair, given that, despite the different nature and implementation of the Trojans, the success for Trojan insertion at our
+# end depends on many aspects of the participants' submissions; it cannot be easily differentiated b/w the different Trojans and their requirements for successful insertion
+for trojan in "${trojans[@]}"; do
+
+	# NOTE the '___' separator to differentiate from generic weights above
+	weights[sec_ti_eco___$trojan]="(1/"${#trojans[@]}")"
+done
+
+### Design quality
+#
+weights[des]="0.5"
+
+## power
+weights[des_pwr]="(1/3)"
+weights[des_pwr_tot]="1.0"
+## performance
+weights[des_prf]="(1/3)"
+weights[des_prf_WNS_set]="0.5"
+weights[des_prf_WNS_hld]="0.5"
+## area
+weights[des_area]="(1/3)"
+weights[des_area_die]="1.0"
+
+# NOTE helper to determine max length of array keys. would be nice to outsource into a function, but that works only well for bash version > 4.3 which is not there on the backend.
+# So, for now we just copy the code wherever we need to update max_length.
+#
+max_length="0"
+for key in "${!weights[@]}"; do
+	if [[ ${#key} -gt $max_length ]]; then
+		max_length=${#key}
+	fi
+done
+
+echo "Metrics' weights:" | tee -a $rpt
+for weight in "${!weights[@]}"; do
+	value="${weights[$weight]}"
+	weight_=$(printf "%-"$max_length"s" $weight)
+	echo "	$weight_ : $value" | tee -a $rpt
+done
+echo "" | tee -a $rpt
+
+## init rounding, depending on scale
+#
 calc_string_rounding=" + 0."
 for (( i=0; i<$scale; i++)); do
 	calc_string_rounding+="0"
@@ -240,7 +253,7 @@ declare -A metrics_submission=()
 
 ### Trojan insertion; generic evaluation of resources
 ## placement sites of exploitable regions
-# NOTE drop the thousands separator ',' as that's not supported by bc
+# NOTE 'sed' is to drop the thousands separator as that's not supported by bc
   metrics_baseline[sec_ti_gen_sts_sum]=$(grep "Sum of sites across all regions:" $baseline/reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
   metrics_baseline[sec_ti_gen_sts_max]=$(grep "Max of sites across all regions:" $baseline/reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
   metrics_baseline[sec_ti_gen_sts_med]=$(grep "Median of sites across all regions:" $baseline/reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
@@ -252,47 +265,87 @@ metrics_submission[sec_ti_gen_sts_med]=$(grep "Median of sites across all region
 metrics_submission[sec_ti_gen_fts_sum]=$(grep "TOTAL" reports/track_utilization.rpt | awk '{print $(NF-1)}')
 
 ### Trojan insertion; actual ECO insertion
+#
 ## DRC checks
 for trojan in "${trojans[@]}"; do
 
-	id="sec_ti_eco_"$trojan"_DRC_vio"
-	metrics_submission[$id]=$(grep "Total Violations :" ${trojans_rpt_DRC[$trojan]} | awk '{print $4}')
+	id="sec_ti_eco_drc_vio___$trojan"
 
-	if [[ ${metrics_submission[$id]} == "" ]]; then
-		metrics_submission[$id]="0"
+	# NOTE checking for files with '-e' does not work with *.geom wildcards --> go through ls 
+	drc_rpt=$(ls ${trojans_rpt_drc[$trojan]} 2> /dev/null | wc -l)
+
+	# NOTE if the files does not exist, it means either that the related run has failed, the dbg_files parameter was misconfigured, or -- NOTE FOR PARTICIPANTS -- when running
+	# locally, you forgot to provide '0' for the 3rd call parameter (see above).
+	# NOTE For the backend, we can double-check against the process status file.
+	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
+
+		metrics_submission[$id]="fail"
+
+	# NOTE this case is not redundant; it serves both for running locally as well as fail-safe for the backend, in case the above does not hold (the FAILED status file might be
+	# deleted/cleaned up again) while the reports are still not available 
+	elif [[ $drc_rpt == 0 ]]; then
+
+		metrics_submission[$id]="fail"
+	else
+		metrics_submission[$id]=$(grep "Total Violations :" ${trojans_rpt_drc[$trojan]} 2> /dev/null | awk '{print $4}')
+
+		if [[ ${metrics_submission[$id]} == "" ]]; then
+
+			# NOTE file exists but no line grepped for above is not found; this means there are 0 violations, since in regular reports the above line is only printed
+			# out at all if there are some violations
+			metrics_submission[$id]="0"
+		fi
 	fi
 done
+#
 ## timing checks
 for trojan in "${trojans[@]}"; do
 
-	id="sec_ti_eco_"$trojan"_prf_set_vio"
-	# NOTE in awk, use NF to just capture FEP, not actual timing violation
-	metrics_submission[$id]=$(grep "View : ALL" ${trojans_rpt_timing[$trojan]} | awk 'NR==1' | awk '{print $NF}')
+	id="sec_ti_eco_prf_set_vio___$trojan"
 
-	id="sec_ti_eco_"$trojan"_prf_hld_vio"
-	metrics_submission[$id]=$(grep "View : ALL" ${trojans_rpt_timing[$trojan]} | awk 'NR==2' | awk '{print $NF}')
+	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
+		metrics_submission[$id]="fail"
+	elif ! [[ -e ${trojans_rpt_timing[$trojan]} ]]; then
+		metrics_submission[$id]="fail"
+	else
+		metrics_submission[$id]=$(grep "View : ALL" ${trojans_rpt_timing[$trojan]} | awk 'NR==1' | awk '{print $NF}')
+	fi
+
+	id="sec_ti_eco_prf_hld_vio___$trojan"
+
+	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
+		metrics_submission[$id]="fail"
+	elif ! [[ -e ${trojans_rpt_timing[$trojan]} ]]; then
+		metrics_submission[$id]="fail"
+	else
+		metrics_submission[$id]=$(grep "View : ALL" ${trojans_rpt_timing[$trojan]} | awk 'NR==2' | awk '{print $NF}')
+	fi
 done
+#
 ## DRV, clock checks
 for trojan in "${trojans[@]}"; do
 
-	id="sec_ti_eco_"$trojan"_DRV_clk_vio"
+	id="sec_ti_eco_drv_clk_vio___$trojan"
 
-	# NOTE there are multiple lines for these checks, while the number of lines/checks changes also with the design --> just sum up
-	metrics_submission[$id]=0
+	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
+		metrics_submission[$id]="fail"
+	elif ! [[ -e ${trojans_rpt_timing[$trojan]} ]]; then
+		metrics_submission[$id]="fail"
+	else
+		# NOTE there are multiple lines for these checks, while the number of lines/checks changes also with the design --> just sum up; this is also appropriate in terms
+		# of relevance of these two checks and given that we're not considering the actual count of violations for scoring (see further below)
+		metrics_submission[$id]=0
+		while read line; do
 
-	while read line; do
+			if [[ "$line" != *"Check : "* ]]; then
+				continue
+			fi
 
-		if [[ "$line" != *"Check : "* ]]; then
-			continue
-		fi
+			curr_line_FEPs=$(echo $line | awk '{print $NF}')
+			((metrics_submission[$id] = ${metrics_submission[$id]} + curr_line_FEPs))
 
-		curr_line_FEPs=$(echo $line | awk '{print $NF}')
-
-# TODO BREAK
-# TODO not sure whether this syntax works. could just use bc w/o scale, floating point, but following the same syntax as for other calc steps in here
-		((metrics_submission[$id] = ${metrics_submission[$id]} + curr_line_FEPs))
-
-	done < ${trojans_rpt_timing[$trojan]}
+		done < ${trojans_rpt_timing[$trojan]}
+	fi
 done
 
 ### Design quality
@@ -308,17 +361,34 @@ metrics_submission[des_prf_WNS_hld]=$(grep "View : ALL" reports/timing.rpt | awk
   metrics_baseline[des_area_die]=$(cat $baseline/reports/area.rpt)
 metrics_submission[des_area_die]=$(cat reports/area.rpt)
 
+# NOTE helper to determine max length of array keys. would be nice to outsource into a function, but that works only well for bash version > 4.3 which is not there on the backend.
+# So, for now we just copy the code wherever we need to update max_length.
+max_length="0"
+for key in "${!metrics_baseline[@]}"; do
+	if [[ ${#key} -gt $max_length ]]; then
+		max_length=${#key}
+	fi
+done
+#
 echo "Baseline metrics (raw, not weighted yet):" | tee -a $rpt
 for metric in "${!metrics_baseline[@]}"; do
 	value="${metrics_baseline[$metric]}"
-	metric_=$(printf "%-"$cmp_max_length"s" $metric)
+	metric_=$(printf "%-"$max_length"s" $metric)
 	echo "	$metric_ : $value" | tee -a $rpt
 done
 echo "" | tee -a $rpt
+
+max_length="0"
+for key in "${!metrics_submission[@]}"; do
+	if [[ ${#key} -gt $max_length ]]; then
+		max_length=${#key}
+	fi
+done
+#
 echo "Submission metrics (raw, not weighted yet):" | tee -a $rpt
 for metric in "${!metrics_submission[@]}"; do
 	value="${metrics_submission[$metric]}"
-	metric_=$(printf "%-"$cmp_max_length"s" $metric)
+	metric_=$(printf "%-"$max_length"s" $metric)
 	echo "	$metric_ : $value" | tee -a $rpt
 done
 echo "" | tee -a $rpt
@@ -340,26 +410,87 @@ base_scores[des_pwr_tot]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_pw
 ## area
 base_scores[des_area_die]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_area_die]} / ${metrics_baseline[des_area_die]})")
 
-## actual TI: also the lower the better, but calculation w/o baselines
+## actual ECO TI: also the lower the better, but calculation does not require/consider baseline values by definition
+
 for trojan in "${trojans[@]}"; do
 
-	id_trojan="sec_ti_eco_"$trojan
-	base_scores[$id_trojan]="0.0"
-	some_vio=0
+	id_trojan="sec_ti_eco___"$trojan
 
-	for id in "sec_ti_eco_"$trojan"_DRC_vio" "sec_ti_eco_"$trojan"_prf_hld_vio" "sec_ti_eco_"$trojan"_prf_set_vio"; do
-		if [[ ${metrics_submission[$id]} != "0" ]]; then
+	# NOTE the scoring does not account for the actual numbers/values of violations, but only whether some violation has occurred or not. This is reasonable as, e.g., for timing, the
+	# violations (if any) depend on both the submission as well as the Trojan; it is difficult to separate these parts. Also, we can argue that attackers would only care/hope that
+	# violations did not occur. Thus, if violations occur, the related score for the participants will improve.
 
-			base_scores[$id_trojan]=$(bc -l <<< "scale=$scale; (${base_scores[$id_trojan]} + ${weights[$id]})")
-			some_vio=1
+	# NOTE As safety measure, prepare to double-check whether any of the checks has not failed, or rather whose results are available. If so, we would consider that one for
+	# scoring, still following the same order as with regular scoring where nothing has failed.
+	#
+	all_has_failed=1
+	for id in "sec_ti_eco_drc_vio___$trojan" "sec_ti_eco_prf_hld_vio___$trojan" "sec_ti_eco_prf_set_vio___$trojan" "sec_ti_eco_drv_clk_vio___$trojan"; do
+
+		if [[ ${metrics_submission[$id]} != 'fail' ]]; then
+			all_has_failed=0
 		fi
 	done
 
-	if [[ $some_vio == 0 ]]; then
+	## actual score evaluation
+	#
+	# NOTE order is important here; check from worst to best scenario (for attacker) to assign best-possible score for defender/participants
+	#
+	# NOTE shortcut or rather preferred check for backend
+	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
 
-		id="sec_ti_eco_"$trojan"_no_vio"
-		base_scores[$id_trojan]=$(bc -l <<< "scale=$scale; (${base_scores[$id_trojan]} + ${weights[$id]})")
+		outcome="fail"
+
+	# NOTE for running locally, and as fail-safe for backend
+	elif [[ $all_has_failed == 1 ]]; then
+
+		outcome="fail"
+
+	# NOTE at this point, we know that at least some evaluation has not failed -- this will be used for scoring, following the same order as in cases where all evaluation steps
+	# go through
+	
+	# NOTE in case the actual value is 'fail' the particular syntax below and the cases are evaluated to false, thus not entered. This is preferred/safe from the perspective of
+	# not scoring a failing run better than it should be, as we then continue "raising up" the score until we find the value for another non-failing check (or reach the safe
+	# conclusion that there are no violations). Again, that's only for not scoring a failing run falsely as too good; it's still not a correct scoring.
+
+	elif [[ ${metrics_submission[sec_ti_eco_drc_vio___$trojan]} -gt 0 ]]; then
+
+		outcome="drc_vio"
+
+	elif [[ ${metrics_submission[sec_ti_eco_prf_set_vio___$trojan]} -gt 0 && ${metrics_submission[sec_ti_eco_prf_hld_vio___$trojan]} -gt 0 ]]; then
+
+		outcome="set_and_hld_vio"
+
+	elif [[ ${metrics_submission[sec_ti_eco_prf_set_vio___$trojan]} -eq 0 && ${metrics_submission[sec_ti_eco_prf_hld_vio___$trojan]} -gt 0 ]]; then
+
+		outcome="set_xor_hld_vio"
+
+	elif [[ ${metrics_submission[sec_ti_eco_prf_set_vio___$trojan]} -gt 0 && ${metrics_submission[sec_ti_eco_prf_hld_vio___$trojan]} -eq 0 ]]; then
+
+		outcome="set_xor_hld_vio"
+
+	elif [[ ${metrics_submission[sec_ti_eco_drv_clk_vio___$trojan]} -gt 0 ]]; then
+
+		outcome="drv_clk_vio"
+
+	# NOTE we reach here only once no violations occurred at all OR in case all of the evaluation runs had status 'fail'. For the latter, this is a fail-safe here to not score
+	# such failing runs too good.
+	else
+		outcome="no_vio"
 	fi
+
+#	# manual dbg
+#	echo "$trojan: $outcome"
+
+	## finally, compute the baselinescore, which is simply the weight (that is already appropriately normalized over the max value / worst case)
+	base_scores[$id_trojan]=${weights[sec_ti_eco_$outcome]}
+
+	# NOTE actual variables and weights, repeated
+	# weights[sec_ti_eco_fail]="(2/27)"
+	# weights[sec_ti_eco_drc_vio]="(7/27)"
+	# weights[sec_ti_eco_set_and_hld_vio]="(12/27)"
+	# weights[sec_ti_eco_set_xor_hld_vio]="(17/27)"
+	# weights[sec_ti_eco_drv_clk_vio]="(22/27)"
+	# weights[sec_ti_eco_no_vio]="1.0"
 done
 
 # NOTE metrics where the higher the better, thus calculate score as baseline / submission 
@@ -368,10 +499,19 @@ done
 base_scores[des_prf_WNS_set]=$(bc -l <<< "scale=$scale; (${metrics_baseline[des_prf_WNS_set]} / ${metrics_submission[des_prf_WNS_set]})")
 base_scores[des_prf_WNS_hld]=$(bc -l <<< "scale=$scale; (${metrics_baseline[des_prf_WNS_hld]} / ${metrics_submission[des_prf_WNS_hld]})")
 
+# NOTE helper to determine max length of array keys. would be nice to outsource into a function, but that works only well for bash version > 4.3 which is not there on the backend.
+# So, for now we just copy the code wherever we need to update max_length.
+max_length="0"
+for key in "${!base_scores[@]}"; do
+	if [[ ${#key} -gt $max_length ]]; then
+		max_length=${#key}
+	fi
+done
+#
 echo "Score components (not weighted):" | tee -a $rpt
 for metric in "${!base_scores[@]}"; do
 	value="${base_scores[$metric]}"
-	metric_=$(printf "%-"$cmp_max_length"s" $metric)
+	metric_=$(printf "%-"$max_length"s" $metric)
 	echo "	$metric_ : $value" | tee -a $rpt
 done
 echo "" | tee -a $rpt
@@ -408,12 +548,12 @@ scores[sec_ti_gen]=$(bc -l <<< "scale=$scale; ($calc_string)")
 calc_string="0"
 for trojan in "${trojans[@]}"; do
 
-	id="sec_ti_eco_"$trojan
+	id="sec_ti_eco___"$trojan
 	calc_string+=" + (${weights[$id]}*${base_scores[$id]})"
 done
 calc_string+=$calc_string_rounding
 scores[sec_ti_eco]=$(bc -l <<< "scale=$scale; ($calc_string)")
-#echo "sec_ti_eco: $calc_string"
+echo "sec_ti_eco: $calc_string"
 
 ## security, combined
 calc_string="${weights[sec_ti_gen]}*${scores[sec_ti_gen]}"
@@ -453,9 +593,18 @@ calc_string+=$calc_string_rounding
 scores[OVERALL]=$(bc -l <<< "scale=$scale; ($calc_string)")
 #echo "OVERALL: $calc_string"
 
-## print scores; perform sanity checks
-error=0
+## print scores
 
+# NOTE helper to determine max length of array keys. would be nice to outsource into a function, but that works only well for bash version > 4.3 which is not there on the backend.
+# So, for now we just copy the code wherever we need to update max_length.
+max_length="0"
+for key in "${!scores[@]}"; do
+	if [[ ${#key} -gt $max_length ]]; then
+		max_length=${#key}
+	fi
+done
+#
+# NOTE we also write out these key values to a summary file, $rpt_summ
 echo "Scores (weighted; last digit subject to rounding):" | tee -a $rpt $rpt_summ
 for score in "${!scores[@]}"; do
 
@@ -466,13 +615,14 @@ for score in "${!scores[@]}"; do
 
 	# cut digits going beyond scale, which can result from rounding calculation above
 	value=$(echo ${scores[$score]} | awk '{printf "%.'$scale'f", $1}')
-	score_=$(printf "%-"$cmp_max_length"s" $score)
+	score_=$(printf "%-"$max_length"s" $score)
 	echo "	$score_ : $value" | tee -a $rpt $rpt_summ
 done
-#echo "" | tee -a $rpt $rpt_summ
 
-## eval sanity checks; move failed report such that it's not accounted for during ranking
-# NOTE do not move $rpt_summ as that should be always provided in the email, even when errors occurred
+## sanity check; move failed report such that it's not to accounted for during ranking in the backend
 if [[ $error == 1 ]]; then
+
 	mv $rpt $rpt".failed" 
+
+	# NOTE do not move $rpt_summ as that should be shared along with the notification email by the backend, even when errors occurred
 fi

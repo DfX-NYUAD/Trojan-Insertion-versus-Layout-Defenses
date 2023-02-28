@@ -1057,11 +1057,10 @@ check_eval() {
 					continue
 				fi
 
-# TODO commented out for now; still WIP
-#				## 3) compute scores
-#				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
-#				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-#				scripts/scores.sh 6 $baselines_root_folder/$benchmark $dbg_files > /dev/null
+				## 3) compute scores
+				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
+				# NOTE only mute regular stdout, which is put into log file already, but keep stderr
+				scripts/scores.sh 6 $baselines_root_folder/$benchmark 1 $dbg_files > /dev/null
 
 				## 4) create related upload folder, w/ same timestamp as work and download folder
 				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
