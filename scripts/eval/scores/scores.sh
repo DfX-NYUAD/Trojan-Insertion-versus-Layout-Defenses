@@ -173,15 +173,13 @@ weights[sec_ti_eco]="(2/3)"
 
 ## NOTE scores table
 ##
-## 1) Lower scores means more difficulty for Trojan insertion, means better defense. The categories are formulated
-##    from the perspective of the attacker.
+## 1) Lower scores means more difficulty for Trojan insertion, means better defense. The categories are
+##    formulated/phrased from the perspective of the attacker.
 ## 2) All scores will be normalized to the worst case for defenders, i.e., 27.
-## 3) The gap of 3 b/w categories is on purpose. The reasoning is as follows: for attackers (versus defenders),
-##    it is more important whether a Trojan has, e.g., no DRC violations at all versus what effort is required
-##    to reach (versus hinder) reaching zero DRC violations.
-## 4) For now, only regular insertion is active in the backend. By already preparing the scale like below,
-##    once the other techniques become active, the participants wouldn't be at
-##    loss for very same submission; however, they can further improve scores.
+## 3) The gap of 3 score units b/w categories is on purpose. The reasoning is as follows: for attackers
+##    (versus defenders), it is more important whether a Trojan has, e.g., no DRC violations at all
+##    versus what effort is required to reach (versus hinder) zero DRC violations.
+## 4) For now, only regular insertion is active in the backend.
 #
 # 0 design failures, for advanced-advanced insertion
 # 1 design failures, for advanced insertion
