@@ -8,8 +8,8 @@ metric_default="OVERALL"
 list_files_default=1
 team_real_name_default=1
 score_related_OVERALL_default=1
-daemon_settings="../../gdrive/ISPD23_daemon.settings"
-team_settings="team.settings"
+daemon_settings="/data/nyu_projects/ISPD23/scripts/gdrive/ISPD23_daemon.settings"
+team_settings="/data/nyu_projects/ISPD23/scripts/eval/scores/team.settings"
 
 # string for non-defined results
 ND="---"
