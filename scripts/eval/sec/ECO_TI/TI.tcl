@@ -69,8 +69,8 @@ ecoPlace -fixPlacedInsts
 #setDesignMode -bottomRoutingLayer 1
 
 # ECO routing
-# NOTE limit optimization iterations; value is suggested in Cadence support and matches own observations -- going beyond rarely helps
-setNanoRouteMode -drouteEndIteration 20
+## NOTE limit optimization iterations, which is also suggested in Cadence Support; number here is less than suggested by Cadence (20), based on observations
+setNanoRouteMode -drouteEndIteration 12
 ecoRoute
 
 #####################
