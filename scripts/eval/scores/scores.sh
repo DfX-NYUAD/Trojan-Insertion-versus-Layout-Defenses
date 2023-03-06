@@ -181,29 +181,29 @@ weights[sec_ti_eco]="(2/3)"
 ##    versus what effort is required to reach (versus hinder) zero DRC violations.
 ## 4) For now, only regular insertion is active in the backend.
 #
-# 0 design failures, for advanced-advanced insertion
-# 1 design failures, for advanced insertion
-# 2 design failures, for regular insertion
+# 0 design failures; for advanced-advanced insertion
+# 1 design failures; for advanced insertion
+# 2 design failures; for regular insertion
 #
-# 5 DRC violations, for advanced-advanced insertion
-# 6 DRC violations, for advanced insertion
-# 7 DRC violations, for regular insertion
+# 5 DRC violations; for advanced-advanced insertion
+# 6 DRC violations; for advanced insertion
+# 7 DRC violations; for regular insertion
 # 
-# 10 setup AND hold violations, for advanced-advanced insertion
-# 11 setup AND hold violations, for advanced insertion
-# 12 setup AND hold violations, for regular insertion
+# 10 setup AND hold violations; for advanced-advanced insertion
+# 11 setup AND hold violations; for advanced insertion
+# 12 setup AND hold violations; for regular insertion
 # 
-# 15 setup XOR hold violations, for advanced-advanced insertion
-# 16 setup XOR hold violations, for advanced insertion
-# 17 setup XOR hold violations, for regular insertion
+# 15 setup XOR hold violations; for advanced-advanced insertion
+# 16 setup XOR hold violations; for advanced insertion
+# 17 setup XOR hold violations; for regular insertion
 # 
-# 20 DRV, clock check violations, for advanced-advanced insertion
-# 21 DRV, clock check violations, for advanced insertion
-# 22 DRV, clock check violations, for regular insertion
+# 20 DRV, clock check violations; for advanced-advanced insertion
+# 21 DRV, clock check violations; for advanced insertion
+# 22 DRV, clock check violations; for regular insertion
 # 
-# 25 no violations, for advanced-advanced insertion
-# 26 no violations, for advanced insertion
-# 27 no violations, for regular insertion
+# 25 no violations; for advanced-advanced insertion
+# 26 no violations; for advanced insertion
+# 27 no violations; for regular insertion
 
 weights[sec_ti_eco_fail]="(2/27)"
 weights[sec_ti_eco_drc_vio]="(7/27)"

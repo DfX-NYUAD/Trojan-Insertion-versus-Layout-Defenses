@@ -89,7 +89,8 @@ innovus_errors_for_checking+="|NRDB-955" # errors are related to conflict of exi
 # go through); shouldn't be checked, to enable error handling to consider this as interrupt, runtime error -- update: w/ the revised and more specific calls to invs and vdi, this
 # error should not appear anymore
 # NOTE 'IMPFP-735' errors are related to nets not found when loading the design db; can be ignored
-innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file|IMPLIC-104|IMPVL-909|IMPFP-735"
+# NOTE 'IMPSP-2002', 'IMPSP-9022' errors are related to overly high density and failure for refinePlace; can be ignored as that might be fixable later on
+innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file|IMPLIC-104|IMPVL-909|IMPFP-735|IMPSP-2002|IMPSP-9022"
 ## NOTE use to disable verbose copying of script commands and comments into log file
 ## NOTE deprecated; turned off to enable better insights for teams as to which command is run at what point
 #export CDS_STYLUS_SOURCE_VERBOSE=0

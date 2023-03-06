@@ -4,6 +4,8 @@
 #
 # Script for ISPD'23 contest. Johann Knechtel, NYUAD, in collaboration with Mohammad Eslami and Samuel Pagliarini, TalTech
 #
+# Script to handle (start, monitor, kill) the ECO TI processes and log their output in the same format as the main daemon.
+#
 ####
 
 ## fixed settings; typically not to be modified
@@ -14,6 +16,8 @@ err_rpt="reports/errors.rpt"
 warn_rpt="reports/warnings.rpt"
 
 ## other settings
+# TODO NOTE for testing only
+TI_mode="reg"
 # runs
 max_current_runs_default=6
 max_current_runs_aes=6
@@ -23,6 +27,14 @@ dbg_log_verbose=0
 # NOTE dbg_files is sourced from $daemon_settings_file below
 
 ## init stuff; main code further below
+
+# TODO incorporate different modes via prefix for Trojans, e.g., advanced_camellia_burn_random
+# also add related dummy files
+# --> not sure, maybe these modes should only be covered in here
+
+# TODO make use of $trojan_name"."$TI_mode wherever needed
+
+# TODO process management corner case: if reg (or adv) mode already succeeds w/o any violations, the adv and adv2 runs (or adv2) can be cancelled
 
 source $daemon_settings_file
 
@@ -105,7 +117,7 @@ start_TI() {
 
 	## init TI_settings.tcl for current Trojan
 	# NOTE only mute regular stdout, which is put into log file already, but keep stderr
-	scripts/TI_init.sh $trojan_name $dbg_files > /dev/null
+	scripts/TI_init.sh $trojan_name $TI_mode $dbg_files > /dev/null
 
 	## some error occurred
 	# NOTE specific error is already logged via TI_init.sh; no need to log again
@@ -343,12 +355,12 @@ monitor() {
 #
 while true; do
 
-	if [[ -e DONE.saveDesign ]]; then
+	if [[ -e DONE.save.forTI.$TI_mode ]]; then
 		break
 	fi
 
 	## sanity check: if we reach here (i.e., did not already break above) and DONE.inv_PPA exists, this means that PPA evaluation finished but, somehow, saveDesign failed
-	## sanity check (more reasonable): any other failure for PPA evaluation
+	## sanity check (more reasonable): any other occured failure for PPA evaluation, making that script PPA.tcl error out and stop.
 	if [[ -e DONE.inv_PPA || -e FAILED.inv_PPA ]]; then
 
 		err_string="Innovus Trojan insertion: failed altogether as design database was not initialized since, for some reason, Innovus PPA evaluation failed."

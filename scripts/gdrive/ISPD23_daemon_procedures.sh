@@ -1037,7 +1037,7 @@ check_eval() {
 					status[inv_TI]=0
 
 					runs_total=$(ls TI/*.v 2> /dev/null | wc -l)
-					# NOTE STARTED.TI.* would cover all runs that are started by TI_wrapper, but some might still wait for licenses, whereas DONE.source.TI.*
+					# NOTE STARTED.TI.* would cover all runs that are started by TI_wrapper.sh, but some might still wait for licenses, whereas DONE.source.TI.*
 					# files relate to processes that have really started
 					runs_started=$(ls DONE.source.TI.* 2> /dev/null | wc -l)
 					runs_done=$(ls DONE.TI.* 2> /dev/null | wc -l)
@@ -1111,7 +1111,9 @@ check_eval() {
 				# NOTE mute stderr which occurs in case the files are not there
 				cp *.gds.gz $uploads_folder/ 2> /dev/null
 
-				## DEF and netlist from Trojan insertion; only for dbg mode
+				## DEF and netlist from Trojan insertion
+				## NOTE upload only for dbg mode, but files are generated/stored in any case
+				#
 				if [[ $dbg_files == "1" ]]; then
 
 					#

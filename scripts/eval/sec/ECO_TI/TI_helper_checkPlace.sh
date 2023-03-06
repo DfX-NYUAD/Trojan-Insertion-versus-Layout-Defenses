@@ -6,4 +6,5 @@
 # that would purge placement and routing altogether
 #
 # NOTE the .* to match any number of chars between for the wildcard
+
 grep "Inst " $1 | grep -v "vertical pin .* is not aligned with correct track" | awk '{print $2}' > $1".parsed"
