@@ -2,6 +2,8 @@
 #
 # Script for ISPD'23 contest. Johann Knechtel, NYUAD, in collaboration with Mohammad Eslami and Samuel Pagliarini, TalTech
 #
+# Script to perform design checks on the submission files (design.def, design.v).
+#
 ####
 
 ####
@@ -37,6 +39,7 @@ delete_filler -cells [ get_db -u [ get_db insts -if { .is_physical } ] .base_cel
 
 # covers routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt
 # NOTE false positives for dangling VDD, VSS at M1
+# NOTE also captures dangling wires, if any, of unplaced insts; if there are no related wires it probably won't flag those unplaced insts
 check_connectivity -error 100000 -warning 100000 -check_wire_loops
 mv *.conn.rpt reports/
 
@@ -45,11 +48,13 @@ check_pin_assignment
 mv *.checkPin.rpt reports/
 
 # covers routing DRCs; check *.geom.rpt
+# NOTE also captures min area violation of wires, if any, for unplaced insts; if there are no related wires it probably won't flag those unplaced insts
 check_drc -limit 100000
 mv *.geom.rpt reports/
 
 # covers placement and routing issues
 # NOTE false positives for VDD, VSS vias at M4, M5, M6; report file has incomplete info, full details are in check.logv
+# NOTE covers unplaced insts
 check_design -type {place route} > reports/check_design.rpt
 
 # covers more placement issues
@@ -69,6 +74,7 @@ source scripts/check_stripes_width_stylus.tcl
 ####
 
 # exploitable regions
+# NOTE covers unplaced insts most robust, as in triggering an error in logv (via segmentation violation in the binary)
 source scripts/exploitable_regions.tcl
 
 # routing track utilization
