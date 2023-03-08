@@ -19,12 +19,23 @@ google_fix_json() {
 	if [[ -e $semaphore ]]; then
 		exit
 	else
+		# NOTE sleep a little and re-check, to avoid race conditions where another call was just about writing out the semaphore
+		# NOTE this could still trigger some race condition -- and allow parallel access into the semaphore -- whenever multiple calls are started at the very same point in
+		# time. But, this is better than no semaphore at all...
+		sleep 1s
+		if [[ -e $semaphore ]]; then
+			exit
+		fi
+
+		# write/lock semaphore
 		date > $semaphore
 	fi
 
 	sed 's/}}/}/g' -i $google_json_file
 
-	rm $semaphore
+	# delete/release semaphore
+	# NOTE mute stderr which occurs in case the semaphore was already deleted, meaning it was entered multiple times
+	rm $semaphore 2> /dev/null
 }
 
 google_quota() {
@@ -114,6 +125,7 @@ initialize() {
 	google_quota "ISPD23 -- 0)   " 
 
 	## fix, if needed, the json file for current session in json file
+	## NOTE since it's crucial for this initialize() procedure to get the correct data from gdrive, we call google_fix_json() before every gdrive call, just to make sure
 	google_fix_json
 
 	if [[ "$1" == "testing" ]]; then
