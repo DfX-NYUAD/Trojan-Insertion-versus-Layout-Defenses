@@ -35,6 +35,7 @@ dbg_log_verbose=0
 # TODO make use of $trojan_name"."$TI_mode wherever needed
 
 # TODO process management corner case: if reg (or adv) mode already succeeds w/o any violations, the adv and adv2 runs (or adv2) can be cancelled
+# TODO for scoring, if adv2 > adv > reg gives the same result (e.g., DRC violations) we should only select the least intrusive method for scoring for that category
 
 source $daemon_settings_file
 
