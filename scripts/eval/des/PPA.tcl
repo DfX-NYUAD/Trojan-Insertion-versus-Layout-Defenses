@@ -17,6 +17,10 @@ set lef_path "ASAP7/asap7_tech_4x_201209.lef ASAP7/asap7sc7p5t_28_L_4x_220121a.l
 set def_path design.def
 set netlist_path design.v
 
+## (TODO) for manual dbg
+#set def_path design_original.def
+#set netlist_path design_original.v
+
 #####################
 # init
 #####################
@@ -59,6 +63,9 @@ set_propagated_clock [all_clocks]
 setAnalysisMode -analysisType onChipVariation
 # removes clock pessimism
 setAnalysisMode -cppr both
+# simultaneous setup, hold analysis
+# NOTE applicable for (faster) timing analysis here, but not for subsequent ECO runs later on
+set_global timing_enable_simultaneous_setup_hold_mode true
 # actual timing command
 timeDesign -postroute
 
@@ -74,23 +81,23 @@ set out [open reports/area.rpt w]
 puts $out [get_db current_design .bbox.area]
 close $out
 
-# timing, using simultaneous setup, hold analysis
-# NOTE applicable for (faster) timing analysis here, but not for subsequent ECO runs later on
-set_global timing_enable_simultaneous_setup_hold_mode true
+# timing; using simultaneous setup, hold analysis
+# NOTE detailed timing reports also include both views
 report_timing_summary > reports/timing.rpt
 
 #####################
 # write out design files for ECO TI
 #####################
 
-## NOTE settings for ECO place and route commands, which are triggered by reclaimArea below
+## settings for ECO place and route commands, which are triggered by reclaimArea below
+#
 # turn off simultaneous setup, hold analysis; not supported by ECO commands
+# NOTE timing (and RC extraction) are triggered by ECO commands themselves as needed
 set_global timing_enable_simultaneous_setup_hold_mode false
+#
 # Reset any instance to PLACED status; there cannot be any unplaced instances (as those would also trigger warnings and errors earlier on, namely for checks.tcl), but there may be
 # fixed ones marked as such in the submission, and we'd like to 'free up' those, if any.
 set_db [get_db insts ] .place_status placed
-# limit optimization iterations for detailed routing, as also suggested in Cadence Support; based on own observations, the actual number is larger than what's suggested by Cadence (20)
-setNanoRouteMode -drouteEndIteration 30
 #
 ## NOTE Here cannot use 'setPlaceMode -place_detail_preroute_as_obs 3' as that would -- falsely -- push the utilization easily >100% since it's sufficient for the placement to stay
 ## somewhat out of the M3 PDN stripes, not entirely, to avoid DRC issues. In other words, a valid layout w/o DRC issues may well have >100% util once we check again for these
@@ -98,45 +105,42 @@ setNanoRouteMode -drouteEndIteration 30
 ## even need that constraint here to maintain DRC-clean layouts.
 #setPlaceMode -place_detail_preroute_as_obs 3
 
-## NOTE for regular ECO TI mode: write out design as is
-# write out design db
-saveDesign design.forTI.reg.enc
-# link netlist to that from the sumbission; Trojan logic is to be integrated into this one before ecoDesign is run
-ln -sf design.v design.forTI.reg.v
+## NOTE deprecated; while that would be more efficient, these steps/parameters are deprecated for the following reasons.
+## NOTE '-timingGraph' triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable. Sounds like we would need to specify during
+## ecoDesign that the paths for the new Trojan logic are not in the stored graph, but am not sure. Note that 'restoreDesign' works fine with '-timingGraph' generated db (but didn't
+## check in on related warnings, if any).
+## NOTE '-no_wait' and checking only for existence of design files in TI_wrapper.sh could easily lead to race conditions, as in ECO TI already loading the db when it's not
+## completely written out yet
+#saveDesign design.forTI.reg.enc -timingGraph -no_wait saveDesign.forTI.reg.log
+
+## regular ECO TI mode: write out design as is
+# write out design db, including RC data but w/o timing graph (see note abve).
+saveDesign design.forTI.reg.enc -rc
+# also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
+# NOTE here we could also directly copy the basic submission netlist (but not link, since we should keep/maintain the submission netlist as is as well), but for consistency we just
+# save it again explicitly
+saveNetlist design.forTI.reg.v
 # mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_db.tcl) can go ahead at this point
 date > DONE.save.forTI.reg
-#
-## NOTE while that would be more efficient, these steps/parameters are deprecated for the following reasons.
-## NOTE -timingGraph triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable. Sounds like timing graph is not stored properly.
-## Interestingly, restoreDesign works fine with -timingGraph generated db.
-## NOTE -rc works fine, but also does not provide much runtime benefit, probably because rc_model.bin is already there as well. Furthermore, it triggers/results in warnings
-## `Mismatch between RCDB and Verilog netlist' so it's dropped as well
-## NOTE -no_wait and checking only for existence of design files in TI_wrapper.sh could easily lead to race conditions, as in ECO TI already loading the db when it's not
-## completely written out yet
-#saveDesign design.forTI.reg.enc -timingGraph -rc -no_wait saveDesign.forTI.reg.log
 
-## NOTE for advanced ECO TI mode: reclaim area
-# reclaimArea performs decloning, downsizing, and deleting of buffers, all without worsening slacks or DRVs;
-# also employs ECO place and route
+## advanced ECO TI mode: reclaim area
+# reclaimArea performs decloning, downsizing, and deleting of buffers, all without worsening slacks or DRVs; also employs ECO place and route
 reclaimArea -maintainHold
-# write out design db
-saveDesign design.forTI.adv.enc
-# also write out revised netlist; Trojan logic is to be integrated into this one before ecoDesign is run
+# write out design db, including RC data but w/o timing graph (see note abve).
+saveDesign design.forTI.adv.enc -rc
+# also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
 saveNetlist design.forTI.adv.v
 # mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_db.tcl) can go ahead at this point
 date > DONE.save.forTI.adv
 
-## NOTE for advanced^2 ECO TI mode: reclaim area again, and more aggressively
+## advanced^2 ECO TI mode: reclaim area again, and more aggressively
 # NOTE just using 'reclaimArea -maintainHold' multiple times would also be possible, but gains for subsequent runs are very limited.
-# (TODO) really needed? maybe too aggressive; maybe better to have different options for ecoDesign etc.
-# (TODO) could also do 'reclaimArea -maintainHold' here and some less "aggressive" setting above
 # reclaimArea performs decloning, downsizing, and deleting of buffers, all _without_ honoring current hold timing in this setting here (might be possible to fix along w/
-# timing-driven ecoPlace later on);
-# also employs ECO place and route
+# timing-driven ecoPlace later on); also employs ECO place and route
 reclaimArea 
-# write out design db
-saveDesign design.forTI.adv2.enc
-# also write out revised netlist; Trojan logic is to be integrated into this one before ecoDesign is run
+# write out design db, including RC data but w/o timing graph (see note abve).
+saveDesign design.forTI.adv2.enc -rc
+# also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
 saveNetlist design.forTI.adv2.v
 # mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_db.tcl) can go ahead at this point
 date > DONE.save.forTI.adv2
