@@ -8,10 +8,23 @@
 
 google_fix_json() {
 
-	## for some reason, probably race condition or other runtime conflict, the gdrive tool sometimes messes up the
-	## syntax when handling/updating the json file
-	## the issue is simply "}}" instead of "}" -- simple fixing via sed
+	## NOTE for some reason, probably race condition or other runtime conflict, the gdrive tool sometimes messes up the syntax when handling/updating the json file
+	## 	the issue is simple: "}}" is there instead of "}" -- easy to fix using sed
+
+	## NOTE in case the json is completely messed up or empty, we have to delete the file altogether and run './gdrive about' and the instructions there to re-authenticate and
+	## re-generate the json
+
+	# NOTE to avoid race conditions through parallel calls to this procedure (from parallel sub-shells) we use a simple, file-based semaphore
+	semaphore=$google_json_file".semaphore"
+	if [[ -e $semaphore ]]; then
+		exit
+	else
+		date > $semaphore
+	fi
+
 	sed 's/}}/}/g' -i $google_json_file
+
+	rm $semaphore
 }
 
 google_quota() {
