@@ -17,14 +17,18 @@ google_fix_json() {
 	# NOTE to avoid race conditions through parallel calls to this procedure (from parallel sub-shells) we use a simple, file-based semaphore
 	semaphore=$google_json_file".semaphore"
 	if [[ -e $semaphore ]]; then
-		exit
+
+		# NOTE this does not stop the caller shell
+		return
 	else
 		# NOTE sleep a little and re-check, to avoid race conditions where another call was just about writing out the semaphore
 		# NOTE this could still trigger some race condition -- and allow parallel access into the semaphore -- whenever multiple calls are started at the very same point in
 		# time. But, this is better than no semaphore at all...
 		sleep 1s
 		if [[ -e $semaphore ]]; then
-			exit
+
+			# NOTE this does not stop the caller shell
+			return
 		fi
 
 		# write/lock semaphore
@@ -107,6 +111,9 @@ initialize() {
 		echo "ISPD23 -- 0) Working in \"$1\" mode ..."
 	else
 		echo "ISPD23 -- 0) ERROR: work mode \"$1\" is unrecognized; abort further processing ..."
+
+		# NOTE this exits the caller shell as well, not only the function (for function-only exit use 'return');
+		# needed here to stop the main daemon for this critical error
 		exit 1
 	fi
 	echo "ISPD23 -- 0)"
@@ -320,17 +327,6 @@ google_downloads() {
 			## iterate over keys / google IDs
 			for file in "${!google_folder_files[@]}"; do
 
-				# cross-check w/ already downloaded ones, considering unique Google IDS, memorized in history file
-				if [[ $(grep -c $file $downloads_folder/dl_history) != 0 ]]; then
-					continue
-				fi
-
-				# skip subfolders (if any); the files of 1st level subfolders are already included in google_folder_files array (see loop above), other subfolders
-				# of level 2 or more are ignored on purpose
-				if [[ ${google_folder_files_type[$file]} == "dir" ]]; then
-					continue
-				fi
-
 				google_file_name=${google_folder_files[$file]}
 				basename=${google_file_name%.*}
 				local_file_name=${google_folder_files[$file]}
@@ -341,6 +337,17 @@ google_downloads() {
 				#echo "ISPD23 -- google_file_name: $google_file_name"
 				#echo "ISPD23 -- basename: $basename"
 				#echo "ISPD23 -- local_file_name: $local_file_name"
+
+				# cross-check w/ already downloaded ones, considering unique Google IDS, memorized in history file
+				if [[ $(grep -c $file $downloads_folder/dl_history) != 0 ]]; then
+					continue
+				fi
+
+				# skip subfolders (if any); the files of 1st level subfolders are already included in google_folder_files array (see loop above), other subfolders
+				# of level 2 or more are ignored on purpose
+				if [[ ${google_folder_files_type[$file]} == "dir" ]]; then
+					continue
+				fi
 
 				# sanity check for malformed file names with only suffix, like ".nfs000000001f6680dd00000194" -- simply ignore such files
 				if [[ $basename == "" ]]; then
@@ -497,7 +504,8 @@ google_uploads() {
 
 				## proceed only if upload succeeded
 				if [[ $? -ne 0 ]]; then
-					# NOTE use exit, not contine, as we are at the main level in a subshell here now
+
+					# NOTE this serves to exits the subshell, not only to skip the remaining code
 					exit 1
 				fi
 
@@ -638,6 +646,7 @@ check_eval() {
 					if [[ $running != 0 ]]; then
 						echo $$ > PID.monitor.inv_checks
 					else
+						# NOTE this serves to exits the subshell, not only to skip the remaining code
 						exit 2
 					fi
 
@@ -725,6 +734,7 @@ check_eval() {
 								cat PID.lec_checks | xargs kill -9 2> /dev/null
 								cat PID.inv_PPA | xargs kill -9 2> /dev/null
 
+								# NOTE this serves to exits the subshell, not only to skip the remaining code
 								exit 1
 							fi
 						fi
@@ -750,6 +760,7 @@ check_eval() {
 					if [[ $running != 0 ]]; then
 						echo $$ > PID.monitor.inv_PPA
 					else
+						# NOTE this serves to exits the subshell, not only to skip the remaining code
 						exit 2
 					fi
 
@@ -837,6 +848,7 @@ check_eval() {
 								cat PID.lec_checks | xargs kill -9 2> /dev/null
 								cat PID.inv_checks | xargs kill -9 2> /dev/null
 
+								# NOTE this serves to exits the subshell, not only to skip the remaining code
 								exit 1
 							fi
 						fi
@@ -862,6 +874,7 @@ check_eval() {
 					if [[ $running != 0 ]]; then
 						echo $$ > PID.monitor.lec_checks
 					else
+						# NOTE this serves to exits the subshell, not only to skip the remaining code
 						exit 2
 					fi
 
@@ -949,6 +962,7 @@ check_eval() {
 								cat PID.inv_checks | xargs kill -9 2> /dev/null
 								cat PID.inv_PPA | xargs kill -9 2> /dev/null
 
+								# NOTE this serves to exits the subshell, not only to skip the remaining code
 								exit 1
 							fi
 						fi
@@ -1272,6 +1286,7 @@ check_submission() {
 			echo "ISPD23 -- 2)  $id_run:   Assets check failed."
 		fi
 
+		# NOTE this serves to exits the subshell, not only to skip the remaining code
 		exit $errors
 	) &
 	pid_check_assets=$!
@@ -1293,10 +1308,13 @@ check_submission() {
 			echo "ISPD23 -- ERROR: pins check failed -- see check_pins.rpt for more details." >> reports/errors.rpt
 			echo "ISPD23 -- 2)  $id_run:   Pins check failed."
 
+			# NOTE this serves to exits the subshell, not only to skip the remaining code
 			exit 1
 		else
 
 			echo "ISPD23 -- 2)  $id_run:   Pins check passed."
+
+			# NOTE this serves to exits the subshell, not only to skip the remaining code
 			exit 0
 		fi
 	) &
@@ -1660,11 +1678,17 @@ parse_lec_checks() {
 		echo -e "\nISPD23 -- 2)  $id_run:  Some critical LEC design check(s) failed."
 
 		date > FAILED.lec_checks
+
+		# NOTE this exits the caller shell as well, not only the function (for function-only exit use 'return');
+		# needed here to stop/exit the subshell that calls parse_lec_checks()
 		exit 1
 	else
 		echo -e "\nISPD23 -- 2)  $id_run:  LEC design checks done; all passed."
 
 		date > PASSED.lec_checks
+
+		# NOTE this exits the caller shell as well, not only the function (for function-only exit use 'return');
+		# needed here to stop/exit the subshell that calls parse_lec_checks()
 		exit 0
 	fi
 }
@@ -1730,11 +1754,17 @@ parse_inv_PPA() {
 		echo -e "\nISPD23 -- 2)  $id_run:  Some critical Innovus PPA evaluation step(s) failed."
 
 		date > FAILED.inv_PPA
+
+		# NOTE this exits the caller shell as well, not only the function (for function-only exit use 'return');
+		# needed here to stop/exit the subshell that calls parse_inv_PPA()
 		exit 1
 	else
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus PPA evaluation done; all passed."
 
 		date > PASSED.inv_PPA
+
+		# NOTE this exits the caller shell as well, not only the function (for function-only exit use 'return');
+		# needed here to stop/exit the subshell that calls parse_inv_PPA()
 		exit 0
 	fi
 }
@@ -2023,11 +2053,17 @@ parse_inv_checks() {
 		echo -e "\nISPD23 -- 2)  $id_run:  Some critical Innovus design check(s) failed."
 
 		date > FAILED.inv_checks
+
+		# NOTE this exits the caller shell as well, not only the function (for function-only exit use 'return');
+		# needed here to stop/exit the subshell that calls parse_inv_checks()
 		exit 1
 	else
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus design checks done; all passed."
 
 		date > PASSED.inv_checks
+
+		# NOTE this exits the caller shell as well, not only the function (for function-only exit use 'return');
+		# needed here to stop/exit the subshell that calls parse_inv_checks()
 		exit 0
 	fi
 }
@@ -2190,7 +2226,7 @@ start_eval() {
 					# cleanup downloads dir, to avoid processing again; do so even considering it failed, because it would likely fail again then anyway unless we are fixing things
 					rm -r $downloads_folder/$folder
 
-					# exit subshell for processing of this submission
+					# NOTE this serves to exits the subshell, not only to skip the remaining code
 					exit 1
 				fi
 
@@ -2212,7 +2248,7 @@ start_eval() {
 					# because it would likely fail again then anyway unless we are fixing things
 					rm -r $downloads_folder/$folder
 
-					# exit subshell for processing of this submission
+					# NOTE this serves to exits the subshell, not only to skip the remaining code
 					exit 1
 				fi
 
