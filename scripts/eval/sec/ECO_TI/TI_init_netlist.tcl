@@ -8,30 +8,33 @@
 #
 ####
 
-# TODO use config file and source it
+#####################
+# init
+#####################
+
+## source dynamic config file; generated through the TI_init.sh helper script
 #
-# Set the local dir for the netlist
-set netlist_org "/home/eslami/Desktop/ispd23/asap7_reference_design/work/modify/sha256/sha256.v"
+source scripts/TI_settings.tcl
 
-# Choose the benchmark from this list ONLY: aes | camellia | cast | misty | seed | sha256
-set target_netlist "sha256"
+#####################
+# main body
+#####################
 
 
-
-if {$target_netlist == "aes"} {
+if {$benchmark == "aes"} {
 set mod_keyword "module aes_128 ("
-} elseif { $target_netlist == "camellia" } {
+} elseif { $benchmark == "camellia" } {
 set mod_keyword "module Camellia ("
-} elseif { $target_netlist == "cast" } {
+} elseif { $benchmark == "cast" } {
 set mod_keyword "module CAST128_key_scheduler ("
-} elseif { $target_netlist == "misty" } {
+} elseif { $benchmark == "misty" } {
 set mod_keyword "module top ("
-} elseif { $target_netlist == "seed" } {
+} elseif { $benchmark == "seed" } {
 set mod_keyword "module SEED ("
-} elseif { $target_netlist == "sha256" } {
+} elseif { $benchmark == "sha256" } {
 set mod_keyword "module sha256 ("
 } else {
-puts "ERROR! Please set the target_netlist variable from the list"
+puts "ERROR! Please set the benchmark variable from the list"
 }
 
 
@@ -41,7 +44,7 @@ puts "ERROR! Please set the target_netlist variable from the list"
      close $read_text
      return $data
  }
-set list_of_nets [listFromFile $netlist_org]
+set list_of_nets [listFromFile $netlist_for_trojan_insertion]
 
 set file_len [llength $list_of_nets]
 set mod_keeper ""
@@ -77,24 +80,17 @@ for {set i $start_idx} {$i < $file_len } {incr i} {
 	}
 	
 
-set trj_files {burn_targeted fault_targeted leak_targeted burn_random fault_random leak_random}
-
 #=========================================== AES128 ===========================================
 
-if { $target_netlist == "aes"} {
-for {set k 0} {$k < 6} {incr k} {
-
-	set target [lindex $trj_files $k]
-	#puts $target
 	
 #================Process starts for burn_targeted Trojan insertion ======================
 	
-	if {$target == "burn_targeted"} {
-		set fp [open $netlist_org]
+	if {$trojan_name == "aes_burn_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -107,18 +103,18 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire reset_n;" ]
 
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_targeted Trojan insertion ======================
 	
-	} elseif {$target == "fault_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "aes_fault_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -160,19 +156,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire reset_n;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_targeted Trojan insertion ======================
 	
-	} elseif {$target == "leak_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "aes_leak_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -186,18 +182,18 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire reset_n;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 #================Process starts for burn_random Trojan insertion ======================
 	
-	} elseif {$target == "burn_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "aes_burn_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -209,18 +205,18 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 		set lines [linsert $lines $wire_idx "wire reset_n;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_random Trojan insertion ======================
 	
-	} elseif {$target == "fault_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "aes_fault_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -262,19 +258,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire reset_n;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_random Trojan insertion ======================
 	
-	} elseif {$target == "leak_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "aes_leak_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -288,33 +284,25 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire reset_n;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 	}
 	
-}
-}
 #============================================================================================
 #=========================================== SEED ===========================================
 #============================================================================================
 
 
-if { $target_netlist == "seed"} {
-for {set k 0} {$k < 6} {incr k} {
-
-	set target [lindex $trj_files $k]
-	#puts $target
-	
 #================Process starts for burn_targeted Trojan insertion ======================
 	
-	if {$target == "burn_targeted"} {
-		set fp [open $netlist_org]
+	if {$trojan_name == "seed_burn_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -325,18 +313,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_targeted Trojan insertion ======================
 	
-	} elseif {$target == "fault_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "seed_fault_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -377,19 +365,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_targeted Trojan insertion ======================
 	
-	} elseif {$target == "leak_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "seed_leak_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -402,18 +390,18 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 #================Process starts for burn_random Trojan insertion ======================
 	
-	} elseif {$target == "burn_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "seed_burn_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -424,18 +412,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_random Trojan insertion ======================
 	
-	} elseif {$target == "fault_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "seed_fault_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -476,19 +464,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_random Trojan insertion ======================
 	
-	} elseif {$target == "leak_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "seed_leak_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -501,34 +489,25 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 	}
-	
-}
-}
 
 #================================================================================================
 #=========================================== CAMELLIA ===========================================
 #================================================================================================
 
 
-if { $target_netlist == "camellia"} {
-for {set k 0} {$k < 6} {incr k} {
-
-	set target [lindex $trj_files $k]
-	#puts $target
-	
 #================Process starts for burn_targeted Trojan insertion ======================
 	
-	if {$target == "burn_targeted"} {
-		set fp [open $netlist_org]
+	if {$trojan_name == "camellia_burn_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -539,18 +518,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_targeted Trojan insertion ======================
 	
-	} elseif {$target == "fault_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "camellia_fault_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -591,19 +570,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_targeted Trojan insertion ======================
 	
-	} elseif {$target == "leak_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "camellia_leak_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -616,18 +595,18 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 #================Process starts for burn_random Trojan insertion ======================
 	
-	} elseif {$target == "burn_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "camellia_burn_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -638,18 +617,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_random Trojan insertion ======================
 	
-	} elseif {$target == "fault_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "camellia_fault_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -690,19 +669,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_random Trojan insertion ======================
 	
-	} elseif {$target == "leak_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "camellia_leak_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -715,34 +694,25 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 	}
-	
-}
-}
 
 #============================================================================================
 #=========================================== CAST ===========================================
 #============================================================================================
 
-
-if { $target_netlist == "cast"} {
-for {set k 0} {$k < 6} {incr k} {
-
-	set target [lindex $trj_files $k]
-	#puts $target
 	
 #================Process starts for burn_targeted Trojan insertion ======================
 	
-	if {$target == "burn_targeted"} {
-		set fp [open $netlist_org]
+	if {$trojan_name == "cast_burn_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -753,18 +723,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_targeted Trojan insertion ======================
 	
-	} elseif {$target == "fault_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "cast_fault_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -805,19 +775,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_targeted Trojan insertion ======================
 	
-	} elseif {$target == "leak_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "cast_leak_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -830,18 +800,18 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 #================Process starts for burn_random Trojan insertion ======================
 	
-	} elseif {$target == "burn_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "cast_burn_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -852,18 +822,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_random Trojan insertion ======================
 	
-	} elseif {$target == "fault_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "cast_fault_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -904,19 +874,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_random Trojan insertion ======================
 	
-	} elseif {$target == "leak_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "cast_leak_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -929,34 +899,25 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 	}
-	
-}
-}
 
 #=============================================================================================
 #=========================================== MISTY ===========================================
 #=============================================================================================
 
-
-if { $target_netlist == "misty"} {
-for {set k 0} {$k < 6} {incr k} {
-
-	set target [lindex $trj_files $k]
-	#puts $target
 	
 #================Process starts for burn_targeted Trojan insertion ======================
 	
-	if {$target == "burn_targeted"} {
-		set fp [open $netlist_org]
+	if {$trojan_name == "misty_burn_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -967,18 +928,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_targeted Trojan insertion ======================
 	
-	} elseif {$target == "fault_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "misty_fault_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -1019,19 +980,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_targeted Trojan insertion ======================
 	
-	} elseif {$target == "leak_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "misty_leak_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -1044,18 +1005,18 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 #================Process starts for burn_random Trojan insertion ======================
 	
-	} elseif {$target == "burn_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "misty_burn_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -1066,18 +1027,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_random Trojan insertion ======================
 	
-	} elseif {$target == "fault_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "misty_fault_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -1118,19 +1079,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_random Trojan insertion ======================
 	
-	} elseif {$target == "leak_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "misty_leak_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -1143,35 +1104,26 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 	}
-	
-}
-}
 
 
 #=============================================================================================
 #=========================================== SHA256 ===========================================
 #=============================================================================================
 
-
-if { $target_netlist == "sha256"} {
-for {set k 0} {$k < 6} {incr k} {
-
-	set target [lindex $trj_files $k]
-	#puts $target
 	
 #================Process starts for burn_targeted Trojan insertion ======================
 	
-	if {$target == "burn_targeted"} {
-		set fp [open $netlist_org]
+	if {$trojan_name == "sha256_burn_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -1182,18 +1134,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_targeted Trojan insertion ======================
 	
-	} elseif {$target == "fault_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "sha256_fault_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -1234,19 +1186,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_targeted Trojan insertion ======================
 	
-	} elseif {$target == "leak_targeted"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "sha256_leak_targeted"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -1259,18 +1211,18 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 #================Process starts for burn_random Trojan insertion ======================
 	
-	} elseif {$target == "burn_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "sha256_burn_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -1281,18 +1233,18 @@ for {set k 0} {$k < 6} {incr k} {
 	
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 
 #================Process starts for fault_random Trojan insertion ======================
 	
-	} elseif {$target == "fault_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "sha256_fault_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 		
@@ -1333,19 +1285,19 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet0;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 		
 #================Process starts for leak_random Trojan insertion ======================
 	
-	} elseif {$target == "leak_random"} {
-		set fp [open $netlist_org]
+	} elseif {$trojan_name == "sha256_leak_random"} {
+		set fp [open $netlist_for_trojan_insertion]
 		set lines [split [read $fp] \n]
 		close $fp
 
-		set list_of_trj [listFromFile ${target_netlist}_${target}.trj]
+		set list_of_trj [listFromFile TI/${trojan_name}.trj]
 		set trj_len [llength $list_of_trj]
 		set end_index $end_idx
 
@@ -1358,12 +1310,8 @@ for {set k 0} {$k < 6} {incr k} {
 		set lines [linsert $lines $wire_idx "wire htnet1;" ]
 		set lines [linsert $lines $wire_idx "wire clk_trojan;" ]
 
-		set fp [open ${target}_${target_netlist}.v w]
+		set fp [open $netlist_w_trojan_inserted w]
 		puts $fp [join $lines "\n"]
 		close $fp 
 		
 	}
-	
-}
-}
-

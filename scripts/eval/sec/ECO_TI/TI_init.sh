@@ -17,6 +17,7 @@ TI_mode=$2
 dbg_files=$3
 
 ## sanity checks on parameters
+#
 # NOTE Importantly, this, and most other issues below, are to be handled as errors for the logs/reports, not only as warnings. This is to flag scores as invalid; any initialization
 # issue means the score evaluation was done not properly and should be fixed.
 if [[ "$trojan_name" == "" ]]; then
@@ -40,12 +41,18 @@ if [[ $error == 1 ]]; then
 fi
 
 ## init runtime settings based on parameters
+#
+benchmark=${trojan_name%%_*}
+design_v="design."$TI_mode".v"
+design_enc="design."$TI_mode".enc"
+design_enc_dat="design."$TI_mode".enc.dat"
+netlist_for_trojan_insertion=$design_v
+netlist_w_trojan_inserted="design."$trojan_name"."$TI_mode".v"
 
-design_v="design.forTI."$TI_mode".v"
-design_enc="design.forTI."$TI_mode".enc"
-design_enc_dat="design.forTI."$TI_mode".enc.dat"
+design_name=$(cat $design_enc | grep "restoreDesign" | awk '{print $NF}')
 
 ## sanity checks on files
+#
 if ! [[ -e $design_v ]]; then
 
 	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- baseline netlist \"$design_v\" is missing in working directory." | tee -a $err_rpt
@@ -62,36 +69,26 @@ if ! [[ -d $design_enc_dat ]]; then
 	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- database folder \"$design_enc_dat\" is missing in working directory." | tee -a $err_rpt
 	error=1
 fi
-if [[ $error == 1 ]]; then
-	exit 1
-fi
 
-# TODO replace TI/ folder throughout all scripts; use only local netlist files, specific for each submission
-trojan_netlist="TI/"$trojan_name".v"
-
-# TODO add Mohammad's script for Trojan integration here, unless it's tcl for innovus.
-
-# TODO still needed? maybe as sanity check after Mohammad's script
-if ! [[ -e $trojan_netlist ]]; then
-
-	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Trojan netlist \"$trojan_netlist\" is missing." | tee -a $err_rpt
-	exit 1
-fi
-
-## backup/move existing TI_settings.tcl file, if any; keep for reference later on for the various Trojans inserted
-
-files=$(ls -t $out* 2> /dev/null | head -n 2 | tail -n 1)
-files=${files##*tcl}
-files=$((files + 1))
-mv $out $out$files 2> /dev/null
-
-## general: extract design name -- which is different from benchmark name
-
-design_name=$(cat $design_enc | grep "restoreDesign" | awk '{print $NF}')
-
+## other sanity checks
+#
 if [[ "$design_name" == "" ]]; then
 
 	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- failed to retrieve design name from database description file \"$design_enc\"." | tee -a $err_rpt
+	error=1
+fi
+case $benchmark in
+	aes|camellia|cast|misty|seed|sha256)
+	;;
+	*)
+		echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Unknown/unsupported benchmark \"$benchmark\"." | tee -a $err_rpt
+		error=1
+	;;
+esac
+
+## exit for any errors
+#
+if [[ $error == 1 ]]; then
 	exit 1
 fi
 
@@ -100,35 +97,57 @@ fi
 ## NOTE merge cases as useful, using this syntax: aes|camellia)
 ## NOTE introduce (and merge as appropriate) inner case statements for leak, burn, fault types of Trojans
 ##
-#case $design_name in
+#case $benchmark in
 #
-#	aes_128)
+#	aes)
 #	;;
 #
-#	Camellia)
+#	camellia)
 #	;;
 #
-#	CAST128)
+#	cast)
 #	;;
 #
-#	# misty
-#	top)
+#	misty)
 #	;;
 #
-#	SEED)
+#	seed)
 #	;;
 #
 #	sha256)
 #	;;
 #
 #	*)
-#	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Unknown/unsupported design name \"$design_name\"." | tee -a $err_rpt
+#	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Unknown/unsupported benchmark name \"$benchmark_name\"." | tee -a $err_rpt
 #	;;
 #esac
 
+## backup/move existing TI_settings.tcl file, if any; keep for reference later on for the various Trojans inserted
+#
+files=$(ls -t $out* 2> /dev/null | head -n 2 | tail -n 1)
+files=${files##*tcl}
+files=$((files + 1))
+mv $out $out$files 2> /dev/null
+
 ## write out settings file
+#
+echo "set benchmark \"$benchmark\"" > $out
 echo "set design_name \"$design_name\"" > $out
+echo "set design_enc_dat \"$design_enc_dat\"" > $out
 echo "set trojan_name \"$trojan_name\"" >> $out
-echo "set trojan_netlist \"$trojan_netlist\"" >> $out
+echo "set netlist_for_trojan_insertion \"$netlist_for_trojan_insertion\"" >> $out
+echo "set netlist_w_trojan_inserted \"$netlist_w_trojan_inserted\"" >> $out
 echo "set TI_mode \"$TI_mode\"" >> $out
 echo "set TI_dbg_files \"$dbg_files\"" >> $out
+
+## insert Trojan into netlist
+#
+tclsh scripts/TI_init_netlist.tcl
+
+## sanity check on the above
+## NOTE only checks for file written or not; does not account for any errors in syntax, functionality of the netlist; this would be captured/covered by 'ecoDesign' later on
+if ! [[ -e $netlist_w_trojan_inserted ]]; then
+
+	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Trojan netlist \"$netlist_w_trojan_inserted\" is missing." | tee -a $err_rpt
+	exit 1
+fi

@@ -111,27 +111,27 @@ set_db [get_db insts ] .place_status placed
 ## check in on related warnings, if any).
 ## NOTE '-no_wait' and checking only for existence of design files in TI_wrapper.sh could easily lead to race conditions, as in ECO TI already loading the db when it's not
 ## completely written out yet
-#saveDesign design.forTI.reg.enc -timingGraph -no_wait saveDesign.forTI.reg.log
+#saveDesign design.reg.enc -timingGraph -no_wait saveDesign.reg.log
 
 ## regular ECO TI mode: write out design as is
 # write out design db, including RC data but w/o timing graph (see note abve).
-saveDesign design.forTI.reg.enc -rc
+saveDesign design.reg.enc -rc
 # also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
 # NOTE here we could also directly copy the basic submission netlist (but not link, since we should keep/maintain the submission netlist as is as well), but for consistency we just
 # save it again explicitly
-saveNetlist design.forTI.reg.v
+saveNetlist design.reg.v
 # mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_db.tcl) can go ahead at this point
-date > DONE.save.forTI.reg
+date > DONE.save.reg
 
 ## advanced ECO TI mode: reclaim area
 # reclaimArea performs decloning, downsizing, and deleting of buffers, all without worsening slacks or DRVs; also employs ECO place and route
 reclaimArea -maintainHold
 # write out design db, including RC data but w/o timing graph (see note abve).
-saveDesign design.forTI.adv.enc -rc
+saveDesign design.adv.enc -rc
 # also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
-saveNetlist design.forTI.adv.v
+saveNetlist design.adv.v
 # mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_db.tcl) can go ahead at this point
-date > DONE.save.forTI.adv
+date > DONE.save.adv
 
 ## advanced^2 ECO TI mode: reclaim area again, and more aggressively
 # NOTE just using 'reclaimArea -maintainHold' multiple times would also be possible, but gains for subsequent runs are very limited.
@@ -139,11 +139,11 @@ date > DONE.save.forTI.adv
 # timing-driven ecoPlace later on); also employs ECO place and route
 reclaimArea 
 # write out design db, including RC data but w/o timing graph (see note abve).
-saveDesign design.forTI.adv2.enc -rc
+saveDesign design.adv2.enc -rc
 # also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
-saveNetlist design.forTI.adv2.v
+saveNetlist design.adv2.v
 # mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_db.tcl) can go ahead at this point
-date > DONE.save.forTI.adv2
+date > DONE.save.adv2
 
 #####################
 # mark done; exit

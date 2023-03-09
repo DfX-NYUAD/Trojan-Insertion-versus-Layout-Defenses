@@ -19,8 +19,8 @@ setMultiCpuUsage -localCpu 8 -keepLicense true
 ## source dynamic config file; generated through the TI_init.sh helper script
 #
 source scripts/TI_settings.tcl
-# NOTE mark once the config file is sourced; this signals to the TI_wrapper.sh helper script that the next config file can be written out
-date > DONE.source.TI.$trojan_name
+# NOTE mark once the config file is sourced; this signals to TI_wrapper.sh that the config file can be overwritten for the next Trojan
+date > DONE.source.TI.$trojan_name.$TI_mode
 
 ## dbg related settings
 # NOTE TI_dbg_files is also sourced from scripts/TI_settings.tcl
@@ -46,7 +46,8 @@ if { $TI_dbg_files == 0 } {
 
 ## ECO design integration of Trojan
 #
-ecoDesign design.forTI.$TI_mode.enc.dat $design_name $trojan_netlist -keepInstLoc -noEcoPlace -reportFile $reports_folder/$trojan_name.ecoDesign.$TI_mode.rpt
+# NOTE both 'design_enc_dat' and 'netlist_w_trojan_inserted' already account for/contain 'TI_mode'
+ecoDesign $design_enc_dat $design_name $netlist_w_trojan_inserted -keepInstLoc -noEcoPlace -reportFile $reports_folder/$trojan_name.$TI_mode.ecoDesign.rpt
 
 ### (TODO) for manual dbg; goes together with the command just above ecoDesign
 #set TI_mode $TI_mode_back
@@ -54,7 +55,7 @@ ecoDesign design.forTI.$TI_mode.enc.dat $design_name $trojan_netlist -keepInstLo
 ## check placement right away, to early-on catch issues like overlaps introduced by ECO design integration, which could become difficult for ecoPlace to fix
 # NOTE we are not using 'place_detail_preroute_as_obs' here yet; that would -- falsely -- also flag many of the instances from the original layout (i.e., from the db itself).
 #
-set rpt $reports_folder/$trojan_name.ecoDesign.$TI_mode.checkPlace.rpt
+set rpt $reports_folder/$trojan_name.$TI_mode.ecoDesign.checkPlace.rpt
 checkPlace
 violationBrowserReport -report $rpt 
 # extract violating instances using a bash helper script
@@ -123,12 +124,14 @@ timeDesign -postroute -hold
 ecoPlace -fixPlacedInsts true -timing_driven true
 
 ## NOTE deprecated; trial runs on misty basline, Trojan misty_leak_16_5_targeted, had shown the following:
-##	1) only "reg" mode allowed for 0 DRC and largely no timing violations (only few setup violations for "adv2" db
+##	1) only "reg" mode allowed for 0 DRC and largely no timing violations (only few setup violations for the "adv2" db)
 ##	2) "adv" triggered most DRC violations, along with only setup violations
 ##	3) "adv2" triggered fewer but still some DRC violations, along with setup and hold violations; this is even true for explicit timeDesign for both setup and hold views
 ##	4) both "adv" and "adv2" modes ran into 40th iteration for ecoRoute which a) takes long time and b) is not promising to get rid of DRCs eventually
-##	5) for "adv2" the main issue is that, because of the (mis-)interpreation of tracks when loading the design, most cells are marked as 'dont_use' so the optimization cannot perform well
-##	--> just the "reg" mode is best, and difference will be in what db to use
+##	5) for "adv2" the main issue is that, because of the (mis-)interpretation of tracks when loading the already placed design, most cells are marked as 'dont_use' so the
+##	optimization cannot perform well
+##
+##	--> just using "reg" mode only is most suitable; difference for the TI_mode will be only in what db to use, but that's alright, given that reclaimArea works well
 #
 #switch $TI_mode {
 #
@@ -207,14 +210,15 @@ report_timing_summary > reports/timing.$trojan_name.$TI_mode.rpt
 #
 set defOutLefVia 1
 set defOutLefNDR 1
-defOut -netlist -routing -allLayers design.$trojan_name.$TI_mode.def
-saveNetlist design.$trojan_name.$TI_mode.v
+defOut -netlist -routing -allLayers design.$trojan_name.$TI_mode.final.def
+# NOTE this differs from the netlist w/ Trojan logic integrated but before the ECO flow, which is "$netlist_w_trojan_inserted" or "design.$trojan_name.$TI_mode.v"
+saveNetlist design.$trojan_name.$TI_mode.final.v
 
 ## GDS
 #
 set_global timing_enable_simultaneous_setup_hold_mode false
 setStreamOutMode -reset
-streamOut $trojan_name.$TI_mode.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName DesignLib -uniquifyCellNames -outputMacros -mode ALL -units 4000 -reportFile $reports_folder/$trojan_name.$TI_mode.gds.rpt -merge { ASAP7/asap7sc7p5t_28_L_220121a_scaled4x.gds  ASAP7/asap7sc7p5t_28_SL_220121a_scaled4x.gds }
+streamOut design.$trojan_name.$TI_mode.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName DesignLib -uniquifyCellNames -outputMacros -mode ALL -units 4000 -reportFile $reports_folder/design.$trojan_name.$TI_mode.gds.rpt -merge { ASAP7/asap7sc7p5t_28_L_220121a_scaled4x.gds  ASAP7/asap7sc7p5t_28_SL_220121a_scaled4x.gds }
 
 ####
 # mark done; exit

@@ -28,9 +28,7 @@ dbg_log_verbose=0
 
 ## init stuff; main code further below
 
-# TODO incorporate different modes via prefix for Trojans, e.g., advanced_camellia_burn_random
-# also add related dummy files
-# --> not sure, maybe these modes should only be covered in here
+# TODO add loop for TI_mode wherever needed
 
 # TODO make use of $trojan_name"."$TI_mode wherever needed
 
@@ -356,7 +354,7 @@ monitor() {
 #
 while true; do
 
-	if [[ -e DONE.save.forTI.$TI_mode ]]; then
+	if [[ -e DONE.save.$TI_mode ]]; then
 		break
 	fi
 

@@ -1,5 +1,13 @@
 #!/bin/bash
 
+####
+#
+# Script for ISPD'23 contest. Johann Knechtel, NYUAD, in collaboration with Mohammad Eslami and Samuel Pagliarini, TalTech
+#
+# Helper script to study/debug different ECO modes for Trojan insertion.
+#
+####
+
 trojan_name="misty_leak_16_5_targeted"
 dbg_files="1"
 
