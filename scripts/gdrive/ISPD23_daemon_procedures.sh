@@ -21,10 +21,10 @@ google_fix_json() {
 		# NOTE this does not stop the caller shell
 		return
 	else
-		# NOTE sleep a little and re-check, to avoid race conditions where another call was just about writing out the semaphore
-		# NOTE this could still trigger some race condition -- and allow parallel access into the semaphore -- whenever multiple calls are started at the very same point in
-		# time. But, this is better than no semaphore at all...
-		sleep 1s
+		# check again after a little while; to mitigate race conditions where >1 processes just tried to enter the semaphore
+		# NOTE pick random value from 0.0 to 0.9 etc to 2.9, to hopefully avoid checking again at the very same time
+		sleep $(shuf -i 0-2 -n 1).$(shuf -i 0-9 -n 1)s
+
 		if [[ -e $semaphore ]]; then
 
 			# NOTE this does not stop the caller shell
@@ -684,7 +684,7 @@ check_eval() {
 
 								# NOTE also check again for DONE flag file, to avoid race condition where
 								# process just finished but DONE did not write out yet
-								sleep 1s
+								sleep 2s
 								if [[ -e DONE.inv_checks ]]; then
 									break
 								fi
@@ -798,7 +798,7 @@ check_eval() {
 
 								# NOTE also check again for DONE flag file, to avoid race condition where
 								# process just finished but DONE did not write out yet
-								sleep 1s
+								sleep 2s
 								if [[ -e DONE.inv_PPA ]]; then
 									break
 								fi
@@ -912,7 +912,7 @@ check_eval() {
 
 								# NOTE also check again for DONE flag file, to avoid race condition where
 								# process just finished but DONE did not write out yet
-								sleep 1s
+								sleep 2s
 								if [[ -e DONE.lec_checks ]]; then
 									break
 								fi
