@@ -132,8 +132,8 @@ mv $out $out$files 2> /dev/null
 ## write out settings file
 #
 echo "set benchmark \"$benchmark\"" > $out
-echo "set design_name \"$design_name\"" > $out
-echo "set design_enc_dat \"$design_enc_dat\"" > $out
+echo "set design_name \"$design_name\"" >> $out
+echo "set design_enc_dat \"$design_enc_dat\"" >> $out
 echo "set trojan_name \"$trojan_name\"" >> $out
 echo "set netlist_for_trojan_insertion \"$netlist_for_trojan_insertion\"" >> $out
 echo "set netlist_w_trojan_inserted \"$netlist_w_trojan_inserted\"" >> $out

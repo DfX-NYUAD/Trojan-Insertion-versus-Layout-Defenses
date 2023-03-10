@@ -415,12 +415,13 @@ monitor() {
 #			# NOTE killing of other runs is handled in their own respective monitor process, namely once that FAIL status file is written out
 #			if [[ $bring_down_other_runs_as_well == 1 ]]; then
 #
-#				for trojan_string in "${TI_mode__trojan[@]}"; do
+#				# NOTE here the order does not matter; no need for explicit traversal of key in order
+#				for str in "${TI_mode__trojan[@]}"; do
 #
 #					# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
 #					#
 #					# drop TI_mode_ID
-#					tmp=${trojan_string#*_}
+#					tmp=${str#*_}
 #					# $TI_mode"__"$trojan
 #					TI_mode_=${tmp%__*}
 #					trojan_=${tmp#*__}
@@ -490,10 +491,14 @@ done
 ##	waiting is handled via start_TI procedure itself, not here
 #
 
+# NOTE init for 'prev_trojan_TI'
 trojan="NA"
 TI_mode="NA"
 
-for trojan_string in "${TI_mode__trojan[@]}"; do
+# NOTE we need to go explicitly in order of the key, running ID; the regular iterator '${TI_mode__trojan[@]}' does not provide that
+for ((i=0; i<$trojan_counter; i++)); do
+
+	str=${TI_mode__trojan[$i]}
 
 	# NOTE refers to previous Trojan; follows the same syntax as other status files
 	prev_trojan_TI=$trojan"."$TI_mode
@@ -501,31 +506,34 @@ for trojan_string in "${TI_mode__trojan[@]}"; do
 	# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
 	#
 	# drop TI_mode_ID
-	tmp=${trojan_string#*_}
+	str=${str#*_}
 	# $TI_mode"__"$trojan
-	trojan=${tmp#*__}
-	TI_mode=${tmp%__*}
+	trojan=${str#*__}
+	TI_mode=${str%__*}
 
 	# NOTE syntax for status files is $trojan"."$TI_mode
-	trojan_TI=$trojan_"."$TI_mode_
+	trojan_TI=$trojan"."$TI_mode
 
 	start_TI &
 done
 
 ## 3) start monitor for all TI processes
 #
-for trojan_string in "${TI_mode__trojan[@]}"; do
+# NOTE we need to go explicitly in order of the key, running ID; the regular iterator '${TI_mode__trojan[@]}' does not provide that
+for ((i=0; i<$trojan_counter; i++)); do
+
+	str=${TI_mode__trojan[$i]}
 
 	# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
 	#
 	# drop TI_mode_ID
-	tmp=${trojan_string#*_}
+	str=${str#*_}
 	# $TI_mode"__"$trojan
-	TI_mode=${tmp%__*}
-	trojan=${tmp#*__}
+	TI_mode=${str%__*}
+	trojan=${str#*__}
 
 	# NOTE syntax for status files is $trojan"."$TI_mode
-	trojan_TI=$trojan_"."$TI_mode_
+	trojan_TI=$trojan"."$TI_mode
 
 	monitor &
 done
