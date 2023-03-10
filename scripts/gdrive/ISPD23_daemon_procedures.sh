@@ -1076,15 +1076,15 @@ check_eval() {
 					status[inv_TI]=0
 
 					runs_total=$(ls TI/*.dummy 2> /dev/null | wc -l)
+					runs_done=$(ls DONE.TI.* 2> /dev/null | wc -l)
+					runs_failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
+					runs_cancelled=$(ls CANCELLED.TI.* 2> /dev/null | wc -l)
 					# NOTE STARTED.TI.* would cover all runs that are started by TI_wrapper.sh, but some might still wait for licenses, whereas DONE.source.TI.*
 					# files relate to processes that have really started
 					runs_started=$(ls DONE.source.TI.* 2> /dev/null | wc -l)
-					runs_done=$(ls DONE.TI.* 2> /dev/null | wc -l)
-					# NOTE also includes cancelled runs, not only really failed runs
-					runs_failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
 					((runs_pending = runs_total - runs_started))
-					((runs_ongoing = runs_started - runs_done - runs_failed ))
-					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working -- $runs_ongoing run(s) ongoing, $runs_done run(s) done, $runs_failed run(s) failed/cancelled, $runs_pending run(s) pending, $runs_total run(s) in total ..."
+					((runs_ongoing = runs_started - runs_done - runs_failed - runs_cancelled))
+					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working -- $runs_ongoing run(s) ongoing, $runs_pending run(s) still pending, $runs_done run(s) already done, $runs_failed run(s) already failed, $runs_cancelled run(s) already cancelled; out of $runs_total run(s) in total."
 				fi
 
 				## 2) if not done yet, and no error occurred, then continue, i.e., skip the further processing for now

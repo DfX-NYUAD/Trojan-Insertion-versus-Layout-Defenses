@@ -55,18 +55,18 @@ design_name=$(cat $design_enc | grep "restoreDesign" | awk '{print $NF}')
 #
 if ! [[ -e $design_v ]]; then
 
-	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- baseline netlist \"$design_v\" is missing in working directory." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\", TI mode \"$TI_mode\" -- baseline netlist \"$design_v\" is missing in working directory." | tee -a $err_rpt
 	error=1
 fi
 if ! [[ -e $design_enc ]]; then
 
-	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- database description file \"$design_enc\" is missing in working directory." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\", TI mode \"$TI_mode\" -- database description file \"$design_enc\" is missing in working directory." | tee -a $err_rpt
 	error=1
 fi
 # NOTE we do not (and practically also cannot at this point) check the db folder in full for correctness or consistency; just sanity check whether folder exists at all
 if ! [[ -d $design_enc_dat ]]; then
 
-	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- database folder \"$design_enc_dat\" is missing in working directory." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\", TI mode \"$TI_mode\" -- database folder \"$design_enc_dat\" is missing in working directory." | tee -a $err_rpt
 	error=1
 fi
 
@@ -74,14 +74,14 @@ fi
 #
 if [[ "$design_name" == "" ]]; then
 
-	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- failed to retrieve design name from database description file \"$design_enc\"." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\", TI mode \"$TI_mode\" -- failed to retrieve design name from database description file \"$design_enc\"." | tee -a $err_rpt
 	error=1
 fi
 case $benchmark in
 	aes|camellia|cast|misty|seed|sha256)
 	;;
 	*)
-		echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Unknown/unsupported benchmark \"$benchmark\"." | tee -a $err_rpt
+		echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\", TI mode \"$TI_mode\" -- Unknown/unsupported benchmark \"$benchmark\"." | tee -a $err_rpt
 		error=1
 	;;
 esac
@@ -118,7 +118,7 @@ fi
 #	;;
 #
 #	*)
-#	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Unknown/unsupported benchmark name \"$benchmark_name\"." | tee -a $err_rpt
+#	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\", TI mode \"$TI_mode\" -- Unknown/unsupported benchmark name \"$benchmark_name\"." | tee -a $err_rpt
 #	;;
 #esac
 
@@ -148,6 +148,6 @@ tclsh scripts/TI_init_netlist.tcl
 ## NOTE only checks for file written or not; does not account for any errors in syntax, functionality of the netlist; this would be captured/covered by 'ecoDesign' later on
 if ! [[ -e $netlist_w_trojan_inserted ]]; then
 
-	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\" -- Trojan netlist \"$netlist_w_trojan_inserted\" is missing." | tee -a $err_rpt
+	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\", TI mode \"$TI_mode\" -- Trojan netlist \"$netlist_w_trojan_inserted\" is missing." | tee -a $err_rpt
 	exit 1
 fi
