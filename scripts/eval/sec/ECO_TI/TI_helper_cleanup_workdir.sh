@@ -1,11 +1,15 @@
 rm DONE.source.*
-rm DONE.TI_*
-rm FAILED.TI_*
-rm PID.TI_*
-rm STARTED.TI_*
+rm *.TI.*
 rm *gds*
 rm reports/*gds*
 rm *ecoDesign*
 rm reports/*ecoDesign*
-rm TI_*
-rm scripts/TI_settings.tcl*
+rm TI.*.{log,logv,cmd}*
+rm scripts/TI_settings.tcl
+rm scripts/TI_settings.tcl.semaphore.*
+rm reports/timing.*.{reg,adv,adv2}.rpt
+rm *.geom.*{reg,adv,adv2}.rpt
+rm reports/*.geom.*{reg,adv,adv2}.rpt
+rm design.*.{reg,adv,adv2}.final.*
+rm design.*.{reg,adv,adv2}.v
+rm timingReports.*.{reg,adv,adv2}.* -r

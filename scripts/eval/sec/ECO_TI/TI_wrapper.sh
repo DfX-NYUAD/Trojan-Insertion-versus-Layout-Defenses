@@ -44,15 +44,27 @@ fi
 #
 start_TI() {
 
-	## dbg_log
-	#
+	# NOTE we have to init/"freeze" this vars locally, at the beginning of the call; otherwise, any update on the same-name global vars could throw off the procedure
+	local trojan=$1
+	local TI_mode=$2
+	local prev_trojan_TI=$3
+
+	# NOTE syntax for status files is $trojan"."$TI_mode
+	local trojan_TI=$trojan"."$TI_mode
+
+	# dbg_log
 	if [[ $dbg_log == 1 ]]; then
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI ENTRY for Trojan \"$trojan\", TI mode \"$TI_mode\"."
 	fi
 
-	## initally wait until design db becomes available (db is generated through scripts/eval/des/PPA.tcl)
+	## initially wait until design db becomes available (db is generated through scripts/eval/des/PPA.tcl)
 	#
 	while true; do
+
+		# dbg_log_verbose
+		if [[ $dbg_log_verbose == 1 ]]; then
+			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI WHILE - DB INIT - for Trojan \"$trojan\", TI mode \"$TI_mode\"."
+		fi
 
 		if [[ -e DONE.save.$TI_mode ]]; then
 			break
@@ -67,6 +79,12 @@ start_TI() {
 			echo "ISPD23 -- WARNING: $err_string" >> $warn_rpt
 
 			date > CANCELLED.TI.$trojan_TI
+
+			# dbg_log
+			if [[ $dbg_log == 1 ]]; then
+				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
+			fi
+
 			exit 1
 		fi
 
@@ -81,13 +99,31 @@ start_TI() {
 
 			# dbg_log_verbose
 			if [[ $dbg_log_verbose == 1 ]]; then
-				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI WHILE for Trojan \"$trojan\", TI mode \"$TI_mode\"."
+				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI WHILE - MAIN LOOP - for Trojan \"$trojan\", TI mode \"$TI_mode\"."
 			fi
 
-			sleep 1s
+			## status check and exit handling; process might have been cancelled in the meantime, namely for any failure for PPA eval, LEC checks, and/or design checks,
+			## as well as for any case where some "inferior" TI mode already sufficed to insert Trojan w/o any violations; see below in process monitor() for handling/processing
+			## of all these cases
+			##
+			if [[ -e CANCELLED.TI.$trojan_TI ]]; then
 
-			## wait until prior TI call has fully started (i.e., Innovus session has started up and the TI_settings.tcl file has been sourced)
-			if [[ -e DONE.source.TI.$prev_trojan_TI ]]; then
+				# dbg_log
+				if [[ $dbg_log == 1 ]]; then
+					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
+				fi
+
+				exit 1
+			fi
+
+			## wait until _prior_ Trojan run has fully started (i.e., Innovus session has started up and the TI_settings.tcl file has been sourced)
+			#
+			# NOTE check for both regular and for dummy status files; the latter have the additional suffix ".dummy" and are generated when the process
+			# got cancelled, specifically to allow this run here to proceed while allowing to differentiate from real/actual source operations being done
+			
+			# NOTE checking for files with * wildcards using '-e' does not work; go by files count instead
+			status_files=$(ls DONE.source.TI.$prev_trojan_TI* 2> /dev/null | wc -l)
+			if [[ $status_files != 0 ]]; then
 
 				# wait further in case max runs are already ongoing
 				#
@@ -113,33 +149,23 @@ start_TI() {
 				fi
 			fi
 
-			## sanity check and exit handling; process might have been cancelled in the meantime, namely for any failure for PPA eval, LEC checks, and/or design checks,
-			## as well as for any runtime error for other Trojans, as well as for any case where some "inferior" TI mode already sufficed to insert Trojan w/o any
-			## violations; see below in process monitor() for handling/processing of all these cases
-			## NOTE cannot be merged with the above, as DONE.source.TI.* might be there already, but the process still got cancelled after that sourcing operation
-			if [[ -e CANCELLED.TI.$trojan_TI ]]; then
-
-				# dbg_log
-				if [[ $dbg_log == 1 ]]; then
-					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
-				fi
-
-				exit 1
-			fi
+			sleep 1s
 		done
 	fi
 
 	echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, initializing for Trojan \"$trojan\", TI mode \"$TI_mode\"."
 
 	## init TI_settings.tcl for current Trojan
+	# NOTE covers semaphore check and lock
 	# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 	#
 	scripts/TI_init.sh $trojan $TI_mode $dbg_files > /dev/null
+	TI_init_status=$?
 
 	## some error occurred
 	# NOTE specific error is already logged via TI_init.sh; no need to log again
 	#
-	if [[ $? != 0 ]]; then
+	if [[ $TI_init_status == 1 ]]; then
 
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, failed to start for Trojan \"$trojan\", TI mode \"$TI_mode\". More details are reported in \"$err_rpt\"."
 
@@ -152,13 +178,27 @@ start_TI() {
 		fi
 
 		exit 1
+
+	## got cancelled while waiting for the semaphore; didn't start the process; just exit from here
+	#
+	elif [[ $TI_init_status == 2 ]]; then
+
+		# dbg_log
+		if [[ $dbg_log == 1 ]]; then
+			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
+		fi
+
+		exit 1
+	fi
+
+	# dbg_log
+	if [[ $dbg_log == 1 ]]; then
+		cat scripts/TI_settings.tcl
 	fi
 
 	## actual Innovus call
+	# NOTE covers semaphore release once the config file is fully sourced
 	#
-
-	# NOTE this is redundant to the above, and just to set the actual date/time of the start
-	date > STARTED.TI.$trojan_TI
 
 	# NOTE vdi is limited to 50k instances per license --> ruled out for aes w/ its ~260k instances
 	if [[ "$trojan" == *"aes"* ]]; then
@@ -172,14 +212,24 @@ start_TI() {
 		echo $! > PID.TI.$trojan_TI
 	fi
 
-	## dbg_log
-	#
+	# NOTE this is redundant to the above, and just to set the actual date/time of the start
+	date > STARTED.TI.$trojan_TI
+
+	# dbg_log
 	if [[ $dbg_log == 1 ]]; then
 		echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 0 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
 	fi
 }
 
 monitor() {
+
+	# NOTE we have to init/"freeze" this vars locally, at the beginning of the call; otherwise, any update on the same-name global vars could throw off the procedure
+	local trojan=$1
+	local TI_mode=$2
+	local trojan_TI=$3
+
+	# NOTE syntax for status files is $trojan"."$TI_mode
+	local trojan_TI=$trojan"."$TI_mode
 
 	## monitor subshell
 	# NOTE derived from scripts/gdrive/ISPD23_daemon_procedures.sh, check_eval(), but also revised here, mainly for use of STARTED.TI.* files
@@ -193,7 +243,7 @@ monitor() {
 
 		# dbg_log_verbose
 		if [[ $dbg_log_verbose == 1 ]]; then
-			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor WHILE for Trojan \"$trojan\", TI mode \"$TI_mode\"."
+			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor WHILE - MAIN LOOP - for Trojan \"$trojan\", TI mode \"$TI_mode\"."
 		fi
 
 		# NOTE sleep a little right in the beginning, to avoid immediate but useless errors concerning log file not found; is only relevant for the very first run just
@@ -201,10 +251,8 @@ monitor() {
 		# NOTE merged w/ regular sleep, which is needed anyway (and was previously done at the end of the loop)
 		sleep 2s
 
-		error=0
-		cancelled=0
-#		# NOTE deprecated; this would lead to all Trojans marked as FAILED and, thus, resulting in best scores for submission, which is wrong/inappropriate for some error in some run
-#		bring_down_other_runs_as_well=0
+		local error=0
+		local cancelled=0
 
 		# hasn't started yet
 		if ! [[ -e STARTED.TI.$trojan_TI ]]; then
@@ -219,14 +267,21 @@ monitor() {
 
 				echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\" -- cancelled; triggered by some other check or some other Trojan run." >> $warn_rpt
 
-				# stop to wait; exit monitor process (w/ error status; currently not evaluated) directly here, as there's no need for killing
-				exit 1
+				# dbg_log
+				if [[ $dbg_log == 1 ]]; then
+					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor EXIT 1 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
+				fi
+
+				# mark as cancellation
+				# NOTE does not really require marking (again) as cancellation, nor killing, but "wrapping up" as in setting dummy DONE.source.TI file;
+				# this is covered further below as well, namely when checking for 'cancelled != 0'
+				cancelled=1
 			fi
 
-			# else (if not marked as failure), continue to wait
-			# NOTE it's important to _not_ explicitly use continue here, but rather follow the remaining part (which checks for failures in other processes)
+			# else (if not cancelled), continue to wait
+			# NOTE it's important to _not_ use continue here, but to execute the remaining code in this main loop (as this checks for failures in other processes)
 
-		# has started, just done, w/o errors and w/o being cancelled earlier
+		# has started at some point, and got just done, w/o errors and w/o being cancelled earlier
 		elif [[ -e DONE.TI.$trojan_TI ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, done for Trojan \"$trojan\", TI mode \"$TI_mode\"."
@@ -237,6 +292,11 @@ monitor() {
 
 			# skip these checks for adv2 mode
 			if [[ $TI_mode == "adv2" ]]; then
+
+				# dbg_log
+				if [[ $dbg_log == 1 ]]; then
+					echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor EXIT 0 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
+				fi
 
 				# stop to wait, exit monitor process (w/o error status; currently not evaluated)
 				exit 0
@@ -263,10 +323,10 @@ monitor() {
 
 			# setup
 			vios_string=$(grep "View : ALL" $rpt_timing | awk 'NR==1' | awk '{print $NF}')
-			((vios_total += vios_string))
+			((vios_total = vios_total + vios_string))
 			# hold
 			vios_string=$(grep "View : ALL" $rpt_timing | awk 'NR==2' | awk '{print $NF}')
-			((vios_total += vios_string))
+			((vios_total = vios_total + vios_string))
 
 			# DRV
 			while read line; do
@@ -276,39 +336,50 @@ monitor() {
 				fi
 
 				vios_string=$(echo $line | awk '{print $NF}')
-				((vios_total += vios_string))
+				((vios_total = vios_total + vios_string))
 
 			done < $rpt_timing
 
 			# no violations; mark other, more advanced runs for cancellation
 			if [[ $vios_total == 0 ]]; then
 
-				string="Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\", passed without any violations. Cancelling run(s) for more advanced TI mode(s)."
+				string="Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\", passed without any violations. Cancelling the run(s) for more advanced TI mode(s)."
 				echo -e "\nISPD23 -- 2)  $id_run:  $string"
 				echo "ISPD23 -- WARNING: $string" >> $warn_rpt
 
 				if [[ $TI_mode == "reg" ]]; then
+
 					date > CANCELLED.TI.$trojan".adv"
 					date > CANCELLED.TI.$trojan".adv2"
 
 				elif [[ $TI_mode == "adv" ]]; then
+
 					date > CANCELLED.TI.$trojan".adv2"
 				fi
+			else
+				string="Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\", passed with some violations. Continuing the run(s) for more advanced TI mode(s)."
+				echo -e "\nISPD23 -- 2)  $id_run:  $string"
+				echo "ISPD23 -- WARNING: $string" >> $warn_rpt
+			fi
+
+			# dbg_log
+			if [[ $dbg_log == 1 ]]; then
+				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor EXIT 0 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
 			fi
 
 			# stop to wait, exit monitor process (w/o error status; currently not evaluated)
 			exit 0
 
-		# has started, and not done yet, but got cancelled (by some other run; see below)
+		# has started at some point, and not done yet, but got cancelled (by some other run; see below)
 		elif [[ -e CANCELLED.TI.$trojan_TI ]]; then
 
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, interrupt for Trojan \"$trojan\", TI mode \"$TI_mode\", indirectly via an interrupt for some other check or some other Trojan run."
 			echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\" -- INTERRUPT; triggered indirectly by some other check or some other Trojan run." >> $warn_rpt
 
-			# mark as cancellation, which still requires killing further below
+			# mark as cancellation (again), as it still requires killing, which is handled further below
 			cancelled=1
 
-		# has started, but not done yet and not cancelled yet
+		# has started at some point, but not done yet and not cancelled yet
 		else
 			# dbg_log_verbose
 			if [[ $dbg_log_verbose == 1 ]]; then
@@ -338,10 +409,6 @@ monitor() {
 
 				error=1
 
-#				# NOTE deprecated; this would lead to all Trojans marked as FAILED and, thus, resulting in best scores for submission, which is wrong/inappropriate for some error in some run
-#				# NOTE not needed really, but stated here explicitly to differentiate to the scenario below
-#				bring_down_other_runs_as_well=0
-		
 			# also check for interrupts
 			#
 			# NOTE merged with check for errors into 'elif', as errors might lead to immediate process exit, which would then result in both
@@ -360,7 +427,7 @@ monitor() {
 
 					# NOTE also check again for DONE flag file, to avoid race condition where
 					# process just finished but DONE did not write out yet
-					sleep 1s
+					sleep 2s
 					if [[ -e DONE.TI.$trojan_TI ]]; then
 						break
 					fi
@@ -369,11 +436,6 @@ monitor() {
 					echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\" -- INTERRUPT, runtime error" >> $warn_rpt
 
 					error=1
-
-#					# NOTE deprecated; this would lead to all Trojans marked as FAILED and, thus, resulting in best scores for submission, which is wrong/inappropriate for some error in some run
-#					# NOTE a runtime issue on any Trojan means it cannot be properly evaluated, and it should be re-submitted and re-tried to evaluate properly.
-#					# Thus, it is also best/most effective to cancel all others right away, and return failure results early on
-#					bring_down_other_runs_as_well=1
 				fi
 			fi
 		fi
@@ -407,55 +469,28 @@ monitor() {
 			cancelled=1
 		fi
 
-		# for any errors, mark accordingly, kill the process, and stop monitor process
-		if [[ $error != 0 ]]; then
+		# for any errors or cancellation, mark accordingly, kill the process, and stop monitor process
+		if [[ $error != 0 || $cancelled != 0 ]]; then
 
-#			# NOTE deprecated; this would lead to all Trojans marked as FAILED and, thus, resulting in best scores for submission, which is wrong/inappropriate for some error in some run
-#			# NOTE if needed/requested, mark all runs (this and all other ones) as failed
-#			# NOTE killing of other runs is handled in their own respective monitor process, namely once that FAIL status file is written out
-#			if [[ $bring_down_other_runs_as_well == 1 ]]; then
-#
-#				# NOTE here the order does not matter; no need for explicit traversal of key in order
-#				for str in "${TI_mode__trojan[@]}"; do
-#
-#					# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
-#					#
-#					# drop TI_mode_ID
-#					tmp=${str#*_}
-#					# $TI_mode"__"$trojan
-#					TI_mode_=${tmp%__*}
-#					trojan_=${tmp#*__}
-#
-#					# NOTE syntax for status files is $trojan"."$TI_mode
-#					trojan_TI_=$trojan_"."$TI_mode_
-#
-#					date > FAILED.TI.$trojan_TI_
-#				done
-#
-#			# else, only mark this as cancelled/failed
-#			else
+			if [[ $error != 0 ]]; then
 				date > FAILED.TI.$trojan_TI
-#			fi
-
-			# NOTE mute stderr for cat, as the process might not have been started yet (then the PID file won't exist)
-			# NOTE also must stderr for kill, as the process might not run anymore, and also to cover the above, where there's no PID provided via xargs
-			cat PID.TI.$trojan_TI 2> /dev/null | xargs kill -9 2> /dev/null
-
-			# dbg_log
-			if [[ $dbg_log == 1 ]]; then
-				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, monitor EXIT 1 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
+			elif [[ $cancelled != 0 ]]; then
+				date > CANCELLED.TI.$trojan_TI
 			fi
 
-			exit 1
-
-		# for any cancellation, mark accordingly, also try kill the process (which may or may not run), and stop monitor process
-		elif [[ $cancelled != 0 ]]; then
-
-			date > CANCELLED.TI.$trojan_TI
-
 			# NOTE mute stderr for cat, as the process might not have been started yet (then the PID file won't exist)
-			# NOTE also must stderr for kill, as the process might not run anymore, and also to cover the above, where there's no PID provided via xargs
+			# NOTE also mute stderr for kill, as the process might not run anymore, and also to cover the above, where there's no PID provided via xargs
 			cat PID.TI.$trojan_TI 2> /dev/null | xargs kill -9 2> /dev/null
+
+			# at this point, if the source operation didn't happen yet, we also need to write out this dummy status file, in order to allow other Trojan
+			# runs (waiting for this source operation) to continue
+			if ! [[ -e DONE.source.TI.$trojan_TI ]]; then
+				date > DONE.source.TI.$trojan_TI".dummy"
+			fi
+
+			# sanity check/release of the semaphore which might still be locked TI_init.sh
+			# NOTE only release the semaphore of this run, not of any other that might have started in the meantime
+			rm -f scripts/TI_settings.tcl.semaphore.$trojan_TI
 
 			# dbg_log
 			if [[ $dbg_log == 1 ]]; then
@@ -488,7 +523,7 @@ for file in TI/*.dummy; do
 done
 
 ##  2) init start_TI processes; all in parallel, but wait during init phase, as there's only one common config file, which can be updated only once some prior TI process has fully started
-##	waiting is handled via start_TI procedure itself, not here
+##  NOTE waiting is handled via start_TI() itself, not here
 #
 
 # NOTE init for 'prev_trojan_TI'
@@ -511,10 +546,8 @@ for ((i=0; i<$trojan_counter; i++)); do
 	trojan=${str#*__}
 	TI_mode=${str%__*}
 
-	# NOTE syntax for status files is $trojan"."$TI_mode
-	trojan_TI=$trojan"."$TI_mode
-
-	start_TI &
+	# NOTE we have init/"freeze" this vars locally, at the beginning of the call; otherwise, any update on the same-name global vars could throw off the procedure
+	start_TI $trojan $TI_mode $prev_trojan_TI &
 done
 
 ## 3) start monitor for all TI processes
@@ -532,16 +565,16 @@ for ((i=0; i<$trojan_counter; i++)); do
 	TI_mode=${str%__*}
 	trojan=${str#*__}
 
-	# NOTE syntax for status files is $trojan"."$TI_mode
-	trojan_TI=$trojan"."$TI_mode
-
-	monitor &
+	# NOTE we have init/"freeze" this vars locally, at the beginning of the call; otherwise, any update on the same-name global vars could throw off the procedure
+	monitor $trojan $TI_mode &
 done
 # wait for all monitor subshells to end
 wait
 
 # 4) final status checks across all Trojans
+# NOTE logs for all cases are already covered by main daemon
 #
+
 failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
 
 # NOTE sanity check on 0 Trojans; just exit quietly
@@ -552,26 +585,16 @@ if [[ $trojan_counter == 0 ]]; then
 
 elif [[ $failed == 0 ]]; then
 
-#	# NOTE redundant to log in main daemon
-#	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, all $trojan_counter run(s) done without failure."
-
 	date > DONE.TI.ALL
 	exit 0
 
 elif [[ $failed == $trojan_counter ]]; then
 
-#	# NOTE redundant to log in main daemon
-#	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, ALL $failed/$trojan_counter runs failed."
-
 	date > FAILED.TI.ALL
 	exit 1
 
-# NOTE some but not all runs failed; still mark as done for main daemon
+# NOTE some but not all runs failed or got cancelled; still mark as done for main daemon
 else
-
-#	# NOTE redundant to log in main daemon
-#	echo -e "\nISPD23 -- 2)  $id_run: Innovus Trojan insertion, $failed/$trojan_counter run(s) failed but remaining run(s) are done without failure."
-
 	date > DONE.TI.ALL
 	exit 0
 fi

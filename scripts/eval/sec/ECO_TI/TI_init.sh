@@ -48,6 +48,7 @@ design_enc="design."$TI_mode".enc"
 design_enc_dat="design."$TI_mode".enc.dat"
 netlist_for_trojan_insertion=$design_v
 netlist_w_trojan_inserted="design."$trojan_name"."$TI_mode".v"
+trojan_TI=$trojan_name"."$TI_mode
 
 design_name=$(cat $design_enc | grep "restoreDesign" | awk '{print $NF}')
 
@@ -122,12 +123,50 @@ fi
 #	;;
 #esac
 
-## backup/move existing TI_settings.tcl file, if any; keep for reference later on for the various Trojans inserted
+## semaphore check and lock
+## NOTE semaphore is needed, in addition to the status files; otherwise, there can be easily race conditions b/w regular runs just done and other runs started in-between due to even
+## others cancelled (namely some adv/adv2 runs not needed since some Trojan can pass w/o any violations in reg/adv mode already).
+## NOTE semaphore release is/must be done in TI.tcl itself
 #
-files=$(ls -t $out* 2> /dev/null | head -n 2 | tail -n 1)
-files=${files##*tcl}
-files=$((files + 1))
-mv $out $out$files 2> /dev/null
+semaphore=$out".semaphore."$trojan_TI
+while true; do
+
+	# status check and exit handling; process might have been cancelled in the meantime
+	if [[ -e CANCELLED.TI.$trojan_TI ]]; then
+
+		# NOTE "special" exit code for TI_wrapper.sh
+		exit 2
+	fi
+
+	# check for any semaphore, as there's only this one global config file, but still write out a semaphore specific to this Trojan run
+	#
+	# NOTE checking for files with * wildcards using '-e' does not work; go by files count instead
+	semaphores_count=$(ls "$out".semaphore.* 2> /dev/null | wc -l)
+	if [[ $semaphores_count == 0 ]]; then
+
+		# check again after a little while; to mitigate race conditions where >1 processes just tried to enter the semaphore
+		# NOTE pick random value from 0.0 to 0.9 etc to 5.9, to hopefully avoid checking again at the very same time
+		sleep $(shuf -i 0-5 -n 1).$(shuf -i 0-9 -n 1)s
+
+		semaphores_count=$(ls "$out".semaphore.* 2> /dev/null | wc -l)
+		if [[ $semaphores_count == 0 ]]; then
+	
+			# lock semaphore; move on w/ code below
+			date > $semaphore
+			break
+		fi
+	fi
+
+	sleep 1s
+done
+
+## NOTE deprecated; settings are given in the Innovus log files; also clashes with '.semaphore' file
+### backup/move existing TI_settings.tcl file, if any; keep for reference later on for the various Trojans inserted
+##
+#files=$(ls -t $out* 2> /dev/null | head -n 2 | tail -n 1)
+#files=${files##*tcl}
+#files=$((files + 1))
+#mv $out $out$files 2> /dev/null
 
 ## write out settings file
 #
@@ -146,6 +185,7 @@ tclsh scripts/TI_init_netlist.tcl
 
 ## sanity check on the above
 ## NOTE only checks for file written or not; does not account for any errors in syntax, functionality of the netlist; this would be captured/covered by 'ecoDesign' later on
+#
 if ! [[ -e $netlist_w_trojan_inserted ]]; then
 
 	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\", TI mode \"$TI_mode\" -- Trojan netlist \"$netlist_w_trojan_inserted\" is missing." | tee -a $err_rpt

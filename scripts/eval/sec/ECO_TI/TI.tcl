@@ -21,6 +21,9 @@ setMultiCpuUsage -localCpu 8 -keepLicense true
 source scripts/TI_settings.tcl
 # NOTE mark once the config file is sourced; this signals to TI_wrapper.sh that the config file can be overwritten for the next Trojan
 date > DONE.source.TI.$trojan_name.$TI_mode
+# NOTE with extended parallel processing of multiple TI modes, we need another layer here to avoid over-writing the config file;
+# release the semaphore which is locked by TI_init.sh
+rm -f scripts/TI_settings.tcl.semaphore.$trojan_name.$TI_mode
 
 ## dbg related settings
 # NOTE TI_dbg_files is also sourced from scripts/TI_settings.tcl
