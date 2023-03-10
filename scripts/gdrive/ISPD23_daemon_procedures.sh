@@ -741,7 +741,7 @@ check_eval() {
 					done
 
 					## parse rpt, log files for failures
-					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
+					## put summary into warnings.rpt; also extract violations count into checks_summary.rpt
 					## set/mark status via PASSED/FAILED files
 					parse_inv_checks
 
@@ -851,11 +851,22 @@ check_eval() {
 								# NOTE this serves to skip the remaining code by exiting the subshell
 								exit 1
 							fi
+
+							# check also for special/corner case: all TI runs are already done before the PPA evaluation is done; meaning that all Trojans could be inserted via 'reg' and/or 'adv' mode,
+							# whereas 'reclaimArea' and related commands for 'adv' or 'adv2' mode are still running --> can be cancelled
+							if [[ -e DONE.TI.ALL ]]; then
+
+								echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion is already done (for 'reg' and/or 'adv' mode), whereas preparation for 'adv' or 'adv2' mode is still running -- this can and will be cancelled now ..."
+								echo "ISPD23 -- WARNING: remaining process for Innovus PPA evaluation cancelled -- aborted due to Innovus Trojan insertion being already done" >> reports/warnings.rpt
+
+								cat PID.inv_PPA | xargs kill -9 2> /dev/null
+								date > DONE.inv_PPA
+							fi
 						fi
 					done
 
 					## parse rpt, log files for failures
-					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
+					## put summary into warnings.rpt; also extract violations count into checks_summary.rpt
 					## set/mark status via PASSED/FAILED files
 					parse_inv_PPA
 
@@ -969,7 +980,7 @@ check_eval() {
 					done
 
 					## parse rpt, log files for failures
-					## put summary into warnings.rpts; also extract violations count into checks_summary.rpt
+					## put summary into warnings.rpt; also extract violations count into checks_summary.rpt
 					## set/mark status via PASSED/FAILED files
 					parse_lec_checks
 
