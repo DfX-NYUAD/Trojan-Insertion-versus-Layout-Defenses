@@ -505,7 +505,7 @@ google_uploads() {
 				## proceed only if upload succeeded
 				if [[ $? -ne 0 ]]; then
 
-					# NOTE this serves to exits the subshell, not only to skip the remaining code
+					# NOTE this serves to skip the remaining code by exiting the subshell
 					exit 1
 				fi
 
@@ -646,7 +646,7 @@ check_eval() {
 					if [[ $running != 0 ]]; then
 						echo $$ > PID.monitor.inv_checks
 					else
-						# NOTE this serves to exits the subshell, not only to skip the remaining code
+						# NOTE this serves to skip the remaining code by exiting the subshell
 						exit 2
 					fi
 
@@ -734,7 +734,7 @@ check_eval() {
 								cat PID.lec_checks | xargs kill -9 2> /dev/null
 								cat PID.inv_PPA | xargs kill -9 2> /dev/null
 
-								# NOTE this serves to exits the subshell, not only to skip the remaining code
+								# NOTE this serves to skip the remaining code by exiting the subshell
 								exit 1
 							fi
 						fi
@@ -760,7 +760,7 @@ check_eval() {
 					if [[ $running != 0 ]]; then
 						echo $$ > PID.monitor.inv_PPA
 					else
-						# NOTE this serves to exits the subshell, not only to skip the remaining code
+						# NOTE this serves to skip the remaining code by exiting the subshell
 						exit 2
 					fi
 
@@ -848,7 +848,7 @@ check_eval() {
 								cat PID.lec_checks | xargs kill -9 2> /dev/null
 								cat PID.inv_checks | xargs kill -9 2> /dev/null
 
-								# NOTE this serves to exits the subshell, not only to skip the remaining code
+								# NOTE this serves to skip the remaining code by exiting the subshell
 								exit 1
 							fi
 						fi
@@ -874,7 +874,7 @@ check_eval() {
 					if [[ $running != 0 ]]; then
 						echo $$ > PID.monitor.lec_checks
 					else
-						# NOTE this serves to exits the subshell, not only to skip the remaining code
+						# NOTE this serves to skip the remaining code by exiting the subshell
 						exit 2
 					fi
 
@@ -962,7 +962,7 @@ check_eval() {
 								cat PID.inv_checks | xargs kill -9 2> /dev/null
 								cat PID.inv_PPA | xargs kill -9 2> /dev/null
 
-								# NOTE this serves to exits the subshell, not only to skip the remaining code
+								# NOTE this serves to skip the remaining code by exiting the subshell
 								exit 1
 							fi
 						fi
@@ -1075,15 +1075,16 @@ check_eval() {
 				else
 					status[inv_TI]=0
 
-					runs_total=$(ls TI/*.v 2> /dev/null | wc -l)
+					runs_total=$(ls TI/*.dummy 2> /dev/null | wc -l)
 					# NOTE STARTED.TI.* would cover all runs that are started by TI_wrapper.sh, but some might still wait for licenses, whereas DONE.source.TI.*
 					# files relate to processes that have really started
 					runs_started=$(ls DONE.source.TI.* 2> /dev/null | wc -l)
 					runs_done=$(ls DONE.TI.* 2> /dev/null | wc -l)
+					# NOTE also includes cancelled runs, not only really failed runs
 					runs_failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
 					((runs_pending = runs_total - runs_started))
 					((runs_ongoing = runs_started - runs_done - runs_failed ))
-					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working -- $runs_ongoing run(s) ongoing, $runs_done run(s) done, $runs_failed run(s) failed, $runs_pending run(s) pending, $runs_total run(s) in total ..."
+					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working -- $runs_ongoing run(s) ongoing, $runs_done run(s) done, $runs_failed run(s) failed/cancelled, $runs_pending run(s) pending, $runs_total run(s) in total ..."
 				fi
 
 				## 2) if not done yet, and no error occurred, then continue, i.e., skip the further processing for now
@@ -1155,31 +1156,35 @@ check_eval() {
 				#
 				if [[ $dbg_files == "1" ]]; then
 
-					#
-					## NOTE code for listing Trojans is copied from TI_wrapper.sh
+					## NOTE code for listing Trojans as copied from TI_wrapper.sh
 					#
 
-					# key: running ID; value: trojan_name
+					# key: running ID; value: $TI_mode_ID"_"$TI_mode"__"$trojan
 					# NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
-					declare -A trojans
+					declare -A TI_mode__trojan
 					trojan_counter=0
 
-					for file in TI/*; do
+					for file in TI/*.dummy; do
 
-						trojan_name=${file##TI/}
-						trojan_name=${trojan_name%%.*}
+						trojan=${file##TI/}
+						trojan=${trojan%%.dummy}
 
-						# NOTE this is required to sort out duplicate files that differ only in the file suffix
-						if [[ "${trojans[$((trojan_counter-1))]}" == $trojan_name ]]; then
-							continue	
-						fi
-
-						trojans[$trojan_counter]=$trojan_name
+						TI_mode__trojan[$trojan_counter]=$trojan
 						((trojan_counter = trojan_counter + 1))
 					done
 
-					for trojan in "${trojans[@]}"; do
-						zip $uploads_folder/Trojan_designs.zip design."$trojan".* > /dev/null 2>&1
+					# NOTE could be merged w/ the above, but for simplicity, and to be in sync w/ TI_wrapper.sh, it's just copied in full
+					for trojan_string in "${TI_mode__trojan[@]}"; do
+
+						# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
+						#
+						# drop TI_mode_ID
+						tmp=${trojan_string#*_}
+						# $TI_mode"__"$trojan
+						trojan=${tmp#*__}
+						TI_mode=${tmp%__*}
+
+						zip $uploads_folder/Trojan_designs.zip design."$trojan"."$TI_mode".final.* > /dev/null 2>&1
 					done
 				fi
 
@@ -1286,7 +1291,8 @@ check_submission() {
 			echo "ISPD23 -- 2)  $id_run:   Assets check failed."
 		fi
 
-		# NOTE this serves to exits the subshell, not only to skip the remaining code
+		# NOTE this serves to skip the remaining code by exiting the subshell
+		# NOTE even as there is no additional code, using 'exit' is needed as we want to pass a status/return code
 		exit $errors
 	) &
 	pid_check_assets=$!
@@ -1308,13 +1314,15 @@ check_submission() {
 			echo "ISPD23 -- ERROR: pins check failed -- see check_pins.rpt for more details." >> reports/errors.rpt
 			echo "ISPD23 -- 2)  $id_run:   Pins check failed."
 
-			# NOTE this serves to exits the subshell, not only to skip the remaining code
+			# NOTE this serves to skip the remaining code by exiting the subshell
+			# NOTE even as there is no additional code, using 'exit' is needed as we want to pass a status/return code
 			exit 1
 		else
 
 			echo "ISPD23 -- 2)  $id_run:   Pins check passed."
 
-			# NOTE this serves to exits the subshell, not only to skip the remaining code
+			# NOTE this serves to skip the remaining code by exiting the subshell
+			# NOTE even as there is no additional code, using 'exit' is needed as we want to pass a status/return code
 			exit 0
 		fi
 	) &
@@ -2226,7 +2234,7 @@ start_eval() {
 					# cleanup downloads dir, to avoid processing again; do so even considering it failed, because it would likely fail again then anyway unless we are fixing things
 					rm -r $downloads_folder/$folder
 
-					# NOTE this serves to exits the subshell, not only to skip the remaining code
+					# NOTE this serves to skip the remaining code by exiting the subshell
 					exit 1
 				fi
 
@@ -2248,7 +2256,7 @@ start_eval() {
 					# because it would likely fail again then anyway unless we are fixing things
 					rm -r $downloads_folder/$folder
 
-					# NOTE this serves to exits the subshell, not only to skip the remaining code
+					# NOTE this serves to skip the remaining code by exiting the subshell
 					exit 1
 				fi
 
