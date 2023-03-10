@@ -114,9 +114,9 @@ setAnalysisMode -analysisType onChipVariation
 # removes clock pessimism
 setAnalysisMode -cppr both
 # actual timing command
-timeDesign -postroute
+timeDesign -postroute -outDir timingReports.$trojan_name.$TI_mode.preInsertion
 # NOTE did not make a difference in the results for trial runs (as in compared when running only for setup view), but should still be done
-timeDesign -postroute -hold
+timeDesign -postroute -hold -outDir timingReports.$trojan_name.$TI_mode.preInsertion
 
 ## ECO placement; incrementally place yet unplaced instances (i.e., those added by ECO design integration) along with revising others as needed
 # NOTE consider timing; should help to avoid introducing timing violations and/or fix any violations that might have been introduced by reclaimArea
@@ -196,7 +196,7 @@ verify_drc -limit 100000 -report $reports_folder/$design_name.geom.$trojan_name.
 # NOTE also triggers RC re-extraction, as needed after ECO place and route
 set_global timing_enable_simultaneous_setup_hold_mode true
 # actual timing command
-timeDesign -postroute
+timeDesign -postroute -outDir timingReports.$trojan_name.$TI_mode.postInsertion
 # NOTE irrespective of dbg mode, this report should always be shared and thus stored into reports/
 report_timing_summary > reports/timing.$trojan_name.$TI_mode.rpt
 

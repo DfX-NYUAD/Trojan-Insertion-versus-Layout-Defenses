@@ -1151,7 +1151,7 @@ check_eval() {
 				# NOTE mute stderr which occurs in case the files are not there
 				cp *.gds.gz $uploads_folder/ 2> /dev/null
 
-				## DEF and netlist from Trojan insertion
+				## detailed timing reports, design files from Trojan insertion
 				## NOTE upload only for dbg mode, but files are generated/stored in any case
 				#
 				if [[ $dbg_files == "1" ]]; then
@@ -1185,6 +1185,7 @@ check_eval() {
 						TI_mode=${tmp%__*}
 
 						zip $uploads_folder/Trojan_designs.zip design."$trojan"."$TI_mode".final.* > /dev/null 2>&1
+						zip $uploads_folder/Trojan_timingReports.zip timingReports."$trojan"."$TI_mode".* > /dev/null 2>&1
 					done
 				fi
 
