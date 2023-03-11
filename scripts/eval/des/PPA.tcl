@@ -25,6 +25,8 @@ set netlist_path design.v
 # init
 #####################
 
+source benchmark_name.tcl
+
 set init_mmmc_file $mmmc_path
 set init_lef_file $lef_path
 set init_verilog $netlist_path
@@ -134,6 +136,11 @@ saveNetlist design.adv.v
 date > DONE.save.adv
 
 ## advanced^2 ECO TI mode: reclaim area again, and more aggressively
+# NOTE skip for aes, as this can take ~7h
+if { $benchmark_name == "aes" } {
+	date > DONE.inv_PPA
+	exit
+}
 # NOTE just using 'reclaimArea -maintainHold' multiple times would also be possible, but gains for subsequent runs are very limited.
 # reclaimArea performs decloning, downsizing, and deleting of buffers, all _without_ honoring current hold timing in this setting here (might be possible to fix along w/
 # timing-driven ecoPlace later on); also employs ECO place and route

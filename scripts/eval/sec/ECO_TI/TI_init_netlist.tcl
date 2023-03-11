@@ -16,6 +16,10 @@
 #
 source scripts/TI_settings.tcl
 
+## source other settings
+#
+source benchmark_name.tcl
+
 #####################
 # main body
 #####################

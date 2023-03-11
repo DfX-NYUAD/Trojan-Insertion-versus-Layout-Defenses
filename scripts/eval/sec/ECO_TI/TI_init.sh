@@ -50,8 +50,6 @@ netlist_for_trojan_insertion=$design_v
 netlist_w_trojan_inserted="design."$trojan_name"."$TI_mode".v"
 trojan_TI=$trojan_name"."$TI_mode
 
-design_name=$(cat $design_enc | grep "restoreDesign" | awk '{print $NF}')
-
 ## sanity checks on files
 #
 if ! [[ -e $design_v ]]; then
@@ -73,11 +71,6 @@ fi
 
 ## other sanity checks
 #
-if [[ "$design_name" == "" ]]; then
-
-	echo "ISPD23 -- ERROR: cannot init insertion for Trojan \"$trojan_name\", TI mode \"$TI_mode\" -- failed to retrieve design name from database description file \"$design_enc\"." | tee -a $err_rpt
-	error=1
-fi
 case $benchmark in
 	aes|camellia|cast|misty|seed|sha256)
 	;;
@@ -160,18 +153,8 @@ while true; do
 	sleep 1s
 done
 
-## NOTE deprecated; settings are given in the Innovus log files; also clashes with '.semaphore' file
-### backup/move existing TI_settings.tcl file, if any; keep for reference later on for the various Trojans inserted
-##
-#files=$(ls -t $out* 2> /dev/null | head -n 2 | tail -n 1)
-#files=${files##*tcl}
-#files=$((files + 1))
-#mv $out $out$files 2> /dev/null
-
 ## write out settings file
 #
-echo "set benchmark \"$benchmark\"" > $out
-echo "set design_name \"$design_name\"" >> $out
 echo "set design_enc_dat \"$design_enc_dat\"" >> $out
 echo "set trojan_name \"$trojan_name\"" >> $out
 echo "set netlist_for_trojan_insertion \"$netlist_for_trojan_insertion\"" >> $out

@@ -25,6 +25,10 @@ date > DONE.source.TI.$trojan_name.$TI_mode
 # release the semaphore which is locked by TI_init.sh
 rm -f scripts/TI_settings.tcl.semaphore.$trojan_name.$TI_mode
 
+## source other settings
+#
+source design_name.tcl
+
 ## dbg related settings
 # NOTE TI_dbg_files is also sourced from scripts/TI_settings.tcl
 #
