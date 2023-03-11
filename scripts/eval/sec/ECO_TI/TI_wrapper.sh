@@ -88,7 +88,8 @@ start_TI() {
 			exit 1
 		fi
 
-		sleep 1s
+		# NOTE this will take a while; we can wait bit longer here
+		sleep 10s
 	done
 
 	## then, only wait again (and check status) in case some Trojan has been already started (to make sure TI_settings.tcl has been sourced and can be overwritten)
@@ -577,6 +578,9 @@ wait
 
 failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
 
+# NOTE code could be simplied/merged, but is kept like this for better clarity, and ease of revision later on
+#
+
 # NOTE sanity check on 0 Trojans; just exit quietly
 if [[ $trojan_counter == 0 ]]; then
 
@@ -593,7 +597,7 @@ elif [[ $failed == $trojan_counter ]]; then
 	date > FAILED.TI.ALL
 	exit 1
 
-# NOTE some but not all runs failed or got cancelled; still mark as done for main daemon
+# NOTE some but not all runs failed or got cancelled; in any case, all is done
 else
 	date > DONE.TI.ALL
 	exit 0
