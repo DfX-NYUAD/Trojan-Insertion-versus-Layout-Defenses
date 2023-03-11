@@ -1137,7 +1137,7 @@ check_eval() {
 
 				# delete again the logs related to Trojan insertion; these details should not be disclosed to participants
 				# NOTE but for dbg mode, we keep these log files
-				if [[ $dbg_files == "0" ]]; then
+				if [[ $dbg_files != "1" ]]; then
 					# NOTE mute also stderr, as files might not exist in case some runs failed
 					zip -d $uploads_folder/logs.zip TI.*.log* > /dev/null 2>&1
 				fi
@@ -1162,43 +1162,55 @@ check_eval() {
 				# NOTE mute stderr which occurs in case the files are not there
 				cp *.gds.gz $uploads_folder/ 2> /dev/null
 
-				## detailed timing reports, design files from Trojan insertion
-				## NOTE upload only for dbg mode, but files are generated/stored in any case
+				## NOTE code for listing Trojans as copied from TI_wrapper.sh
 				#
-				if [[ $dbg_files == "1" ]]; then
+				# key: running ID; value: $TI_mode_ID"_"$TI_mode"__"$trojan
+				# NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
+				declare -A TI_mode__trojan
+				trojan_counter=0
 
-					## NOTE code for listing Trojans as copied from TI_wrapper.sh
+				for file in TI/*.dummy; do
+
+					trojan=${file##TI/}
+					trojan=${trojan%%.dummy}
+
+					TI_mode__trojan[$trojan_counter]=$trojan
+					((trojan_counter = trojan_counter + 1))
+				done
+
+				# NOTE could be merged w/ the above but, for simplicity and readability, it's not
+				for trojan_string in "${TI_mode__trojan[@]}"; do
+
+					# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
 					#
+					# drop TI_mode_ID
+					tmp=${trojan_string#*_}
+					# $TI_mode"__"$trojan
+					trojan=${tmp#*__}
+					TI_mode=${tmp%__*}
+					trojan_TI=$trojan"."$TI_mode
 
-					# key: running ID; value: $TI_mode_ID"_"$TI_mode"__"$trojan
-					# NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
-					declare -A TI_mode__trojan
-					trojan_counter=0
+					## detailed timing reports, design files from Trojan insertion
+					## NOTE upload only for dbg mode, but files are generated/stored in any case
+					#
+					if [[ $dbg_files == "1" ]]; then
 
-					for file in TI/*.dummy; do
+						zip $uploads_folder/Trojan_designs.zip design."$trojan_TI".final.* > /dev/null 2>&1
+						zip $uploads_folder/Trojan_timingReports.zip timingReports."$trojan_TI".* > /dev/null 2>&1
+					fi
 
-						trojan=${file##TI/}
-						trojan=${trojan%%.dummy}
+					## delete again files from Trojan runs that got cancelled
+					if [[ -e CANCELLED.TI.$trojan_TI ]]; then
 
-						TI_mode__trojan[$trojan_counter]=$trojan
-						((trojan_counter = trojan_counter + 1))
-					done
+						# NOTE keep the files for dbg mode
+						if [[ $dbg_files != "1" ]]; then
 
-					# NOTE could be merged w/ the above, but for simplicity, and to be in sync w/ TI_wrapper.sh, it's just copied in full
-					for trojan_string in "${TI_mode__trojan[@]}"; do
-
-						# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
-						#
-						# drop TI_mode_ID
-						tmp=${trojan_string#*_}
-						# $TI_mode"__"$trojan
-						trojan=${tmp#*__}
-						TI_mode=${tmp%__*}
-
-						zip $uploads_folder/Trojan_designs.zip design."$trojan"."$TI_mode".final.* > /dev/null 2>&1
-						zip $uploads_folder/Trojan_timingReports.zip timingReports."$trojan"."$TI_mode".* > /dev/null 2>&1
-					done
-				fi
+							# NOTE mute also stderr, as files might not exist
+							rm $uploads_folder/design."$trojan_TI".gds.gz > /dev/null 2>&1
+							zip -d $uploads_folder/logs.zip *"$trojan_TI".rpt > /dev/null 2>&1
+						fi
+					fi
+				done
 
 				## 6) backup work dir
 				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
