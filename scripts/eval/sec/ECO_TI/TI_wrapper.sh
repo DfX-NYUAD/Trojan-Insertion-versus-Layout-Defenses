@@ -520,10 +520,14 @@ trojan_counter=0
 
 for file in TI/*.dummy; do
 
-	trojan=${file##TI/}
-	trojan=${trojan%%.dummy}
+	# drop path
+	str=${file##TI/}
+	# drop dummy suffix
+	str=${str%%.dummy}
+	# drop TI_mode_ID
+	str=${str#*_}
 
-	TI_mode__trojan[$trojan_counter]=$trojan
+	TI_mode__trojan[$trojan_counter]=$str
 	((trojan_counter = trojan_counter + 1))
 done
 
@@ -543,11 +547,7 @@ for ((i=0; i<$trojan_counter; i++)); do
 	# NOTE refers to previous Trojan; follows the same syntax as other status files
 	prev_trojan_TI=$trojan"."$TI_mode
 
-	# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
-	#
-	# drop TI_mode_ID
-	str=${str#*_}
-	# $TI_mode"__"$trojan
+	# NOTE syntax to parse: $TI_mode"__"$trojan
 	trojan=${str#*__}
 	TI_mode=${str%__*}
 
@@ -562,13 +562,9 @@ for ((i=0; i<$trojan_counter; i++)); do
 
 	str=${TI_mode__trojan[$i]}
 
-	# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
-	#
-	# drop TI_mode_ID
-	str=${str#*_}
-	# $TI_mode"__"$trojan
-	TI_mode=${str%__*}
+	# NOTE syntax to parse: $TI_mode"__"$trojan
 	trojan=${str#*__}
+	TI_mode=${str%__*}
 
 	# NOTE we have init/"freeze" this vars locally, at the beginning of the call; otherwise, any update on the same-name global vars could throw off the procedure
 	monitor $trojan $TI_mode &

@@ -1169,15 +1169,15 @@ check_eval() {
 				for file in TI/*.dummy; do
 
 					# drop path
-					tmp=${file##TI/}
+					str=${file##TI/}
 					# drop dummy suffix
-					tmp=${tmp%%.dummy}
+					str=${str%%.dummy}
 					# drop TI_mode_ID
-					tmp=${tmp#*_}
+					str=${str#*_}
 
-					# $TI_mode"__"$trojan
-					trojan=${tmp#*__}
-					TI_mode=${tmp%__*}
+					# parsing of $TI_mode"__"$trojan
+					trojan=${str#*__}
+					TI_mode=${str%__*}
 					trojan_TI=$trojan"."$TI_mode
 
 					## detailed timing reports, design files from Trojan insertion
