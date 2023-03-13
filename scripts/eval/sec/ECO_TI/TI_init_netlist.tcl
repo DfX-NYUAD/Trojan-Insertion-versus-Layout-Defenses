@@ -25,20 +25,20 @@ source benchmark_name.tcl
 #####################
 
 
-if {$benchmark == "aes"} {
+if {$benchmark_name == "aes"} {
 set mod_keyword "module aes_128 ("
-} elseif { $benchmark == "camellia" } {
+} elseif { $benchmark_name == "camellia" } {
 set mod_keyword "module Camellia ("
-} elseif { $benchmark == "cast" } {
+} elseif { $benchmark_name == "cast" } {
 set mod_keyword "module CAST128_key_scheduler ("
-} elseif { $benchmark == "misty" } {
+} elseif { $benchmark_name == "misty" } {
 set mod_keyword "module top ("
-} elseif { $benchmark == "seed" } {
+} elseif { $benchmark_name == "seed" } {
 set mod_keyword "module SEED ("
-} elseif { $benchmark == "sha256" } {
+} elseif { $benchmark_name == "sha256" } {
 set mod_keyword "module sha256 ("
 } else {
-puts "ERROR! Please set the benchmark variable from the list"
+puts "ERROR! Please set the benchmark_name variable from the list"
 }
 
 

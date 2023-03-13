@@ -140,11 +140,8 @@ start_TI() {
 					max_current_runs=$max_current_runs_default
 				fi
 
-				# start this run in case there's budget
+				# start this run in case there's budget; meaning to break the wait loop and move on
 				if [[ $runs_ongoing -lt $max_current_runs ]]; then
-
-					# NOTE there might a race condition w/ other start_TI processes that also want to start their job at the same time; thus, mark start ASAP
-					date > STARTED.TI.$trojan_TI
 
 					break
 				fi
@@ -153,6 +150,10 @@ start_TI() {
 			sleep 1s
 		done
 	fi
+
+	# NOTE there might a race condition w/ other start_TI processes that also want to start their job at the same time; thus, mark start ASAP.
+	# NOTE mark as started even before TI_init.sh helps for the count of runs above; otherwise, if TI_init.sh fails, we could have e.g., -1 runs ongoing because of 1x FAILED but 0x STARTED
+	date > STARTED.TI.$trojan_TI
 
 	echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, initializing for Trojan \"$trojan\", TI mode \"$TI_mode\"."
 
@@ -178,6 +179,9 @@ start_TI() {
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
 		fi
 
+		# NOTE since TI.tcl won't be even started, we need to clear the semaphore here
+		rm scripts/TI_settings.tcl.semaphore.$trojan_TI 2> /dev/null
+
 		exit 1
 
 	## got cancelled while waiting for the semaphore; didn't start the process; just exit from here
@@ -188,6 +192,10 @@ start_TI() {
 		if [[ $dbg_log == 1 ]]; then
 			echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
 		fi
+
+		# NOTE since TI.tcl won't be even started, we need to clear the semaphore here
+		# NOTE unlikely that this sempahore is there, but not impossible (i.e., once a race condition happens for the semaphore while loop in TI_init.sh)
+		rm scripts/TI_settings.tcl.semaphore.$trojan_TI 2> /dev/null
 
 		exit 1
 	fi
@@ -212,9 +220,6 @@ start_TI() {
 		call_vdi_invs scripts/TI.tcl -log TI.$trojan_TI > /dev/null &
 		echo $! > PID.TI.$trojan_TI
 	fi
-
-	# NOTE this is redundant to the above, and just to set the actual date/time of the start
-	date > STARTED.TI.$trojan_TI
 
 	# dbg_log
 	if [[ $dbg_log == 1 ]]; then
