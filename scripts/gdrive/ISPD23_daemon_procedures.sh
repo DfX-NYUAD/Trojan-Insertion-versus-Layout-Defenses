@@ -1162,29 +1162,19 @@ check_eval() {
 				# NOTE mute stderr which occurs in case the files are not there
 				cp *.gds.gz $uploads_folder/ 2> /dev/null
 
-				## NOTE code for listing Trojans as copied from TI_wrapper.sh
+				## listing Trojans, for post-processing
+				# NOTE code copied and simplified/merged from TI_wrapper.sh
 				#
-				# key: running ID; value: $TI_mode_ID"_"$TI_mode"__"$trojan
-				# NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
-				declare -A TI_mode__trojan
-				trojan_counter=0
-
+				# NOTE syntax dummy files: $TI_mode_ID"_"$TI_mode"__"$trojan
 				for file in TI/*.dummy; do
 
-					trojan=${file##TI/}
-					trojan=${trojan%%.dummy}
-
-					TI_mode__trojan[$trojan_counter]=$trojan
-					((trojan_counter = trojan_counter + 1))
-				done
-
-				# NOTE could be merged w/ the above but, for simplicity and readability, it's not
-				for trojan_string in "${TI_mode__trojan[@]}"; do
-
-					# NOTE syntax to parse: $TI_mode_ID"_"$TI_mode"__"$trojan
-					#
+					# drop path
+					tmp=${file##TI/}
+					# drop dummy suffix
+					tmp=${tmp%%.dummy}
 					# drop TI_mode_ID
-					tmp=${trojan_string#*_}
+					tmp=${tmp#*_}
+
 					# $TI_mode"__"$trojan
 					trojan=${tmp#*__}
 					TI_mode=${tmp%__*}
@@ -1199,7 +1189,7 @@ check_eval() {
 						zip $uploads_folder/Trojan_timingReports.zip timingReports."$trojan_TI".* > /dev/null 2>&1
 					fi
 
-					## delete again files from Trojan runs that got cancelled
+					## delete again files from uploads folder for Trojan runs that got cancelled
 					if [[ -e CANCELLED.TI.$trojan_TI ]]; then
 
 						# NOTE keep the files for dbg mode
