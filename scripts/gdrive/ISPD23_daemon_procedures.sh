@@ -437,6 +437,7 @@ google_downloads() {
 
 						echo "ISPD23 -- 1)   Unpacking zip file \"$local_file_name\" into \"$downloads_folder_\" ..."
 						# NOTE only mute regular stdout, but keep stderr
+						# -j means to junk paths; put archived files directly into the $downloads_folder_ destination, w/o any paths from the ZIP
 						unzip -j $downloads_folder_/$local_file_name -d $downloads_folder_ > /dev/null #2>&1
 						rm $downloads_folder_/$local_file_name #> /dev/null 2>&1
 					fi
@@ -1122,13 +1123,14 @@ check_eval() {
 
 				## report files
 				#
-				# -j means to smash reports/ folder; just put files into zip archive directly
 				# include regular rpt files, not others (like, *.rpt.extended files)
 				# NOTE only mute regular stdout, but keep stderr
+				# -j means to junk paths; put files directly into the archive, to avoid redundant paths when unzipping again
 				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
 				# also include detailed timing reports
-				# NOTE only mute regular stdout, but keep stderr
 				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
+				# NOTE also include the cancelled, failed status files for ECO TI; these are needed for properly re-running scores.sh at the participants' end
+				zip $uploads_folder/reports.zip CANCELLED.TI.* FAILED.TI.* > /dev/null
 
 				## log files
 				#
@@ -1142,7 +1144,7 @@ check_eval() {
 					zip -d $uploads_folder/logs.zip TI.*.log* > /dev/null 2>&1
 				fi
 
-				## status files
+				## main status files
 				#
 				# NOTE files are already included in reports.zip but we put them still again into main folder, as txt file -- this way, it can be readily viewed in Google Drive
 				# NOTE mute stderr which occurs in case the files are not there
@@ -1186,7 +1188,7 @@ check_eval() {
 					if [[ $dbg_files == "1" ]]; then
 
 						zip $uploads_folder/Trojan_designs.zip design."$trojan_TI".final.* > /dev/null 2>&1
-						zip $uploads_folder/Trojan_timingReports.zip timingReports."$trojan_TI".* > /dev/null 2>&1
+						zip -r $uploads_folder/Trojan_timingReports.zip timingReports."$trojan_TI".* > /dev/null 2>&1
 					fi
 
 					## delete again files from uploads folder for Trojan runs that got cancelled
