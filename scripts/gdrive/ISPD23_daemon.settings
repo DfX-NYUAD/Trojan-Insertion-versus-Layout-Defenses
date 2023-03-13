@@ -88,14 +88,7 @@ innovus_errors_for_checking+="|NRDB-955" # errors are related to conflict of exi
 # NOTE 'IMPPP' errors are related to the check_design command, which is no reason to kill; should be reported as error though for design checks
 # NOTE '@file' lines appear in Stylus mode, and are sourced from the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain
 # keywords like ERROR etc
-# NOTE 'IMPLIC-104' and 'IMPVL-909' errors are both related to license limitations, namely that flattening of designs w/ >50k instances fails (but designs w/ <=50k instances still
-# go through); shouldn't be checked, to enable error handling to consider this as interrupt, runtime error -- update: w/ the revised and more specific calls to invs and vdi, this
-# error should not happen anymore, but it's still safer to keep it here, so that such errors are not considered as failure for ECO TI.
-# NOTE 'IMPFP-735' errors are related to nets not found when loading the design db; can be ignored -- update: w/ the fix for using the submission's netlist for ECO TI, this error
-# should not happen anymore, but it's still safer to keep it here, so that such errors are not considered as failure for ECO TI.
-# NOTE 'IMPSP-2002', 'IMPSP-2021', and 'IMPSP-9022' errors are related to overly high density and legalization failure for 'refinePlace'; can be ignored as that might be fixed
-# later by 'ecoPlace'; (TODO) could also be considered/not ignored to cancel such runs early on, as routing might take very long and successful run is not very likely.
-innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file|IMPLIC-104|IMPVL-909|IMPFP-735|IMPSP-2002|IMPSP-2021|IMPSP-9022"
+innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file"
 #
 ## NOTE use to disable verbose copying of script commands and comments into log file
 ## NOTE deprecated; turned off to enable better insights for teams as to which command is run at what point
