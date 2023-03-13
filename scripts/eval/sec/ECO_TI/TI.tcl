@@ -176,10 +176,10 @@ ecoPlace -fixPlacedInsts true -timing_driven true
 
 ## ECO routing
 #
-## NOTE deprecated; seems more suitable to let NR decide by itself how many trials/iterations should be done, as that's highly design-dependent
-## Limit optimization iterations for detailed routing, as also suggested in Cadence Support; helpful for cases with too many violations where it's unlikely that we can fix all.
-## NOTE value based on own observations; is larger than what's suggested by Cadence (20)
-#setNanoRouteMode -drouteEndIteration 40
+# Limit optimization iterations for detailed routing, as also suggested in Cadence Support; helpful for cases with too many violations where it's unlikely that we can fix all, but
+# also for cases where routing might otherwise give up too soon.
+# NOTE value based on own observations; is larger than what's suggested by Cadence (20)
+setNanoRouteMode -drouteEndIteration 50
 ## NOTE deprecated; while this would help for passing through on some submissions that route in M1, it hinders others --> better to disallow M1 routing in general
 #setDesignMode -bottomRoutingLayer 1
 #

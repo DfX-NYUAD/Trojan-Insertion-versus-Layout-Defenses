@@ -363,7 +363,7 @@ monitor() {
 					date > CANCELLED.TI.$trojan".adv2"
 				fi
 			else
-				string="Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\", passed with some violations. Continuing the run(s) for more advanced TI mode(s)."
+				string="Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\", passed with some violations. Continuing the run(s) for more advanced TI mode(s), if planned for."
 				echo -e "\nISPD23 -- 2)  $id_run:  $string"
 				echo "ISPD23 -- WARNING: $string" >> $warn_rpt
 			fi

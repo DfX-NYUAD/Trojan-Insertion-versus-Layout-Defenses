@@ -106,6 +106,11 @@ set_db [get_db insts ] .place_status placed
 ## preroutes; this constraint should not be used for checking, but only for placement. Now, while reclaimArea does trigger ECO placement here, it is only refinePlace; thus, we don't
 ## even need that constraint here to maintain DRC-clean layouts.
 #setPlaceMode -place_detail_preroute_as_obs 3
+#
+# Limit optimization iterations for detailed routing, as also suggested in Cadence Support; helpful for cases with too many violations where it's unlikely that we can fix all, but
+# also for cases where routing might otherwise give up too soon.
+# NOTE value based on own observations; is larger than what's suggested by Cadence (20)
+setNanoRouteMode -drouteEndIteration 50
 
 ## NOTE deprecated; while that would be more efficient, these steps/parameters are deprecated for the following reasons.
 ## NOTE '-timingGraph' triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable. Sounds like we would need to specify during
@@ -116,7 +121,8 @@ set_db [get_db insts ] .place_status placed
 #saveDesign design.reg.enc -timingGraph -no_wait saveDesign.reg.log
 
 ## regular ECO TI mode: write out design as is
-# write out design db, including RC data but w/o timing graph (see note abve).
+#
+# write out design db, including RC data but w/o timing graph (see note above).
 saveDesign design.reg.enc -rc
 # also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
 # NOTE here we could also directly copy the basic submission netlist (but not link, since we should keep/maintain the submission netlist as is as well), but for consistency we just
@@ -126,9 +132,10 @@ saveNetlist design.reg.v
 date > DONE.save.reg
 
 ## advanced ECO TI mode: reclaim area
+#
 # reclaimArea performs decloning, downsizing, and deleting of buffers, all without worsening slacks or DRVs; also employs ECO place and route
 reclaimArea -maintainHold
-# write out design db, including RC data but w/o timing graph (see note abve).
+# write out design db, including RC data but w/o timing graph (see note above).
 saveDesign design.adv.enc -rc
 # also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
 saveNetlist design.adv.v
@@ -136,6 +143,7 @@ saveNetlist design.adv.v
 date > DONE.save.adv
 
 ## advanced^2 ECO TI mode: reclaim area again, and more aggressively
+#
 # NOTE skip for aes, as this can take ~7h
 if { $benchmark_name == "aes" } {
 	date > DONE.inv_PPA
@@ -145,7 +153,7 @@ if { $benchmark_name == "aes" } {
 # reclaimArea performs decloning, downsizing, and deleting of buffers, all _without_ honoring current hold timing in this setting here (might be possible to fix along w/
 # timing-driven ecoPlace later on); also employs ECO place and route
 reclaimArea 
-# write out design db, including RC data but w/o timing graph (see note abve).
+# write out design db, including RC data but w/o timing graph (see note above).
 saveDesign design.adv2.enc -rc
 # also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
 saveNetlist design.adv2.v
