@@ -107,10 +107,13 @@ set_db [get_db insts ] .place_status placed
 ## even need that constraint here to maintain DRC-clean layouts.
 #setPlaceMode -place_detail_preroute_as_obs 3
 #
-# Limit optimization iterations for detailed routing, as also suggested in Cadence Support; helpful for cases with too many violations where it's unlikely that we can fix all, but
-# also for cases where routing might otherwise give up too soon.
-# NOTE value based on own observations; is larger than what's suggested by Cadence (20)
-setNanoRouteMode -drouteEndIteration 50
+# Control iterations for detailed routing, for both cases: 1) too many violations for large designs, where it's taking too long to fix all,
+# 2) give more trials for small designs  where NanoRoute might otherwise give up too soon.
+if { $benchmark_name == "aes" } {
+	setNanoRouteMode -drouteEndIteration 25
+} else {
+	setNanoRouteMode -drouteEndIteration 100
+}
 
 ## NOTE deprecated; while that would be more efficient, these steps/parameters are deprecated for the following reasons.
 ## NOTE '-timingGraph' triggers error for ecoDesign: **ERROR: (IMPSYT-6778): can't read "exclude_path_collection": no such variable. Sounds like we would need to specify during

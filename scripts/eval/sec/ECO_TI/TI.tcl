@@ -28,6 +28,7 @@ rm -f scripts/TI_settings.tcl.semaphore.$trojan_name.$TI_mode
 ## source other settings
 #
 source design_name.tcl
+source benchmark_name.tcl
 
 ## dbg related settings
 # NOTE TI_dbg_files is also sourced from scripts/TI_settings.tcl
@@ -176,10 +177,13 @@ ecoPlace -fixPlacedInsts true -timing_driven true
 
 ## ECO routing
 #
-# Limit optimization iterations for detailed routing, as also suggested in Cadence Support; helpful for cases with too many violations where it's unlikely that we can fix all, but
-# also for cases where routing might otherwise give up too soon.
-# NOTE value based on own observations; is larger than what's suggested by Cadence (20)
-setNanoRouteMode -drouteEndIteration 50
+# Control iterations for detailed routing, for both cases: 1) too many violations for large designs, where it's taking too long to fix all,
+# 2) give more trials for small designs  where NanoRoute might otherwise give up too soon.
+if { $benchmark_name == "aes" } {
+	setNanoRouteMode -drouteEndIteration 25
+} else {
+	setNanoRouteMode -drouteEndIteration 100
+}
 ## NOTE deprecated; while this would help for passing through on some submissions that route in M1, it hinders others --> better to disallow M1 routing in general
 #setDesignMode -bottomRoutingLayer 1
 #
