@@ -380,8 +380,7 @@ monitor() {
 		elif [[ -e FAILED.TI.$trojan_TI ]]; then
 
 			# NOTE console log already covered in start_TI()
-
-			echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\" -- initialization error." >> $warn_rpt
+			# NOTE TI_init.sh already wrote the specific error to $err_rpt as well -- this is on purpose; this way, such runs are considered as invalid by scores.sh
 
 			# mark as error (again), as it still requires killing, which is handled further below
 			error=1
