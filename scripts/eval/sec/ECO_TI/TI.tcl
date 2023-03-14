@@ -35,10 +35,10 @@ source benchmark_name.tcl
 #
 if { $TI_dbg_files == 0 } {
 	# NOTE for non-debug mode, report files are placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related reports/details to participants
-	set reports_folder "./"
+	set reports_folder "."
 } else {
 	# NOTE for debug, related report files are placed in reports/ and, thus, also uploaded
-	set reports_folder "reports/"
+	set reports_folder "reports"
 }
 
 ## (TODO) for manual dbg: restoring session as is
