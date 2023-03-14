@@ -396,7 +396,7 @@ monitor() {
 			#
 			# NOTE limit to 1k errors since tools may flood log files w/ INTERRUPT messages etc, which would then stall grep
 			# NOTE mute stderr since log file might not exist yet for first few runs of check, depending on overall workload of backend
-			errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" TI."$trojan".log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
+			errors_run=$(grep -m 1000 -E "$innovus_errors_for_checking" TI."$trojan_TI".log* 2> /dev/null | grep -Ev "$innovus_errors_excluded_for_checking")
 
 			if [[ $errors_run != "" ]]; then
 
