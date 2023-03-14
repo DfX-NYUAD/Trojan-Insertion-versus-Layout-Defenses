@@ -376,6 +376,16 @@ monitor() {
 			# stop to wait, exit monitor process (w/o error status; currently not evaluated)
 			exit 0
 
+		# has started at some point, but failed already (for init in start_TI(); see above)
+		elif [[ -e FAILED.TI.$trojan_TI ]]; then
+
+			# NOTE console log already covered in start_TI()
+
+			echo "ISPD23 -- WARNING: process failed for Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\" -- initialization error." >> $warn_rpt
+
+			# mark as error (again), as it still requires killing, which is handled further below
+			error=1
+
 		# has started at some point, and not done yet, but got cancelled (by some other run; see below)
 		elif [[ -e CANCELLED.TI.$trojan_TI ]]; then
 
