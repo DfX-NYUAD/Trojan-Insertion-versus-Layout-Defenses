@@ -29,10 +29,6 @@ rpt_log=scores.log
 rpt_summ=reports/scores.rpt.summary
 err_rpt=reports/errors.rpt
 
-## 0) basic init
-mv $rpt $rpt_back 2> /dev/null
-error=0
-
 ## NOTE deprecated, disabled on purpose; see also https://wp.nyu.edu/ispd23_contest/qa/#scoring QA-5
 ### 0) check for any other errors that might have occurred during actual processing
 #if [[ -e $err_rpt ]]; then
@@ -54,6 +50,18 @@ if [[ $run_on_backend == "" ]]; then
 fi
 if [[ $dbg_files == "" ]]; then
 	dbg_files=0
+fi
+
+## 0) basic init
+#
+mv $rpt $rpt_back 2> /dev/null
+#
+error=0
+#
+if [[ $run_on_backend == 0 ]]; then
+	path_TI_status_files="reports/"
+else
+	path_TI_status_files="./"
 fi
 
 echo "Settings: " | tee -a $rpt_log
@@ -89,67 +97,83 @@ fi
 
 ## 1) only now, if all checks pass, we start with init procedures
 
-### init data structure for ECO Trojan insertion (TI)
+## init data structures for ECO Trojan insertion (TI)
 
+# key: running ID; value: $TI_mode_ID"_"$TI_mode"__"$trojan
 # NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
+declare -A TI_mode__trojan
+trojan_runs_counter=0
+
+# key: running ID; value $trojan
+# NOTE value not really needed; this array is only to keep track of the individual runs, w/o TI modes
 declare -A trojans
-trojan_counter=0
 
-for file in TI/*; do
+for file in TI/*.dummy; do
 
-	trojan_name=${file##TI/}
-	trojan_name=${trojan_name%%.*}
+	# drop path
+	str=${file##TI/}
+	# drop dummy suffix
+	str=${str%%.dummy}
+	# drop TI_mode_ID
+	str=${str#*_}
 
-	# NOTE this is required for the backend, to sort out duplicate files that differ only in the file suffix
-	# minor NOTE FOR PARTICIPANTS: this runs fine locally without any side-effect
-	if [[ "${trojans[$((trojan_counter-1))]}" == $trojan_name ]]; then
-		continue	
-	fi
+	# $TI_mode"__"$trojan
+	TI_mode__trojan[$trojan_runs_counter]=$str
+	((trojan_runs_counter = trojan_runs_counter + 1))
 
-	trojans[$trojan_counter]=$trojan_name
-	((trojan_counter = trojan_counter + 1))
+	# $trojan
+	trojan=${str#*__}
+	# NOTE value not really needed; this array is only to keep track of the individual runs, w/o TI modes
+	trojans[$trojan]=1
 done
-#declare -p trojans
+#declare -p TI_mode__trojan
 
 ## handling of DRC, timing report files
 
 declare -A trojans_rpt_timing
 declare -A trojans_rpt_drc
 
-for trojan in "${trojans[@]}"; do
+for str in "${TI_mode__trojan[@]}"; do
+
+	# parsing of $TI_mode"__"$trojan
+	trojan=${str#*__}
+	TI_mode=${str%__*}
+	trojan_TI_dot=$trojan"."$TI_mode
+	trojan_TI____=$trojan"_"$TI_mode
 
 	# NOTE FOR PARTICIPANTS -- tl;dr: you can just run the script as is; the code below works around the fact that you're not given the actual DRC reports.
 	#
 	# We do not share the full DRC reports with you (on purpose, to discourage any benchmark-specific tuning of your defense based on insights from the
-	# DRC checks). You may run this script right away without any action, but -- unless your defense does indeed render insertion for this particular $trojan failing at our end, which
+	# DRC checks). You may run this script right away without any action, but -- unless your defense does indeed render insertion for this particular Trojan failing at our end, which
 	# you can check from errors.rpt -- your related score will be off. To reproduce the correct scores, you need to generate some simple dummy DRC report file at your end. This file
 	# must follow the below path selection and it suffices to hold one line as follows:
 	# "Total Violations : $DRC_violations"
-	# where $DRC_violations is the number of violations, which is listed as sec_ti_eco_drc_vio___$trojan in the original scores.rpt returned to you.
+	# where $DRC_violations is the number of violations, which is listed as sec_ti_eco_drc_vio___$trojan_$TI_mode in the original scores.rpt returned to you.
 	# Note that this task could be easily automated; this is already done right below.
 	if [[ $run_on_backend == 0 ]]; then
 
-		# NOTE that we can put this dummy rpt always in the work folder, irrespective of dbg_files; this is because of the ordered conditional check just below.
-		dummy_drc_rpt="submission.geom."$trojan".rpt"
+		# NOTE we put this dummy rpt always in the work folder, irrespective of dbg_files; this is because of the ordered conditional check just below.
+		dummy_drc_rpt="submission.geom."$trojan_TI_dot".rpt"
 		echo -n "Total Violations : " > $dummy_drc_rpt
-		grep "sec_ti_eco_drc_vio___$trojan" $rpt_back | awk '{print $NF}' >> $dummy_drc_rpt
+		grep "sec_ti_eco_drc_vio___$trojan_TI_dot" $rpt_back | awk '{print $NF}' >> $dummy_drc_rpt
 	fi
 
 	# NOTE in regular mode, related report file have been placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related
 	# details back to participants
 	# NOTE order of the two condition matters here; if we do not run on the backend, we have the file in the work dir, but if we do run on the backend, we still need to check dbg_files
 	if [[ $run_on_backend == 0 || $dbg_files == 0 ]]; then
-		trojans_rpt_drc[$trojan]="*.geom."$trojan".rpt"
+		trojans_rpt_drc[$trojan_TI____]="*.geom."$trojan_TI_dot".rpt"
 	else
-		trojans_rpt_drc[$trojan]="reports/*.geom."$trojan".rpt"
+		trojans_rpt_drc[$trojan_TI____]="reports/*.geom."$trojan_TI_dot".rpt"
 	fi
 
 	# NOTE timing rpts are always placed in reports/ folder, independent of dbg mode, as they are meant to be shared with participants in any case
-	trojans_rpt_timing[$trojan]="reports/timing."$trojan".rpt"
+	trojans_rpt_timing[$trojan_TI____]="reports/timing."$trojan_TI_dot".rpt"
 done
 
 ### weights
-
+##
+#
 declare -A weights=()
 
 ### security
@@ -176,10 +200,12 @@ weights[sec_ti_eco]="(2/3)"
 ## 1) Lower scores means more difficulty for Trojan insertion, means better defense. The categories are
 ##    formulated/phrased from the perspective of the attacker.
 ## 2) All scores will be normalized to the worst case for defenders, i.e., 27.
-## 3) The gap of 3 score units b/w categories is on purpose. The reasoning is as follows: for attackers
+## 3) Scores for all non-cancelled runs in the different insertion modes are averaged. Note that runs are 
+##    only cancelled by the backend if they're not needed: e.g., if regular insertion already passes w/o
+##    any violations, both advanced and avanced-advanced insertion are cancelled.
+## 4) The gap of 3 score units b/w categories is on purpose. The reasoning is as follows: for attackers
 ##    (versus defenders), it is more important whether a Trojan has, e.g., no DRC violations at all
 ##    versus what effort is required to reach (versus hinder) zero DRC violations.
-## 4) For now, only regular insertion is active in the backend.
 #
 # 0 design failures; for advanced-advanced insertion
 # 1 design failures; for advanced insertion
@@ -205,20 +231,58 @@ weights[sec_ti_eco]="(2/3)"
 # 26 no violations; for advanced insertion
 # 27 no violations; for regular insertion
 
-weights[sec_ti_eco_fail]="(2/27)"
-weights[sec_ti_eco_drc_vio]="(7/27)"
-weights[sec_ti_eco_set_and_hld_vio]="(12/27)"
-weights[sec_ti_eco_set_xor_hld_vio]="(17/27)"
-weights[sec_ti_eco_drv_clk_vio]="(22/27)"
-# NOTE use 27/27 for easier reading of the report
-weights[sec_ti_eco_no_vio]="(27/27)"
+weights[sec_ti_eco_reg_failed]="(2/27)"
+weights[sec_ti_eco_reg_drc_vio]="(7/27)"
+weights[sec_ti_eco_reg_set_and_hld_vio]="(12/27)"
+weights[sec_ti_eco_reg_set_xor_hld_vio]="(17/27)"
+weights[sec_ti_eco_reg_drv_clk_vio]="(22/27)"
+# NOTE use 27/27, etc., for easier reading of the report
+weights[sec_ti_eco_reg_no_vio]="(27/27)"
+#
+weights[sec_ti_eco_adv_failed]="(1/27)"
+weights[sec_ti_eco_adv_drc_vio]="(6/27)"
+weights[sec_ti_eco_adv_set_and_hld_vio]="(11/27)"
+weights[sec_ti_eco_adv_set_xor_hld_vio]="(16/27)"
+weights[sec_ti_eco_adv_drv_clk_vio]="(21/27)"
+weights[sec_ti_eco_adv_no_vio]="(26/27)"
+#
+weights[sec_ti_eco_adv2_failed]="(0/27)"
+weights[sec_ti_eco_adv2_drc_vio]="(5/27)"
+weights[sec_ti_eco_adv2_set_and_hld_vio]="(10/27)"
+weights[sec_ti_eco_adv2_set_xor_hld_vio]="(15/27)"
+weights[sec_ti_eco_adv2_drv_clk_vio]="(20/27)"
+weights[sec_ti_eco_adv2_no_vio]="(25/27)"
 
-# NOTE each Trojan has the same normalized weight. This is fair, given that, despite the different nature and implementation of the Trojans, the success for Trojan insertion at our
-# end depends on many aspects of the participants' submissions; it cannot be easily differentiated b/w the different Trojans and their requirements for successful insertion
-for trojan in "${trojans[@]}"; do
+## weights for actual Trojan runs
+# NOTE here we incorporate the scale needed for averaging across all runs to consider, i.e., we exclude all cancelled runs
+#
+declare -A trojans_non_cancelled_runs
 
+for str in "${TI_mode__trojan[@]}"; do
+
+	# parsing of $TI_mode"__"$trojan
+	trojan=${str#*__}
+	TI_mode=${str%__*}
+	trojan_TI_dot=$trojan"."$TI_mode
+#	trojan_TI____=$trojan"_"$TI_mode
+
+	# count non-cancelled runs
+	if [[ -e $path_TI_status_files/CANCELLED.TI.$trojan_TI_dot ]]; then
+
+		continue
+	else
+		if [[ ${trojans_non_cancelled_runs[$trojan]} == "" ]]; then
+
+			trojans_non_cancelled_runs[$trojan]=1
+		else
+			((trojans_non_cancelled_runs[$trojan] = ${trojans_non_cancelled_runs[$trojan]} + 1))
+		fi
+	fi
+
+	# NOTE the correct weight calculation is reached only in the last iteration, once all runs are covered
 	# NOTE the '___' separator to differentiate from generic weights above
-	weights[sec_ti_eco___$trojan]="(1/"${#trojans[@]}")"
+	#
+	weights[sec_ti_eco___$trojan]="(1/"${trojans_non_cancelled_runs[$trojan]}")"
 done
 
 ### Design quality
@@ -268,6 +332,8 @@ declare -A metrics_baseline=()
 declare -A metrics_submission=()
 
 ### Trojan insertion; generic evaluation of resources
+#
+
 ## placement sites of exploitable regions
 # NOTE 'sed' is to drop the thousands separator as that's not supported by bc
   metrics_baseline[sec_ti_gen_sts_sum]=$(grep "Sum of sites across all regions:" $baseline/reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
@@ -276,78 +342,97 @@ declare -A metrics_submission=()
 metrics_submission[sec_ti_gen_sts_sum]=$(grep "Sum of sites across all regions:" reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
 metrics_submission[sec_ti_gen_sts_max]=$(grep "Max of sites across all regions:" reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
 metrics_submission[sec_ti_gen_sts_med]=$(grep "Median of sites across all regions:" reports/exploitable_regions.rpt | awk '{print $NF}' | sed 's/,//g')
+
 ## routing resources (free tracks) of whole layout
   metrics_baseline[sec_ti_gen_fts_sum]=$(grep "TOTAL" $baseline/reports/track_utilization.rpt | awk '{print $(NF-1)}')
 metrics_submission[sec_ti_gen_fts_sum]=$(grep "TOTAL" reports/track_utilization.rpt | awk '{print $(NF-1)}')
 
 ### Trojan insertion; actual ECO insertion
 #
+
 ## DRC checks
-for trojan in "${trojans[@]}"; do
+for str in "${TI_mode__trojan[@]}"; do
 
-	id="sec_ti_eco_drc_vio___$trojan"
+	# parsing of $TI_mode"__"$trojan
+	trojan=${str#*__}
+	TI_mode=${str%__*}
+	trojan_TI_dot=$trojan"."$TI_mode
+	trojan_TI____=$trojan"_"$TI_mode
 
-	# NOTE checking for files with * wildcards using '-e' does not work; go by files count instead
-	drc_rpt=$(ls ${trojans_rpt_drc[$trojan]} 2> /dev/null | wc -l)
+	id="sec_ti_eco_drc_vio___$trojan_TI____"
 
-	# NOTE if the files does not exist, it means either that the related run has failed, the dbg_files parameter was misconfigured (as in not in sync with dbg_files for
-	# TI_wrapper.sh) , or -- NOTE FOR PARTICIPANTS -- when running locally, you _falsely_ did override the 3rd parameter to '1' (see above).
-	#
-	# NOTE For the backend, we double-check against the process status file.
-	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
+	if [[ -e $path_TI_status_files/FAILED.TI.$trojan_TI_dot ]]; then
 
-		metrics_submission[$id]="fail"
+		metrics_submission[$id]="failed"
 
-	# NOTE this case is not redundant; it serves both for running locally as well as fail-safe for the backend, in case the above does not hold (e.g., the FAILED status file
-	# might have been deleted/cleaned up again while the reports are still not available)
-	elif [[ $drc_rpt == 0 ]]; then
+	elif [[ -e $path_TI_status_files/CANCELLED.TI.$trojan_TI_dot ]]; then
 
-		metrics_submission[$id]="fail"
+		metrics_submission[$id]="cancelled"
 	else
-		metrics_submission[$id]=$(grep "Total Violations :" ${trojans_rpt_drc[$trojan]} 2> /dev/null | awk '{print $4}')
+		metrics_submission[$id]=$(grep "Total Violations :" ${trojans_rpt_drc[$trojan_TI____]} 2> /dev/null | awk '{print $4}')
 
+		# NOTE such line is only present if errors/issues found at all
 		if [[ ${metrics_submission[$id]} == "" ]]; then
-
-			# NOTE file exists but no line grepped for above is not found; this means there are 0 violations, since in regular reports the above line is only printed
-			# out at all if there are some violations
 			metrics_submission[$id]="0"
 		fi
 	fi
 done
-#
+
 ## timing checks
-for trojan in "${trojans[@]}"; do
+# NOTE similar logic/flow as the above
+for str in "${TI_mode__trojan[@]}"; do
 
-	id="sec_ti_eco_prf_set_vio___$trojan"
+	# parsing of $TI_mode"__"$trojan
+	trojan=${str#*__}
+	TI_mode=${str%__*}
+	trojan_TI_dot=$trojan"."$TI_mode
+	trojan_TI____=$trojan"_"$TI_mode
 
-	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
-		metrics_submission[$id]="fail"
-	elif ! [[ -e ${trojans_rpt_timing[$trojan]} ]]; then
-		metrics_submission[$id]="fail"
+	id="sec_ti_eco_prf_set_vio___$trojan_TI____"
+
+	if [[ -e $path_TI_status_files/FAILED.TI.$trojan_TI_dot ]]; then
+
+		metrics_submission[$id]="failed"
+
+	elif [[ -e $path_TI_status_files/CANCELLED.TI.$trojan_TI_dot ]]; then
+
+		metrics_submission[$id]="cancelled"
 	else
-		metrics_submission[$id]=$(grep "View : ALL" ${trojans_rpt_timing[$trojan]} | awk 'NR==1' | awk '{print $NF}')
+		metrics_submission[$id]=$(grep "View : ALL" ${trojans_rpt_timing[$trojan_TI____]} | awk 'NR==1' | awk '{print $NF}')
 	fi
 
-	id="sec_ti_eco_prf_hld_vio___$trojan"
+	id="sec_ti_eco_prf_hld_vio___$trojan_TI____"
 
-	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
-		metrics_submission[$id]="fail"
-	elif ! [[ -e ${trojans_rpt_timing[$trojan]} ]]; then
-		metrics_submission[$id]="fail"
+	if [[ -e $path_TI_status_files/FAILED.TI.$trojan_TI_dot ]]; then
+
+		metrics_submission[$id]="failed"
+
+	elif [[ -e $path_TI_status_files/CANCELLED.TI.$trojan_TI_dot ]]; then
+
+		metrics_submission[$id]="cancelled"
 	else
-		metrics_submission[$id]=$(grep "View : ALL" ${trojans_rpt_timing[$trojan]} | awk 'NR==2' | awk '{print $NF}')
+		metrics_submission[$id]=$(grep "View : ALL" ${trojans_rpt_timing[$trojan_TI____]} | awk 'NR==2' | awk '{print $NF}')
 	fi
 done
-#
+
 ## DRV, clock checks
-for trojan in "${trojans[@]}"; do
+for str in "${TI_mode__trojan[@]}"; do
 
-	id="sec_ti_eco_drv_clk_vio___$trojan"
+	# parsing of $TI_mode"__"$trojan
+	trojan=${str#*__}
+	TI_mode=${str%__*}
+	trojan_TI_dot=$trojan"."$TI_mode
+	trojan_TI____=$trojan"_"$TI_mode
 
-	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
-		metrics_submission[$id]="fail"
-	elif ! [[ -e ${trojans_rpt_timing[$trojan]} ]]; then
-		metrics_submission[$id]="fail"
+	id="sec_ti_eco_drv_clk_vio___$trojan_TI____"
+
+	if [[ -e $path_TI_status_files/FAILED.TI.$trojan_TI_dot ]]; then
+	
+		metrics_submission[$id]="failed"
+
+	elif [[ -e $path_TI_status_files/CANCELLED.TI.$trojan_TI_dot ]]; then
+
+		metrics_submission[$id]="cancelled"
 	else
 		# NOTE there are multiple lines for these checks, while the number of lines/checks changes also with the design --> just sum up; this is also appropriate in terms
 		# of relevance of these two checks and given that we're not considering the actual count of violations for scoring (see further below)
@@ -361,7 +446,7 @@ for trojan in "${trojans[@]}"; do
 			curr_line_FEPs=$(echo $line | awk '{print $NF}')
 			((metrics_submission[$id] = ${metrics_submission[$id]} + curr_line_FEPs))
 
-		done < ${trojans_rpt_timing[$trojan]}
+		done < ${trojans_rpt_timing[$trojan_TI____]}
 	fi
 done
 
@@ -428,65 +513,48 @@ base_scores[des_pwr_tot]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_pw
 base_scores[des_area_die]=$(bc -l <<< "scale=$scale; (${metrics_submission[des_area_die]} / ${metrics_baseline[des_area_die]})")
 
 ## actual ECO TI: also the lower the better, but calculation does not require/consider baseline values by definition
+for str in "${TI_mode__trojan[@]}"; do
 
-for trojan in "${trojans[@]}"; do
+	# parsing of $TI_mode"__"$trojan
+	trojan=${str#*__}
+	TI_mode=${str%__*}
+	trojan_TI_dot=$trojan"."$TI_mode
+	trojan_TI____=$trojan"_"$TI_mode
 
-	id_trojan="sec_ti_eco___"$trojan
+	# NOTE for cancelled runs, we don't assign any base score but just skip this case
+	if [[ -e $path_TI_status_files/CANCELLED.TI.$trojan_TI_dot ]]; then
+		continue
+	fi
 
 	# NOTE the scoring does not account for the actual numbers/values of violations, but only whether some violation has occurred or not. This is reasonable as, e.g., for timing, the
 	# violations (if any) depend on both the submission as well as the Trojan; it is difficult to separate these parts. Also, we can argue that attackers would only care/hope that
 	# violations did not occur. Thus, if violations occur, the related score for the participants will improve.
 
-	# NOTE sanity check whether all evaluation steps have failed.
-	#
-	all_has_failed=1
-	for id in "sec_ti_eco_drc_vio___$trojan" "sec_ti_eco_prf_hld_vio___$trojan" "sec_ti_eco_prf_set_vio___$trojan" "sec_ti_eco_drv_clk_vio___$trojan"; do
-
-		if [[ ${metrics_submission[$id]} != 'fail' ]]; then
-			all_has_failed=0
-		fi
-	done
-
 	## actual score evaluation
 	#
 	# NOTE order is important here; check from worst to best scenario (for attacker) to assign best-possible score for defender/participants
 	
-	# NOTE short-cut check for backend
-	if [[ $run_on_backend == 1 && -e FAILED.TI.$trojan ]]; then
+	if [[ -e $path_TI_status_files/FAILED.TI.$trojan_TI_dot ]]; then
 
-		outcome="fail"
+		outcome="failed"
 
-	# NOTE sanity check for both running locally and on the backend 
-	elif [[ $all_has_failed == 1 ]]; then
-
-		outcome="fail"
-
-	# NOTE at this point, we know that at least one evaluation has not failed -- this will selected for scoring, following the same order as when all evaluation steps went
-	# through w/o failure; see also next note.
-	#	
-	# NOTE in case the actual value is 'fail' the particular syntax below for conditional checks equals to false, thus the related case/outcome is skipped. This is
-	# preferred/safe from the perspective of scoring: a failing run must not be scored better than it might be if the run would not have failed. We then continue "raising"
-	# the score, by "climbing up" the score categories in order, until we find some non-failing check or eventually reach to the safe conclusion that there are no violations at all.
-	# Again, this is about to _not_ score a failing run as too good; 'fail' scenarios still cannot, by definition, represent the correct scoring that would have been achieved
-	# if the evaluation would not have failed.
-
-	elif [[ ${metrics_submission[sec_ti_eco_drc_vio___$trojan]} -gt 0 ]]; then
+	elif [[ ${metrics_submission[sec_ti_eco_drc_vio___$trojan_TI____]} -gt 0 ]]; then
 
 		outcome="drc_vio"
 
-	elif [[ ${metrics_submission[sec_ti_eco_prf_set_vio___$trojan]} -gt 0 && ${metrics_submission[sec_ti_eco_prf_hld_vio___$trojan]} -gt 0 ]]; then
+	elif [[ ${metrics_submission[sec_ti_eco_prf_set_vio___$trojan_TI____]} -gt 0 && ${metrics_submission[sec_ti_eco_prf_hld_vio___$trojan_TI____]} -gt 0 ]]; then
 
 		outcome="set_and_hld_vio"
 
-	elif [[ ${metrics_submission[sec_ti_eco_prf_set_vio___$trojan]} -eq 0 && ${metrics_submission[sec_ti_eco_prf_hld_vio___$trojan]} -gt 0 ]]; then
+	elif [[ ${metrics_submission[sec_ti_eco_prf_set_vio___$trojan_TI____]} -eq 0 && ${metrics_submission[sec_ti_eco_prf_hld_vio___$trojan_TI____]} -gt 0 ]]; then
 
 		outcome="set_xor_hld_vio"
 
-	elif [[ ${metrics_submission[sec_ti_eco_prf_set_vio___$trojan]} -gt 0 && ${metrics_submission[sec_ti_eco_prf_hld_vio___$trojan]} -eq 0 ]]; then
+	elif [[ ${metrics_submission[sec_ti_eco_prf_set_vio___$trojan_TI____]} -gt 0 && ${metrics_submission[sec_ti_eco_prf_hld_vio___$trojan_TI____]} -eq 0 ]]; then
 
 		outcome="set_xor_hld_vio"
 
-	elif [[ ${metrics_submission[sec_ti_eco_drv_clk_vio___$trojan]} -gt 0 ]]; then
+	elif [[ ${metrics_submission[sec_ti_eco_drv_clk_vio___$trojan_TI____]} -gt 0 ]]; then
 
 		outcome="drv_clk_vio"
 
@@ -496,18 +564,14 @@ for trojan in "${trojans[@]}"; do
 	fi
 
 #	# manual dbg
-#	echo "$trojan: $outcome"
+#	echo "$trojan_TI_dot: $outcome"
 
-	## finally, compute the baselinescore, which is simply the weight (that is already appropriately normalized over the max value / worst case)
-	base_scores[$id_trojan]=${weights[sec_ti_eco_$outcome]}
+	## finally, compute the baseline score, which is simply the weight (that is already appropriately normalized over the max value / worst case)
+	#
+	id_weight="sec_ti_eco_"$TI_mode"_"$outcome
+	id_trojan="sec_ti_eco___"$trojan_TI____
 
-	# NOTE actual variables and weights, repeated
-	# weights[sec_ti_eco_fail]="(2/27)"
-	# weights[sec_ti_eco_drc_vio]="(7/27)"
-	# weights[sec_ti_eco_set_and_hld_vio]="(12/27)"
-	# weights[sec_ti_eco_set_xor_hld_vio]="(17/27)"
-	# weights[sec_ti_eco_drv_clk_vio]="(22/27)"
-	# weights[sec_ti_eco_no_vio]="1.0"
+	base_scores[$id_trojan]=${weights[$id_weight]}
 done
 
 # NOTE metrics where the higher the better, thus calculate score as baseline / submission 
@@ -562,11 +626,45 @@ scores[sec_ti_gen]=$(bc -l <<< "scale=$scale; ($calc_string)")
 #echo "sec_ti_gen: $calc_string"
 
 ## Trojan insertion; actual ECO insertion
-calc_string="0"
-for trojan in "${trojans[@]}"; do
+# NOTE For the combined scoring, each Trojan has the same weight. This is fair, given that, despite the different nature and implementation of the Trojans, the success for Trojan insertion at
+# our end depends on many aspects of the participants' submissions; it cannot be easily differentiated b/w the different Trojans and their requirements for successful insertion.
+#
+for trojan in "${!trojans[@]}"; do
+	calc_string="0"
 
-	id="sec_ti_eco___"$trojan
-	calc_string+=" + (${weights[$id]}*${base_scores[$id]})"
+	for str in "${TI_mode__trojan[@]}"; do
+
+		# parsing of $TI_mode"__"$trojan
+		trojan_=${str#*__}
+		TI_mode=${str%__*}
+		trojan_TI_dot=$trojan_"."$TI_mode
+		trojan_TI____=$trojan_"_"$TI_mode
+
+		if [[ $trojan_ != $trojan ]]; then
+			continue
+		fi
+
+		# NOTE for cancelled runs, there is no base score (by definition) so we skip this case
+		if [[ -e $path_TI_status_files/CANCELLED.TI.$trojan_TI_dot ]]; then
+			continue
+		fi
+
+		id="sec_ti_eco___"$trojan
+		id_full="sec_ti_eco___"$trojan_TI____
+
+		# NOTE recall that, for each Trojan, their individual weight already accounts for the averaging based on the number of non-cancelled runs
+		calc_string+=" + (${weights[$id]}*${base_scores[$id_full]})"
+	done
+
+	calc_string+=$calc_string_rounding
+	scores[sec_ti_eco__$trojan]=$(bc -l <<< "scale=$scale; ($calc_string)")
+	#echo "sec_ti_eco__$trojan: $calc_string"
+done
+#
+## Trojan insertion; actual ECO insertion -- final score: average across all Trojans
+calc_string="0"
+for trojan in "${!trojans[@]}"; do
+	calc_string+=" + (${scores[sec_ti_eco__$trojan]}/${#trojans[@]})"
 done
 calc_string+=$calc_string_rounding
 scores[sec_ti_eco]=$(bc -l <<< "scale=$scale; ($calc_string)")
@@ -639,7 +737,7 @@ done
 ## also print out warning in case any other error occurred. Note that, at this point, this would be some violation of design checks. That is, the evaluation went through all fine,
 ## just some check/metric exceeds the budget
 #
-# NOTE this should work for both the backend and local runs; asssuming for the latter that the downloaded $err_rpt (if any) did not get removed; if it did get removed, there is
+# NOTE this should work for both the backend and local runs; assuming that, for the latter case, the downloaded $err_rpt (if any) did not get removed; if it did get removed, there is
 # nothing we can do here
 if [[ -e $err_rpt ]]; then
 
