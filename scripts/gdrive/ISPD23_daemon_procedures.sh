@@ -1137,6 +1137,9 @@ check_eval() {
 				# NOTE only mute regular stdout, but keep stderr
 				zip $uploads_folder/logs.zip *.log* > /dev/null
 
+				# delete again any tmp log files that might have been captured while zipping
+				zip -d $uploads_folder/logs.zip tmp.log* > /dev/null 2>&1
+
 				# delete again the logs related to Trojan insertion; these details should not be disclosed to participants
 				# NOTE but for dbg mode, we keep these log files
 				if [[ $dbg_files != "1" ]]; then

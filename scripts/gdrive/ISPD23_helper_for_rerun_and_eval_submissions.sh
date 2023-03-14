@@ -88,7 +88,7 @@ for des_run in "${!best_runs_zip[@]}"; do
 	mkdir $target
 
 	# extract submission files into the folder
-	unzip -j $file */*.def */*.v -d $target
+	unzip -j $file \*/\*.def \*/\*.v -d $target
 
 	# drop all symbolic linked files -- this will keep only the actual submission files, nothing else
 	find $target -type l -delete
