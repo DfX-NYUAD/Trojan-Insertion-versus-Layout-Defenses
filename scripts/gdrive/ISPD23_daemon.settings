@@ -72,13 +72,16 @@ alias call_invs_vdi='innovus -nowin -lic_startup "invs vdi" -wait 360 -files'
 # (https://unix.stackexchange.com/questions/356534/how-to-run-string-with-values-as-a-command-in-bash#comment1387543_356534)
 #
 # errors to consider
-#
 # NOTE as above, use pipe as separate and provide at least one term
+#
 # NOTE generic ones
 innovus_errors_for_checking="ERROR|StackTrace|INTERRUPT"
-# NOTE specific ones
-innovus_errors_for_checking+="|NRDB-955" # errors are related to conflict of existing routes below the bottom layer. Since the default setting is "-routeBottomRoutingLayer 2" this
-# means there are routes in M1. But, we don't want to allow routing in M1 as that makes ECO TI fail.
+#
+# NOTE specific ones -- since we already cover actual errors with the generic ones above, this would be only warnings in the log files, but should be considered as errors for the backend flow
+#
+innovus_errors_for_checking+="|NRDB-955" # these issues are related to conflict of existing routes below the bottom layer. Since the default setting is "-routeBottomRoutingLayer 2" this
+# means there are routes in M1 -- we don't want to allow routing in M1 as that can make ECO TI fail
+innovus_errors_for_checking+="|IMPSP-2701" # these issues are related to legalization, placement for 'ecoPlace' for high utilization designs
 #
 # errors to ignore
 #
