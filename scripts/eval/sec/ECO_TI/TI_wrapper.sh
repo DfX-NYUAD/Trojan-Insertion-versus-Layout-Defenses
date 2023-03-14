@@ -516,7 +516,7 @@ monitor() {
 # key: running ID; value: $TI_mode_ID"_"$TI_mode"__"$trojan
 # NOTE associative array is not really needed, but handling of such seems easier than plain indexed array
 declare -A TI_mode__trojan
-trojan_counter=0
+trojan_runs_counter=0
 
 for file in TI/*.dummy; do
 
@@ -527,8 +527,8 @@ for file in TI/*.dummy; do
 	# drop TI_mode_ID
 	str=${str#*_}
 
-	TI_mode__trojan[$trojan_counter]=$str
-	((trojan_counter = trojan_counter + 1))
+	TI_mode__trojan[$trojan_runs_counter]=$str
+	((trojan_runs_counter = trojan_runs_counter + 1))
 done
 
 ##  2) init start_TI processes; all in parallel, but wait during init phase, as there's only one common config file, which can be updated only once some prior TI process has fully started
@@ -540,7 +540,7 @@ trojan="NA"
 TI_mode="NA"
 
 # NOTE we need to go explicitly in order of the key, running ID; the regular iterator '${TI_mode__trojan[@]}' does not provide that
-for ((i=0; i<$trojan_counter; i++)); do
+for ((i=0; i<$trojan_runs_counter; i++)); do
 
 	str=${TI_mode__trojan[$i]}
 
@@ -558,7 +558,7 @@ done
 ## 3) start monitor for all TI processes
 #
 # NOTE we need to go explicitly in order of the key, running ID; the regular iterator '${TI_mode__trojan[@]}' does not provide that
-for ((i=0; i<$trojan_counter; i++)); do
+for ((i=0; i<$trojan_runs_counter; i++)); do
 
 	str=${TI_mode__trojan[$i]}
 
@@ -582,7 +582,7 @@ failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
 #
 
 # NOTE sanity check on 0 Trojans; just exit quietly
-if [[ $trojan_counter == 0 ]]; then
+if [[ $trojan_runs_counter == 0 ]]; then
 
 	date > DONE.TI.ALL
 	exit 0
@@ -592,7 +592,7 @@ elif [[ $failed == 0 ]]; then
 	date > DONE.TI.ALL
 	exit 0
 
-elif [[ $failed == $trojan_counter ]]; then
+elif [[ $failed == $trojan_runs_counter ]]; then
 
 	date > FAILED.TI.ALL
 	exit 1
