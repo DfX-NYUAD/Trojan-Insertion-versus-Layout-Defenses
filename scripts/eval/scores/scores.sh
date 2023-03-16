@@ -734,8 +734,7 @@ for score in "${!scores[@]}"; do
 	echo "	$score_ : $value" | tee -a $rpt $rpt_summ
 done
 
-## also print out warning in case any other error occurred. Note that, at this point, this would be some violation of design checks. That is, the evaluation went through all fine,
-## just some check/metric exceeds the budget
+## also print out warning in case any other error occurred previously, e.g., for design checks or for initialization of some Trojan run.
 #
 # NOTE this should work for both the backend and local runs; assuming that, for the latter case, the downloaded $err_rpt (if any) did not get removed; if it did get removed, there is
 # nothing we can do here

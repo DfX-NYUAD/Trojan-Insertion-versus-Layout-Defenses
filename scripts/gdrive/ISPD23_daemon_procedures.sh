@@ -1091,9 +1091,7 @@ check_eval() {
 					runs_done=$(ls DONE.TI.* 2> /dev/null | wc -l)
 					runs_failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
 					runs_cancelled=$(ls CANCELLED.TI.* 2> /dev/null | wc -l)
-					# NOTE STARTED.TI.* would cover all runs that are started by TI_wrapper.sh, but some might still wait for licenses, whereas DONE.source.TI.*
-					# files relate to processes that have really started
-					runs_started=$(ls DONE.source.TI.* 2> /dev/null | wc -l)
+					runs_started=$(ls STARTED.TI.* 2> /dev/null | wc -l)
 					((runs_pending = runs_total - runs_started))
 					((runs_ongoing = runs_started - runs_done - runs_failed - runs_cancelled))
 					echo "ISPD23 -- 3)  $id_run:  Innovus Trojan insertion: still working -- $runs_ongoing run(s) ongoing, $runs_pending run(s) still pending, $runs_done run(s) already done, $runs_failed run(s) already failed, $runs_cancelled run(s) already cancelled; out of $runs_total run(s) in total."

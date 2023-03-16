@@ -376,6 +376,15 @@ monitor() {
 			# stop to wait, exit monitor process (w/o error status; currently not evaluated)
 			exit 0
 
+		# has started at some point, but failed already (for init in start_TI(); see above)
+		elif [[ -e FAILED.TI.$trojan_TI ]]; then
+
+			# NOTE console log already covered in start_TI()
+			# NOTE TI_init.sh already wrote the specific error to $err_rpt as well -- this is on purpose; this way, such runs are considered as invalid by scores.sh
+
+			# mark as error (again), as it still requires killing, which is handled further below
+			error=1
+
 		# has started at some point, and not done yet, but got cancelled (by some other run; see below)
 		elif [[ -e CANCELLED.TI.$trojan_TI ]]; then
 
