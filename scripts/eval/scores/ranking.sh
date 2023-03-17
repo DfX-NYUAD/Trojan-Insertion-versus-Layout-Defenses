@@ -5,8 +5,9 @@
 ######################
 
 metric_default="OVERALL"
-list_files_default=1
-team_real_name_default=1
+list_files_default=0
+team_real_name_default=0
+timestamp_threshold_default=$(date +%s)
 score_related_OVERALL_default=1
 daemon_settings="/data/nyu_projects/ISPD23/scripts/gdrive/ISPD23_daemon.settings"
 team_settings="/data/nyu_projects/ISPD23/scripts/eval/scores/team.settings"
@@ -22,9 +23,10 @@ echo "Optional parameters:"
 echo "1) Metric -- pick one from those available in the scores.rpt files -- default is \"$metric_default\""
 echo "2) List related files -- 0: no; 1: yes -- default is $list_files_default"
 echo "3) Real team names -- 0: anonymous label; 1: actual names -- default is $team_real_name_default"
-echo "4) Score related to \"OVERALL\" -- 0: no, means that best score is selected (for the metric of choice) independently of \"OVERALL\" score; 1: yes, means that best score (for the metric of choice) is extracted for run w/ best \"OVERALL\" score -- default is $score_related_OVERALL_default"
-echo "5) List of teams to report for, as one string, e.g., \"_test _production\" -- default is to report for all teams listed in \"$team_settings\""
-echo "6) Path for ISPD23_daemon.settings file -- default is \"$daemon_settings\""
+echo "4) Run timestamps not greater/newer than this value -- default is now, i.e., \"$timestamp_threshold_default\"; this default can also be selected by simply providing \"$ND\" here"
+echo "5) Score related to \"OVERALL\" -- 0: no, means that best score is selected (for the metric of choice) independently of \"OVERALL\" score; 1: yes, means that best score (for the metric of choice) is extracted for run w/ best \"OVERALL\" score -- default is $score_related_OVERALL_default"
+echo "6) List of teams to report for, as one string, e.g., \"_test _production\" -- default is to report for all teams listed in \"$team_settings\"; this default can also be selected by simply providing \"$ND\" here"
+echo "7) Path for ISPD23_daemon.settings file -- default is \"$daemon_settings\""
 echo
 
 # call parameters
@@ -50,19 +52,25 @@ else
 fi
 
 if [[ $4 != "" ]]; then
-	score_related_OVERALL=$4
+	timestamp_threshold="$4"
+else
+	timestamp_threshold=$timestamp_threshold_default
+fi
+
+if [[ $5 != "" ]]; then
+	score_related_OVERALL=$5
 else
 	score_related_OVERALL=$score_related_OVERALL_default
 fi
 
-if [[ $5 != "" ]]; then
-	teams_list="$5"
+if [[ $6 != "" ]]; then
+	teams_list="$6"
 else
 	teams_list=$ND
 fi
 
-if [[ $6 != "" ]]; then
-	source $6
+if [[ $7 != "" ]]; then
+	source $7
 else
 	source $daemon_settings
 fi
@@ -141,6 +149,15 @@ for team in "${!teams[@]}"; do
 
 			## also skip runs w/ errors
 			if [[ -e $backup_work/$run/reports/errors.rpt ]] ; then
+				continue
+			fi
+
+			## also skip runs w/ timestamp greater/newer than selected threshold
+			# NOTE we have to explicitly go by timestamp in run folder, not by last OS timestamp, as the latter would be impacted by re-runs or any file edits in general
+			# NOTE re-runs have syntax as follows: 1677173820__downloads_1676819179 -- thus, by picking only the last timestamp at the end, we would also correctly
+			# capture these re-runs as desired
+			timestamp_run=${run##*_}
+			if [[ $timestamp_run -gt $timestamp_threshold ]] ; then
 				continue
 			fi
 
@@ -291,7 +308,7 @@ for benchmark in $benchmarks; do
 	# 1st col: benchmark name
 	out+="$benchmark "
 
-	# remaining cols: reference, extracted from underyling rpt file
+	# remaining cols: reference, extracted from underlying rpt file
 	for team in "${!teams[@]}"; do
 
 		# list for a) all or b) only for selected teams
@@ -312,14 +329,20 @@ for benchmark in $benchmarks; do
 				continue
 			fi
 
+			## skip runs w/ timestamp greater/newer than selected threshold
+			timestamp_run=${run##*_}
+			if [[ $timestamp_run -gt $timestamp_threshold ]] ; then
+				continue
+			fi
+
 			(( runs_total++ ))
 
-			## skip runs w/o scores
+			## for valid counter, skip runs w/o scores
 			if ! [[ -e $backup_work/$run/reports/scores.rpt ]] ; then
 				continue
 			fi
 
-			## also skip runs w/ errors
+			## for valid counter, also skip runs w/ errors
 			if [[ -e $backup_work/$run/reports/errors.rpt ]] ; then
 				continue
 			fi
@@ -442,7 +465,7 @@ for benchmark in $benchmarks; do
 	# 1st col: benchmark name
 	out+="$benchmark "
 
-	# remaining cols: reference, extracted from underyling rpt file
+	# remaining cols: reference, extracted from underlying rpt file
 	for team in "${!teams[@]}"; do
 
 		# list for a) all or b) only for selected teams
@@ -509,7 +532,7 @@ if [[ $list_files == 1 ]]; then
 		# 1st col: benchmark name
 		out+="$benchmark "
 	
-		# remaining cols: underyling rpt file
+		# remaining cols: underlying rpt file
 		for team in "${!teams[@]}"; do
 
 			# list for a) all or b) only for selected teams
@@ -532,7 +555,7 @@ if [[ $list_files == 1 ]]; then
 		# 1st col: benchmark name
 		out+="$benchmark "
 	
-		# remaining cols: underyling zip file, extracted from underlying rpt file
+		# remaining cols: underlying zip file, extracted from underlying rpt file
 		for team in "${!teams[@]}"; do
 
 			# list for a) all or b) only for selected teams
