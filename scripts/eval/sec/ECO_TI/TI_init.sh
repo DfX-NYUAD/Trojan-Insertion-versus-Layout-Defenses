@@ -153,8 +153,9 @@ while true; do
 	sleep 1s
 done
 
-## write out settings file
+## reset and write out settings file
 #
+rm $out 2> /dev/null
 echo "set design_enc_dat \"$design_enc_dat\"" >> $out
 echo "set trojan_name \"$trojan_name\"" >> $out
 echo "set netlist_for_trojan_insertion \"$netlist_for_trojan_insertion\"" >> $out
