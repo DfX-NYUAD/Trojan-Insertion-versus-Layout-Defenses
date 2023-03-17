@@ -128,10 +128,9 @@ if { $benchmark_name == "aes" } {
 # write out design db, including RC data but w/o timing graph (see note above).
 saveDesign design.reg.enc -rc
 # also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
-# NOTE here we could also directly copy the basic submission netlist (but not link, since we should keep/maintain the submission netlist as is as well), but for consistency we just
-# save it again explicitly
-saveNetlist design.reg.v
-# mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_db.tcl) can go ahead at this point
+# NOTE here we can just link the submission netlist; TI_init_netlist.tcl will not overwrite this.
+ln -sf design.v design.reg.v
+# mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_netlist.tcl) can go ahead at this point
 date > DONE.save.reg
 
 ## advanced ECO TI mode: reclaim area
@@ -142,7 +141,7 @@ reclaimArea -maintainHold
 saveDesign design.adv.enc -rc
 # also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
 saveNetlist design.adv.v
-# mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_db.tcl) can go ahead at this point
+# mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_netlist.tcl) can go ahead at this point
 date > DONE.save.adv
 
 ## advanced^2 ECO TI mode: reclaim area again, and more aggressively
@@ -160,7 +159,7 @@ reclaimArea
 saveDesign design.adv2.enc -rc
 # also write out netlist; Trojan logic is to be integrated into this one before ecoDesign is run
 saveNetlist design.adv2.v
-# mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_db.tcl) can go ahead at this point
+# mark as done so that ECO TI db preparation (via TI_wrapper.sh and TI_init_netlist.tcl) can go ahead at this point
 date > DONE.save.adv2
 
 #####################
