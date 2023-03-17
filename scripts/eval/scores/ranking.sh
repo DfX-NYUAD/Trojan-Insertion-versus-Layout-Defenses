@@ -51,7 +51,9 @@ else
 	team_real_name=$team_real_name_default
 fi
 
-if [[ $4 != "" ]]; then
+if [[ $4 == "$ND" ]]; then
+	timestamp_threshold=$timestamp_threshold_default
+elif [[ $4 != "" ]]; then
 	timestamp_threshold="$4"
 else
 	timestamp_threshold=$timestamp_threshold_default
@@ -79,6 +81,7 @@ echo "Parameters:"
 echo " Metric: $metric"
 echo " List related files: $list_files"
 echo " Real team names: $team_real_name"
+echo " Run timestamp not greater/new than this value: $timestamp_threshold"
 echo " Score related to OVERALL: $score_related_OVERALL"
 echo " List of teams to report for: \"$teams_list\""
 echo " Path for ISPD23_daemon.settings file: $daemon_settings"
