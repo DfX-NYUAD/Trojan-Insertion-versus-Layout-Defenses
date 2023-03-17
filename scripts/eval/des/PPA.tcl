@@ -101,10 +101,11 @@ set_global timing_enable_simultaneous_setup_hold_mode false
 # fixed ones marked as such in the submission, and we'd like to 'free up' those, if any.
 set_db [get_db insts ] .place_status placed
 #
-## NOTE Here cannot use 'setPlaceMode -place_detail_preroute_as_obs 3' as that would -- falsely -- push the utilization easily >100% since it's sufficient for the placement to stay
-## somewhat out of the M3 PDN stripes, not entirely, to avoid DRC issues. In other words, a valid layout w/o DRC issues may well have >100% util once we check again for these
-## preroutes; this constraint should not be used for checking, but only for placement. Now, while reclaimArea does trigger ECO placement here, it is only refinePlace; thus, we don't
-## even need that constraint here to maintain DRC-clean layouts.
+## NOTE We cannot use 'setPlaceMode -place_detail_preroute_as_obs 3' here as that would -- falsely -- push the utilization easily >100%. Note that it's sufficient for the placement to stay
+## somewhat out of the M3 PDN stripes, not entirely, to avoid DRC issues. In other words, a valid layout w/o DRC issues may well have >100% util once put this conservative constraint again;
+## this constraint should not be used for iterative placement refinement, but only for initial placement. Now, while reclaimArea does trigger ECO placement, it is only refinePlace; thus, we don't
+## need that constraint per se here to maintain DRC-clean layouts. But, for highly utilized designs we can see some DRC issues after reclaimArea. This is because, while legalizing
+## some instances, those (and/or others affected) can get pushed into that problematic region below the stripes.
 #setPlaceMode -place_detail_preroute_as_obs 3
 #
 # Control iterations for detailed routing, for both cases: 1) too many violations for large designs, where it's taking too long to fix all,
