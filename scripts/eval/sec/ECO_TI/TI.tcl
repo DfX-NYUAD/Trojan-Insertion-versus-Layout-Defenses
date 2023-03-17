@@ -145,13 +145,13 @@ timeDesign -postroute -hold -outDir timingReports.$trojan_name.$TI_mode.preInser
 switch $TI_mode {
 
 	"reg" {
-		# NOTE recall that this mode started with the db holding the submission design as is
+		# NOTE recall that this mode works with the db holding the submission design as is
 		#
 		ecoPlace -fixPlacedInsts true -timing_driven true
 	}
 
 	"adv" {
-		# NOTE recall that this mode started with the db holding the submission design as optimized by running 'reclaimArea -maintainHold' on it
+		# NOTE recall that this mode works with the db holding the submission design optimized by running 'reclaimArea -maintainHold' on it
 		#
 		ecoPlace -fixPlacedInsts true -timing_driven true
 #
@@ -162,7 +162,7 @@ switch $TI_mode {
 	}
 
 	"adv2" {
-		# NOTE recall that this mode started with the db holding the submission design as optimized by running 'reclaimArea' on it
+		# NOTE recall that this mode works with the db holding the submission design optimized by running 'reclaimArea' on it
 		#
 		# NOTE most aggressive: ignore PDN stripe as obs; can easily lead to DRC issues, but at least avoids legalization issues for highly utilized designs
 		setPlaceMode -place_detail_preroute_as_obs ""
