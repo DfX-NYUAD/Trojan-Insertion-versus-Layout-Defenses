@@ -30,8 +30,9 @@ read_def $def_path -preserve_shape
 
 init_design
 
-# delete all kinds of fillers (decaps, tap cells, filler cells)
+# delete all kinds of fillers (decaps, tap cells, filler cells, metal fills)
 delete_filler -cells [ get_db -u [ get_db insts -if { .is_physical } ] .base_cell.name ]
+delete_metal_fill
 
 ####
 # design checks
