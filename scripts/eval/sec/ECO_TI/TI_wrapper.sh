@@ -80,6 +80,11 @@ start_TI() {
 
 			date > CANCELLED.TI.$trojan_TI
 
+			# NOTE if not there yet, we also have to set the (dummy) STARTED status file, such that process monitoring based on status files is not thrown off
+			if ! [[ -e STARTED.TI.$trojan_TI ]]; then
+				date > STARTED.TI.$trojan_TI".dummy"
+			fi
+
 			# dbg_log
 			if [[ $dbg_log == 1 ]]; then
 				echo -e "\nISPD23 -- 2)  $id_run:  Innovus Trojan insertion, start_TI EXIT 1 for Trojan \"$trojan\", TI mode \"$TI_mode\"."
@@ -173,6 +178,11 @@ start_TI() {
 
 		# set failure flag/file for this Trojan
 		date > FAILED.TI.$trojan_TI
+
+		# NOTE if not there yet, we also have to set the (dummy) STARTED status file, such that process monitoring based on status files is not thrown off
+		if ! [[ -e STARTED.TI.$trojan_TI ]]; then
+			date > STARTED.TI.$trojan_TI".dummy"
+		fi
 
 		# dbg_log
 		if [[ $dbg_log == 1 ]]; then
@@ -358,9 +368,22 @@ monitor() {
 					date > CANCELLED.TI.$trojan".adv"
 					date > CANCELLED.TI.$trojan".adv2"
 
+					# NOTE if not there yet, we also have to set the (dummy) STARTED status file, such that process monitoring based on status files is not thrown off
+					if ! [[ -e STARTED.TI.$trojan".adv" ]]; then
+						date > STARTED.TI.$trojan".adv.dummy"
+					fi
+					if ! [[ -e STARTED.TI.$trojan".adv2" ]]; then
+						date > STARTED.TI.$trojan".adv2.dummy"
+					fi
+
 				elif [[ $TI_mode == "adv" ]]; then
 
 					date > CANCELLED.TI.$trojan".adv2"
+
+					# NOTE if not there yet, we also have to set the (dummy) STARTED status file, such that process monitoring based on status files is not thrown off
+					if ! [[ -e STARTED.TI.$trojan".adv2" ]]; then
+						date > STARTED.TI.$trojan".adv2.dummy"
+					fi
 				fi
 			else
 				string="Innovus Trojan insertion, Trojan \"$trojan\", TI mode \"$TI_mode\", passed with some violations. Continuing the run(s) for more advanced TI mode(s), if planned for."
@@ -487,9 +510,22 @@ monitor() {
 		if [[ $error != 0 || $cancelled != 0 ]]; then
 
 			if [[ $error != 0 ]]; then
+
 				date > FAILED.TI.$trojan_TI
+
+				# NOTE if not there yet, we also have to set the (dummy) STARTED status file, such that process monitoring based on status files is not thrown off
+				if ! [[ -e STARTED.TI.$trojan_TI ]]; then
+					date > STARTED.TI.$trojan_TI".dummy"
+				fi
+
 			elif [[ $cancelled != 0 ]]; then
+
 				date > CANCELLED.TI.$trojan_TI
+
+				# NOTE if not there yet, we also have to set the (dummy) STARTED status file, such that process monitoring based on status files is not thrown off
+				if ! [[ -e STARTED.TI.$trojan_TI ]]; then
+					date > STARTED.TI.$trojan_TI".dummy"
+				fi
 			fi
 
 			# NOTE mute stderr for cat, as the process might not have been started yet (then the PID file won't exist)
@@ -504,7 +540,7 @@ monitor() {
 
 			# sanity check/release of the semaphore which might still be locked TI_init.sh
 			# NOTE only release the semaphore of this run, not of any other that might have started in the meantime
-			rm -f scripts/TI_settings.tcl.semaphore.$trojan_TI
+			rm scripts/TI_settings.tcl.semaphore.$trojan_TI 2> /dev/null
 
 			# dbg_log
 			if [[ $dbg_log == 1 ]]; then
