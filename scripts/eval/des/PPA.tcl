@@ -45,8 +45,9 @@ defIn $def_path -preserveShape
 # required for proper power analysis; default activity factor for PIs, 0.2, is not propagated automatically
 set_default_switching_activity -seq_activity 0.2
 
-# delete all kinds of fillers (decaps, tap cells, filler cells)
+# delete all kinds of fillers (decaps, tap cells, filler cells, metal fills)
 deleteFiller -cell [ get_db -u [ get_db insts -if { .is_physical } ] .base_cell.name ]
+deleteMetalFill
 
 #####################
 # clock propagation
