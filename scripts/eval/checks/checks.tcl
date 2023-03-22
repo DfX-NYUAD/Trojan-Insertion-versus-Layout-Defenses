@@ -61,10 +61,10 @@ check_design -type {place route} > reports/check_design.rpt
 # covers more placement issues
 check_place reports/check_place.rpt
 
-# custom checks for PDN stripes
-set out [open reports/check_stripes.rpt w]
-puts $out "PDN stripes checks"
-puts $out "=================="
+# custom checks for PDN mesh
+set out [open reports/check_PDN.rpt w]
+puts $out "PDN mesh checks"
+puts $out "==============="
 close $out
 source scripts/check_stripes_area_stylus.tcl
 source scripts/check_stripes_coors_stylus.tcl

@@ -2030,13 +2030,13 @@ parse_inv_checks() {
 #
 #	echo "ISPD23 : $string $issues" >> reports/checks_summary.rpt
 
-	# PDN stripes checks; see reports/check_stripes.rpt for false versus valid results
+	# PDN mesh checks; see reports/check_PDN.rpt for false versus valid results
 	#
 	## NOTE failure on those is considered as error/constraint violation
 	#
 # Example:
-#PDN stripes checks
-#==================
+#PDN mesh checks
+#===============
 #Check by area
 #-------------
 #M2 ---- VDD  ---> valid
@@ -2059,15 +2059,17 @@ parse_inv_checks() {
 #M2 ---- VSS  ---> valid
 # [...]
 #Final result: valid
+#
+# [...]
 
-	issues=$(grep "Final result: false" reports/check_stripes.rpt | wc -l)
-	string="Innovus: PDN stripes checks failures:"
+	issues=$(grep "Final result: false" reports/check_PDN.rpt | wc -l)
+	string="Innovus: PDN checks failures:"
 
 	if [[ $issues != 0 ]]; then
 
 		errors=1
 
-		echo "ISPD23 -- ERROR: $string $issues -- see check_stripes.rpt for more details." >> reports/errors.rpt
+		echo "ISPD23 -- ERROR: $string $issues -- see check_PDN.rpt for more details." >> reports/errors.rpt
 	fi
 
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt

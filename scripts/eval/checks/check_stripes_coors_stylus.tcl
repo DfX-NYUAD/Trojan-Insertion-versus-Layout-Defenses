@@ -9,7 +9,7 @@
 #
 ##########################################
 
-set out [open reports/check_stripes.rpt a]
+set out [open reports/check_PDN.rpt a]
 puts $out "Check by coordinates"
 puts $out "--------------------"
 
