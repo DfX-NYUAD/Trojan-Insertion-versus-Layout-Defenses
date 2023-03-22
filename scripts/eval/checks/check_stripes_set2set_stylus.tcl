@@ -9,17 +9,14 @@
 #
 ##########################################
 
-
-set out [open reports/check_set2set.rpt a]
-puts $out "Check for set2set "
+set out [open reports/check_stripes.rpt a]
+puts $out "Check by set2set dist"
 puts $out "--------------------"
-
-
-deselect_obj -all
-set c_flag "valid"
 
 # power net names
 set p_names {VDD VSS}
+
+set c_flag "valid"
 
 # the loop strats from M3 layer and continue checking until M4
 for {set j 3} {$j < 5} {incr j} {
@@ -61,5 +58,4 @@ select_routes -nets [lindex $p_names $k] -shapes stripe -layer M$j
 puts $out "Final result: $c_flag" 
 puts $out ""
 
-puts $c_flag
 close $out
