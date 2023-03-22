@@ -70,9 +70,10 @@ source scripts/check_stripes_area_stylus.tcl
 source scripts/check_stripes_coors_stylus.tcl
 source scripts/check_stripes_width_stylus.tcl
 source scripts/check_stripes_set2set_stylus.tcl
+source scripts/check_rails_stylus.tcl
 
 ####
-# security evaluation: 1st order, alpha round
+# security evaluation
 ####
 
 # exploitable regions

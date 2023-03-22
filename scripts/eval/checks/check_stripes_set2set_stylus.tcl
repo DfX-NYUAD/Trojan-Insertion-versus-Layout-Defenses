@@ -13,6 +13,8 @@ set out [open reports/check_stripes.rpt a]
 puts $out "Check by set2set dist"
 puts $out "--------------------"
 
+deselect_obj -all
+
 # power net names
 set p_names {VDD VSS}
 
