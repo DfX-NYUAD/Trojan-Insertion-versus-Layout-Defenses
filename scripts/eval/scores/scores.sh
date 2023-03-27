@@ -153,7 +153,7 @@ for str in "${TI_mode__trojan[@]}"; do
 	if [[ $run_on_backend == 0 ]]; then
 
 		# NOTE we put this dummy rpt always in the work folder, irrespective of dbg_files; this is because of the ordered conditional check just below.
-		dummy_drc_rpt="submission.geom."$trojan_TI_dot".rpt"
+		dummy_drc_rpt="submission."$trojan_TI_dot".geom.rpt"
 		echo -n "Total Violations : " > $dummy_drc_rpt
 		grep "sec_ti_eco_drc_vio___$trojan_TI_dot" $rpt_back | awk '{print $NF}' >> $dummy_drc_rpt
 	fi
@@ -162,9 +162,9 @@ for str in "${TI_mode__trojan[@]}"; do
 	# details back to participants
 	# NOTE order of the two condition matters here; if we do not run on the backend, we have the file in the work dir, but if we do run on the backend, we still need to check dbg_files
 	if [[ $run_on_backend == 0 || $dbg_files == 0 ]]; then
-		trojans_rpt_drc[$trojan_TI____]="*.geom."$trojan_TI_dot".rpt"
+		trojans_rpt_drc[$trojan_TI____]="*."$trojan_TI_dot".geom.*.rpt"
 	else
-		trojans_rpt_drc[$trojan_TI____]="reports/*.geom."$trojan_TI_dot".rpt"
+		trojans_rpt_drc[$trojan_TI____]="reports/*."$trojan_TI_dot".geom.*.rpt"
 	fi
 
 	# NOTE timing rpts are always placed in reports/ folder, independent of dbg mode, as they are meant to be shared with participants in any case
@@ -369,12 +369,14 @@ for str in "${TI_mode__trojan[@]}"; do
 
 		metrics_submission[$id]="cancelled"
 	else
-		metrics_submission[$id]=$(grep "Total Violations :" ${trojans_rpt_drc[$trojan_TI____]} 2> /dev/null | awk '{print $4}')
+		metrics_submission[$id]="0"
 
-		# NOTE such line is only present if errors/issues found at all
-		if [[ ${metrics_submission[$id]} == "" ]]; then
-			metrics_submission[$id]="0"
-		fi
+		# NOTE covers the multiple DRC report files
+		for vios_string in $(grep "Total Violations :" ${trojans_rpt_drc[$trojan_TI____]} 2> /dev/null | awk '{print $(NF-1)}'); do
+			if [[ $vios_string != "" ]]; then
+				((metrics_submission[$id] = ${metrics_submission[$id]} + vios_string))
+			fi
+		done
 	fi
 done
 

@@ -23,6 +23,8 @@ set netlist_path design.v
 # init
 ####
 
+source design_name.tcl
+
 read_physical -lefs $lef_path
 read_netlist $netlist_path
 # preserve shapes/layout as is
@@ -38,20 +40,24 @@ delete_metal_fill
 # design checks
 ####
 
-# covers routing issues like dangling wires, floating metals, open pins, etc.; check *.conn.rpt
+# covers routing issues like dangling wires, floating metals, open pins, etc.; check $design_name.conn.rpt
 # NOTE false positives for dangling VDD, VSS at M1
 # NOTE also captures dangling wires, if any, of unplaced insts; if there are no related wires it probably won't flag those unplaced insts
 check_connectivity -error 100000 -warning 100000 -check_wire_loops
-mv *.conn.rpt reports/
+mv $design_name.conn.rpt reports/
 
-# covers IO pins; check *.checkPin.rpt
+# covers IO pins; check $design_name.checkPin.rpt
 check_pin_assignment
-mv *.checkPin.rpt reports/
+mv $design_name.checkPin.rpt reports/
 
-# covers routing DRCs; check *.geom.rpt
+# covers routing DRCs; check $design_name.geom.*.rpt
 # NOTE also captures min area violation of wires, if any, for unplaced insts; if there are no related wires it probably won't flag those unplaced insts
-check_drc -limit 100000
-mv *.geom.rpt reports/
+set_db check_drc_limit 100000
+check_drc -layer_range {2 10} -out_file $design_name.geom.layers_2_to_10__all.rpt
+# NOTE exclude MAR on M1 as there can be false positives
+set_db check_drc_disable_rules min_area
+check_drc -layer_range {1} -out_file $design_name.geom.layer_1__excl_MAR.rpt
+mv $design_name.geom.*.rpt reports/
 
 # covers placement and routing issues
 # NOTE false positives for VDD, VSS vias at M4, M5, M6; report file has incomplete info, full details are in check.logv

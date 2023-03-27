@@ -320,9 +320,9 @@ monitor() {
 
 			# prepare checks
 			if [[ $dbg_files == 0 ]]; then
-				rpt_drc="*.geom."$trojan_TI".rpt"
+				rpt_drc="*."$trojan_TI".geom.*.rpt"
 			else
-				rpt_drc="reports/*.geom."$trojan_TI".rpt"
+				rpt_drc="reports/*."$trojan_TI".geom.*.rpt"
 			fi
 			# NOTE timing rpts are always placed in reports/ folder, independent of dbg mode, as they are meant to be shared with participants in any case
 			rpt_timing="reports/timing."$trojan_TI".rpt"
@@ -330,12 +330,13 @@ monitor() {
 			## actual checks; derived from scores.sh
 
 			# DRC; init vios_total
-			vios_string=$(grep "Total Violations :" $rpt_drc 2> /dev/null | awk '{print $4}')
-			if [[ $vios_string == "" ]]; then
-				vios_total=0
-			else
-				vios_total=$vios_string
-			fi
+			vios_total=0
+			# NOTE covers the multiple DRC report files
+			for vios_string in $(grep "Total Violations :" $rpt_drc 2> /dev/null | awk '{print $(NF-1)}'); do
+				if [[ $vios_string != "" ]]; then
+					((vios_total = vios_total + vios_string))
+				fi
+			done
 
 			# setup
 			vios_string=$(grep "View : ALL" $rpt_timing | awk 'NR==1' | awk '{print $NF}')

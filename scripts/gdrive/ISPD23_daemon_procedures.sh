@@ -1860,7 +1860,7 @@ parse_inv_checks() {
 
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
 
-	# DRC routing issues; see *.geom.rpt for "Total Violations"
+	# DRC routing issues; see *.geom.*.rpt for "Total Violations"
 	#
 	## NOTE failure on those is considered as error/constraint violation
 	#
@@ -1868,16 +1868,20 @@ parse_inv_checks() {
 #  Total Violations : 2 Viols.
 # NOTE such line is only present if errors/issues found at all
 
-	issues=$(grep "Total Violations :" reports/*.geom.rpt | awk '{print $(NF-1)}')
+	issues=0
+	# NOTE covers the multiple DRC report files
+	for vios_string in $(grep "Total Violations :" reports/*.geom.*.rpt | awk '{print $(NF-1)}'); do
+		if [[ $vios_string != "" ]]; then
+			((issues = issues + vios_string))
+		fi
+	done
 	string="Innovus: DRC issues:"
 
-	if [[ $issues != "" ]]; then
+	if [[ $issues != 0 ]]; then
 
 		errors=1
 
-		echo "ISPD23 -- ERROR: $string $issues -- see *.geom.rpt for more details." >> reports/errors.rpt
-	else
-		issues=0
+		echo "ISPD23 -- ERROR: $string $issues -- see *.geom.*.rpt for more details." >> reports/errors.rpt
 	fi
 
 	echo "ISPD23 -- $string $issues" >> reports/checks_summary.rpt
