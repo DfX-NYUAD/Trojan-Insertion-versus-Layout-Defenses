@@ -191,9 +191,9 @@ switch $TI_mode {
 # Control iterations for detailed routing, for both cases: 1) too many violations for large designs, where it's taking too long to fix all,
 # 2) give more trials for small designs  where NanoRoute might otherwise give up too soon.
 if { $benchmark_name == "aes" } {
-	setNanoRouteMode -drouteEndIteration 25
+	setNanoRouteMode -drouteEndIteration 20
 } else {
-	setNanoRouteMode -drouteEndIteration 100
+	setNanoRouteMode -drouteEndIteration 40
 }
 ## NOTE deprecated; while this would help for passing through on some submissions that route in M1, it hinders others --> better to disallow M1 routing in general
 #setDesignMode -bottomRoutingLayer 1

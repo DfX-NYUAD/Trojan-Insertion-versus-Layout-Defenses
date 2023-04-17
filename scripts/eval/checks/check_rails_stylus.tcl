@@ -9,8 +9,7 @@
 #
 ##########################################
 
-
-set out [open reports/check_rails.rpt a]
+set out [open reports/check_PDN.rpt a]
 puts $out "Check for power rails "
 puts $out "--------------------"
 
@@ -47,6 +46,6 @@ if {$compare == false} {
  }
 
 puts $out "Final result: $compare" 
+puts $out ""
 
-puts $compare
 close $out

@@ -112,9 +112,9 @@ set_db [get_db insts ] .place_status placed
 # Control iterations for detailed routing, for both cases: 1) too many violations for large designs, where it's taking too long to fix all,
 # 2) give more trials for small designs  where NanoRoute might otherwise give up too soon.
 if { $benchmark_name == "aes" } {
-	setNanoRouteMode -drouteEndIteration 25
+	setNanoRouteMode -drouteEndIteration 20
 } else {
-	setNanoRouteMode -drouteEndIteration 100
+	setNanoRouteMode -drouteEndIteration 40
 }
 
 ## NOTE deprecated; while that would be more efficient, these steps/parameters are deprecated for the following reasons.
