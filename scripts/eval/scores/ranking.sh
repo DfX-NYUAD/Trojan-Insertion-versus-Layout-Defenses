@@ -296,9 +296,11 @@ for team in "${!teams[@]}"; do
 
 	# real or anon team name
 	if [[ $team_real_name == 1 ]]; then
-		out+="$team "
+		out+="$team:valid "
+		out+="$team:total "
 	else
-		out+="${teams[$team]} "
+		out+="${teams[$team]}:valid "
+		out+="${teams[$team]}:total "
 	fi
 done
 # end row
@@ -353,7 +355,7 @@ for benchmark in $benchmarks; do
 			(( runs_valid++ ))
 		done
 
-		out+="$runs_valid/$runs_total "
+		out+="$runs_valid $runs_total "
 	done
 	# end row
 	out+=$'\n'
