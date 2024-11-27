@@ -10,7 +10,7 @@ shopt -s expand_aliases
 
 ## misc key parameters
 ##
-round="post_contest"
+round="as_in_contest"
 ## work mode
 mode="production"
 ## dbg for files: arranges results files differently, such that more details for ECO TI are uploaded to the Drive
