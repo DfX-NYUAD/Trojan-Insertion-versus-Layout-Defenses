@@ -24,15 +24,16 @@ while true; do
 #	#2022-03-30 21:00:00 GST (UTC+4)
 #	if [[ $(date +%s) < 1648659600 ]]; then
 
-		echo "ISPD23 -- 1) Download new submissions, if any ..."
-		echo "ISPD23 -- 1)  Time: $(date)"
-		echo "ISPD23 -- 1)  Time stamp: $(date +%s)"
-
-		google_downloads
-
-		echo "ISPD23 -- 1)"
-		echo "ISPD23 -- 1) Done"
-		echo "ISPD23 -- "
+#		# NOTE turned off for automated runs at participant's local end
+#		echo "ISPD23 -- 1) Download new submissions, if any ..."
+#		echo "ISPD23 -- 1)  Time: $(date)"
+#		echo "ISPD23 -- 1)  Time stamp: $(date +%s)"
+#
+#		google_downloads
+#
+#		echo "ISPD23 -- 1)"
+#		echo "ISPD23 -- 1) Done"
+#		echo "ISPD23 -- "
 
 
 		echo "ISPD23 -- 2) Start evaluation processing of newly downloaded submission files, if any ..."
@@ -63,14 +64,15 @@ while true; do
 	echo "ISPD23 -- "
 
 
-	echo "ISPD23 -- 4) Upload new results, if any ..."
-	echo "ISPD23 -- 4)  Time: $(date)"
-	echo "ISPD23 -- 4)  Time stamp: $(date +%s)"
-
-	google_uploads
-
-	echo "ISPD23 -- 4) Done"
-	echo "ISPD23 -- "
+#	# NOTE turned off for automated runs at participant's local end
+#	echo "ISPD23 -- 4) Upload new results, if any ..."
+#	echo "ISPD23 -- 4)  Time: $(date)"
+#	echo "ISPD23 -- 4)  Time stamp: $(date +%s)"
+#
+#	google_uploads
+#
+#	echo "ISPD23 -- 4) Done"
+#	echo "ISPD23 -- "
 
 
 	echo "ISPD23 -- 5) Sleep/wait for $check_interval s ..."

@@ -122,90 +122,97 @@ initialize() {
 	echo "ISPD23 -- 0)  Time: $(date)"
 	echo "ISPD23 -- 0)  Time stamp: $(date +%s)"
 	echo "ISPD23 -- 0)"
-	
-	## query drive for root folder, extract columns 1 and 2 from response
-	## store into associative array; key is google file/folder ID, value is actual file/folder name
-	
-	echo "ISPD23 -- 0)  Checking Google root folder (Google folder ID \"$google_root_folder\") ..."
 
-	## query quota
-	google_quota "ISPD23 -- 0)   " 
+	# NOTE custom code for automated runs at participant's local end
+	google_team_folders[0]="CUEDA"
+	google_team_folders[1]="FDUEDA"
+	google_team_folders[2]="NTHU-TCLAB"
 
-	## fix, if needed, the json file for current session in json file
-	## NOTE since it's crucial for this initialize() procedure to get the correct data from gdrive, we call google_fix_json() before every gdrive call, just to make sure
-	google_fix_json
-
-	if [[ "$1" == "testing" ]]; then
-
-		while read -r a b; do
-			google_team_folders[$a]=$b
-		done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and (name contains '_test')" | awk '{print $1" "$2}')
-
-#	# NOTE that's the only remaining option, given the check done above, so a simple else suffices
-#	elif [[ "$1" == "production" ]]; then
-
-	else
-		while read -r a b; do
-			google_team_folders[$a]=$b
-		done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and not (name contains '_test')" | awk '{print $1" "$2}')
-	fi
-	
-	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} team folders:"
-	for team in "${google_team_folders[@]}"; do
-		echo "ISPD23 -- 0)    \"$team\""
-	done
-	echo "ISPD23 -- 0)"
-	
-	# init local array for folder references, helpful for faster gdrive access later on throughout all other procedures
-	#
-	echo "ISPD23 -- 0)   Obtain all Google folder IDs ..."
-	
-	## iterate over keys / google IDs
-	for google_team_folder in "${!google_team_folders[@]}"; do
-	
-		team="${google_team_folders[$google_team_folder]}"
-
-		echo "ISPD23 -- 0)    Checking for team \"$team\" (Google folder ID \"$google_team_folder\") ..."
-
-		## fix, if needed, the json file for current session in json file
-		google_fix_json
-
-		google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
-
-		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
-		google_share_emails[$team]=$(./gdrive share list $google_team_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
-	
-		for benchmark in $benchmarks; do
-	
-			id_internal="$team---$benchmark"
-
-			## fix, if needed, the json file for current session in json file
-			google_fix_json
-
-			# obtain drive references per benchmark
-			google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
-
-			# in case the related benchmark folder is missing, create it on the drive
-			if [[ ${google_benchmark_folders[$id_internal]} == "" ]]; then
-
-				echo "ISPD23 -- 0)     Init missing Google folder for round \"$round\", benchmark \"$benchmark\" ..."
-
-				## fix, if needed, the json file for current session in json file
-				google_fix_json
-
-				# work with empty dummy folders in tmp dir
-				mkdir -p $tmp_root_folder/$benchmark
-				./gdrive upload -p $google_round_folder -r $tmp_root_folder/$benchmark
-				rmdir $tmp_root_folder/$benchmark
-
-				## fix, if needed, the json file for current session in json file
-				google_fix_json
-
-				# update the reference for the just created folder
-				google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
-			fi
-		done
-	done
+#	# NOTE turned off for automated runs at participant's local end
+#
+#	## query drive for root folder, extract columns 1 and 2 from response
+#	## store into associative array; key is google file/folder ID, value is actual file/folder name
+#	
+#	echo "ISPD23 -- 0)  Checking Google root folder (Google folder ID \"$google_root_folder\") ..."
+#
+#	## query quota
+#	google_quota "ISPD23 -- 0)   " 
+#
+#	## fix, if needed, the json file for current session in json file
+#	## NOTE since it's crucial for this initialize() procedure to get the correct data from gdrive, we call google_fix_json() before every gdrive call, just to make sure
+#	google_fix_json
+#
+#	if [[ "$1" == "testing" ]]; then
+#
+#		while read -r a b; do
+#			google_team_folders[$a]=$b
+#		done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and (name contains '_test')" | awk '{print $1" "$2}')
+#
+##	# NOTE that's the only remaining option, given the check done above, so a simple else suffices
+##	elif [[ "$1" == "production" ]]; then
+#
+#	else
+#		while read -r a b; do
+#			google_team_folders[$a]=$b
+#		done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and not (name contains '_test')" | awk '{print $1" "$2}')
+#	fi
+#	
+#	echo "ISPD23 -- 0)   Found ${#google_team_folders[@]} team folders:"
+#	for team in "${google_team_folders[@]}"; do
+#		echo "ISPD23 -- 0)    \"$team\""
+#	done
+#	echo "ISPD23 -- 0)"
+#	
+#	# init local array for folder references, helpful for faster gdrive access later on throughout all other procedures
+#	#
+#	echo "ISPD23 -- 0)   Obtain all Google folder IDs ..."
+#	
+#	## iterate over keys / google IDs
+#	for google_team_folder in "${!google_team_folders[@]}"; do
+#	
+#		team="${google_team_folders[$google_team_folder]}"
+#
+#		echo "ISPD23 -- 0)    Checking for team \"$team\" (Google folder ID \"$google_team_folder\") ..."
+#
+#		## fix, if needed, the json file for current session in json file
+#		google_fix_json
+#
+#		google_round_folder=$(./gdrive list --no-header -q "parents in '$google_team_folder' and trashed = false and name = '$round'" | awk '{print $1}')
+#
+#		# NOTE the last grep is to filter out non-email entries, 'False' in particular (used by gdrive for global link sharing), which cannot be considered otherwise in the -E expression
+#		google_share_emails[$team]=$(./gdrive share list $google_team_folder | tail -n +2 | awk '{print $4}' | grep -Ev "$emails_excluded_for_notification" | grep '@')
+#	
+#		for benchmark in $benchmarks; do
+#	
+#			id_internal="$team---$benchmark"
+#
+#			## fix, if needed, the json file for current session in json file
+#			google_fix_json
+#
+#			# obtain drive references per benchmark
+#			google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
+#
+#			# in case the related benchmark folder is missing, create it on the drive
+#			if [[ ${google_benchmark_folders[$id_internal]} == "" ]]; then
+#
+#				echo "ISPD23 -- 0)     Init missing Google folder for round \"$round\", benchmark \"$benchmark\" ..."
+#
+#				## fix, if needed, the json file for current session in json file
+#				google_fix_json
+#
+#				# work with empty dummy folders in tmp dir
+#				mkdir -p $tmp_root_folder/$benchmark
+#				./gdrive upload -p $google_round_folder -r $tmp_root_folder/$benchmark
+#				rmdir $tmp_root_folder/$benchmark
+#
+#				## fix, if needed, the json file for current session in json file
+#				google_fix_json
+#
+#				# update the reference for the just created folder
+#				google_benchmark_folders[$id_internal]=$(./gdrive list --no-header -q "parents in '$google_round_folder' and trashed = false and name = '$benchmark'" | awk '{print $1}')
+#			fi
+#		done
+#	done
 	
 	# Check corresponding local folders
 	#
@@ -2109,8 +2116,9 @@ start_eval() {
 		team="${google_team_folders[$google_team_folder]}"
 		team_=$(printf "%-"$teams_string_max_length"s" $team)
 
-		## fix, if needed, the json file for current session in json file
-		google_fix_json
+#		# NOTE turned off for automated runs at participant's local end
+#		## fix, if needed, the json file for current session in json file
+#		google_fix_json
 
 #		# NOTE deprecated
 #		# NOTE updated here, that is once during every cycle, to make sure that recently revised shares by teams themselves are reflected right away in emails 
@@ -2216,31 +2224,33 @@ start_eval() {
 				mkdir reports
 				mv processed_files_MD5.rpt reports/
 
-				# 2) send out email notification of start 
-
-				echo "ISPD23 -- 2)  $id_run:  Send out email about processing start ..."
-
-				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
-				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
-
-				text="The processing of your latest submission has started. You will receive another email once results are ready."
-				text+="\n\n"
-
-				text+="MD5 hash and name of files processed in this latest submission are as follows:"
-				text+="\n"
-				text+=$(cat reports/processed_files_MD5.rpt)
-				text+="\n\n"
-
-				# NOTE the number for queued runs is getting more accurate here the further we progress, but does not account for empty folders (arising from failed
-				# downloads) that are not yet processed
-
-				text+="Processing status: You have currently around $total_ongoing_runs run(s) ongoing in total, and around $queued_runs more run(s) queued for this particular benchmark."
-				text+=" "
-				text+="At this point, the evaluation server may start around $((max_parallel_runs - $total_ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
-				text+=" "
-				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
-
-				send_email "$text" "$subject" "${google_share_emails[$team]}"
+#				# NOTE turned off for automated runs at participant's local end
+#
+#				# 2) send out email notification of start 
+#
+#				echo "ISPD23 -- 2)  $id_run:  Send out email about processing start ..."
+#
+#				# NOTE we use this id as subject for both emails, begin and end of processing, to put them into thread at receipents mailbox
+#				subject="[ ISPD23 Contest: $round round -- $team -- $benchmark -- reference ${folder##*_} ]"
+#
+#				text="The processing of your latest submission has started. You will receive another email once results are ready."
+#				text+="\n\n"
+#
+#				text+="MD5 hash and name of files processed in this latest submission are as follows:"
+#				text+="\n"
+#				text+=$(cat reports/processed_files_MD5.rpt)
+#				text+="\n\n"
+#
+#				# NOTE the number for queued runs is getting more accurate here the further we progress, but does not account for empty folders (arising from failed
+#				# downloads) that are not yet processed
+#
+#				text+="Processing status: You have currently around $total_ongoing_runs run(s) ongoing in total, and around $queued_runs more run(s) queued for this particular benchmark."
+#				text+=" "
+#				text+="At this point, the evaluation server may start around $((max_parallel_runs - $total_ongoing_runs)) more concurrent run(s), of any benchmark(s), for you."
+#				text+=" "
+#				text+="You can upload as many submissions as you like, but processing is subject to these run limits."
+#
+#				send_email "$text" "$subject" "${google_share_emails[$team]}"
 
 				# 3) link scripts and design files needed for evaluation
 
