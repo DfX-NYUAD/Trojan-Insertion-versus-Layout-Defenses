@@ -90,8 +90,10 @@ innovus_errors_for_checking+="|IMPSP-2701" # these issues are related to legaliz
 # NOTE 'IMPEXT' errors are related to LEF/DEF parsing and DRCs, which is no reason to kill; should be reported as error though for design checks
 # NOTE 'IMPPP' errors are related to the check_design command, which is no reason to kill; should be reported as error though for design checks
 # NOTE '@file' lines appear in Stylus mode, and are sourced from the tcl file that is executed, both commands as well as comments; shouldn't be checked since comments can contain
+# NOTE 'IMPDF-25' errors are related to manufacturing grid / track configuration, which is no reason to kill the run
+# NOTE 'IMPOPT-600' and 'IMPOPT-61' errors are related to buffer/delay cells not properly recognized, which is no reason to kill the run; should not happen though
 # keywords like ERROR etc
-innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file"
+innovus_errors_excluded_for_checking="IMPOAX|IMPEXT|IMPPP|@file|IMPDF-25|IMPOPT-600|IMPOPT-61"
 #
 ## NOTE use to disable verbose copying of script commands and comments into log file
 ## NOTE deprecated; turned off to enable better insights for teams as to which command is run at what point
