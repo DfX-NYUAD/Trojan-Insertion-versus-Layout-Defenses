@@ -1119,98 +1119,100 @@ check_eval() {
 				# NOTE keep stderr in log file; note the '>>' as the script itself also writes out to the same file
 				scripts/scores.sh 6 $baselines_root_folder/$benchmark 1 $dbg_files 1> /dev/null 2>> scores.log
 
-				## 4) create related upload folder, w/ same timestamp as work and download folder
-				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
-				mkdir $uploads_folder
-
-				## 5) pack and results files into uploads folder
-				echo "ISPD23 -- 3)  $id_run:  Packing results files into uploads folder \"$uploads_folder\" ..."
-
-				## report files
-				#
-				# include regular rpt files, not others (like, *.rpt.extended files)
-				# NOTE only mute regular stdout, but keep stderr
-				# -j means to junk paths; put files directly into the archive, to avoid redundant paths when unzipping again
-				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
-				# also include detailed timing reports
-				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
-				# NOTE also include the cancelled, failed status files for ECO TI; these are needed for properly re-running scores.sh at the participants' end
-				zip $uploads_folder/reports.zip CANCELLED.TI.* FAILED.TI.* > /dev/null
-
-				## log files
-				#
-				# NOTE only mute regular stdout, but keep stderr
-				zip $uploads_folder/logs.zip *.log* > /dev/null
-
-				# delete again any tmp log files that might have been captured while zipping
-				zip -d $uploads_folder/logs.zip tmp.log* > /dev/null 2>&1
-
-				# delete again the logs related to Trojan insertion; these details should not be disclosed to participants
-				# NOTE but for dbg mode, we keep these log files
-				if [[ $dbg_files != "1" ]]; then
-					# NOTE mute also stderr, as files might not exist in case some runs failed
-					zip -d $uploads_folder/logs.zip TI.*.log* > /dev/null 2>&1
-				fi
-
-				## main status files
-				#
-				# NOTE files are already included in reports.zip but we put them still again into main folder, as txt file -- this way, it can be readily viewed in Google Drive
-				# NOTE mute stderr which occurs in case the files are not there
-				cp reports/errors.rpt $uploads_folder/errors.txt 2> /dev/null
-				cp reports/warnings.rpt $uploads_folder/warnings.txt 2> /dev/null
-				cp reports/scores.rpt $uploads_folder/scores.txt 2> /dev/null
-
-				## processed files; only for dbg mode, share again
-				#
-				if [[ $dbg_files == "1" ]]; then
-					echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
-					mv processed_files.zip $uploads_folder/ #2> /dev/null
-				fi
-
-				## GDS from Trojan insertion
-				#
-				# NOTE mute stderr which occurs in case the files are not there
-				cp *.gds.gz $uploads_folder/ 2> /dev/null
-
-				## listing Trojans, for post-processing
-				# NOTE code copied and simplified/merged from TI_wrapper.sh
-				#
-				# NOTE syntax dummy files: $TI_mode_ID"_"$TI_mode"__"$trojan
-				for file in TI/*.dummy; do
-
-					# drop path
-					str=${file##TI/}
-					# drop dummy suffix
-					str=${str%%.dummy}
-					# drop TI_mode_ID
-					str=${str#*_}
-
-					# parsing of $TI_mode"__"$trojan
-					trojan=${str#*__}
-					TI_mode=${str%__*}
-					trojan_TI=$trojan"."$TI_mode
-
-					## detailed timing reports, design files from Trojan insertion
-					## NOTE upload only for dbg mode, but files are generated/stored in any case
-					#
-					if [[ $dbg_files == "1" ]]; then
-
-						zip $uploads_folder/Trojan_designs.zip design."$trojan_TI".final.* > /dev/null 2>&1
-						zip -r $uploads_folder/Trojan_timingReports.zip timingReports."$trojan_TI".* > /dev/null 2>&1
-					fi
-
-					## delete again files from uploads folder for Trojan runs that got cancelled
-					if [[ -e CANCELLED.TI.$trojan_TI ]]; then
-
-						# NOTE keep the files for dbg mode
-						if [[ $dbg_files != "1" ]]; then
-
-							# NOTE mute also stderr, as files might not exist
-							rm $uploads_folder/design."$trojan_TI".gds.gz > /dev/null 2>&1
-							zip -d $uploads_folder/logs.zip *"$trojan_TI".rpt > /dev/null 2>&1
-						fi
-					fi
-				done
+#				# NOTE turned off for automated runs at participant's local end
+#
+#				## 4) create related upload folder, w/ same timestamp as work and download folder
+#				uploads_folder="$teams_root_folder/$team/$benchmark/uploads/results_${folder##*_}"
+#				mkdir $uploads_folder
+#
+#				## 5) pack and results files into uploads folder
+#				echo "ISPD23 -- 3)  $id_run:  Packing results files into uploads folder \"$uploads_folder\" ..."
+#
+#				## report files
+#				#
+#				# include regular rpt files, not others (like, *.rpt.extended files)
+#				# NOTE only mute regular stdout, but keep stderr
+#				# -j means to junk paths; put files directly into the archive, to avoid redundant paths when unzipping again
+#				zip -j $uploads_folder/reports.zip reports/*.rpt > /dev/null
+#				# also include detailed timing reports
+#				zip -r $uploads_folder/reports.zip timingReports/ > /dev/null
+#				# NOTE also include the cancelled, failed status files for ECO TI; these are needed for properly re-running scores.sh at the participants' end
+#				zip $uploads_folder/reports.zip CANCELLED.TI.* FAILED.TI.* > /dev/null
+#
+#				## log files
+#				#
+#				# NOTE only mute regular stdout, but keep stderr
+#				zip $uploads_folder/logs.zip *.log* > /dev/null
+#
+#				# delete again any tmp log files that might have been captured while zipping
+#				zip -d $uploads_folder/logs.zip tmp.log* > /dev/null 2>&1
+#
+#				# delete again the logs related to Trojan insertion; these details should not be disclosed to participants
+#				# NOTE but for dbg mode, we keep these log files
+#				if [[ $dbg_files != "1" ]]; then
+#					# NOTE mute also stderr, as files might not exist in case some runs failed
+#					zip -d $uploads_folder/logs.zip TI.*.log* > /dev/null 2>&1
+#				fi
+#
+#				## main status files
+#				#
+#				# NOTE files are already included in reports.zip but we put them still again into main folder, as txt file -- this way, it can be readily viewed in Google Drive
+#				# NOTE mute stderr which occurs in case the files are not there
+#				cp reports/errors.rpt $uploads_folder/errors.txt 2> /dev/null
+#				cp reports/warnings.rpt $uploads_folder/warnings.txt 2> /dev/null
+#				cp reports/scores.rpt $uploads_folder/scores.txt 2> /dev/null
+#
+#				## processed files; only for dbg mode, share again
+#				#
+#				if [[ $dbg_files == "1" ]]; then
+#					echo "ISPD23 -- 3)  $id_run:  Including backup of processed files to uploads folder \"$uploads_folder\" ..."
+#					mv processed_files.zip $uploads_folder/ #2> /dev/null
+#				fi
+#
+#				## GDS from Trojan insertion
+#				#
+#				# NOTE mute stderr which occurs in case the files are not there
+#				cp *.gds.gz $uploads_folder/ 2> /dev/null
+#
+#				## listing Trojans, for post-processing
+#				# NOTE code copied and simplified/merged from TI_wrapper.sh
+#				#
+#				# NOTE syntax dummy files: $TI_mode_ID"_"$TI_mode"__"$trojan
+#				for file in TI/*.dummy; do
+#
+#					# drop path
+#					str=${file##TI/}
+#					# drop dummy suffix
+#					str=${str%%.dummy}
+#					# drop TI_mode_ID
+#					str=${str#*_}
+#
+#					# parsing of $TI_mode"__"$trojan
+#					trojan=${str#*__}
+#					TI_mode=${str%__*}
+#					trojan_TI=$trojan"."$TI_mode
+#
+#					## detailed timing reports, design files from Trojan insertion
+#					## NOTE upload only for dbg mode, but files are generated/stored in any case
+#					#
+#					if [[ $dbg_files == "1" ]]; then
+#
+#						zip $uploads_folder/Trojan_designs.zip design."$trojan_TI".final.* > /dev/null 2>&1
+#						zip -r $uploads_folder/Trojan_timingReports.zip timingReports."$trojan_TI".* > /dev/null 2>&1
+#					fi
+#
+#					## delete again files from uploads folder for Trojan runs that got cancelled
+#					if [[ -e CANCELLED.TI.$trojan_TI ]]; then
+#
+#						# NOTE keep the files for dbg mode
+#						if [[ $dbg_files != "1" ]]; then
+#
+#							# NOTE mute also stderr, as files might not exist
+#							rm $uploads_folder/design."$trojan_TI".gds.gz > /dev/null 2>&1
+#							zip -d $uploads_folder/logs.zip *"$trojan_TI".rpt > /dev/null 2>&1
+#						fi
+#					fi
+#				done
 
 				## 6) backup work dir
 				echo "ISPD23 -- 3)  $id_run:  Backup work folder to \"$backup_work_folder/$folder".zip"\" ..."
