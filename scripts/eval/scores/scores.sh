@@ -14,7 +14,7 @@
 
 ## fixed settings; typically not to be modified
 #
-# NOTE: default values in evaluation backend: scale=6; baseline=_$round/$benchmark; run_on_backend=1; dbg_files=$dbg_files
+# NOTE: default values in evaluation backend: scale=6; baseline=_$round/$benchmark; run_on_backend=1; dbg_files=$dbg_files; round=$round
 #
 scale=$1
 baseline=$2
@@ -22,6 +22,7 @@ baseline=$2
 run_on_backend=$3
 # NOTE FOR PARTICIPANTS: dbg_files has no meaning and no effect for you; it's only relevant for the backend
 dbg_files=$4
+round=$5
 files="reports/exploitable_regions.rpt reports/track_utilization.rpt reports/area.rpt reports/power.rpt reports/timing.rpt"
 rpt=reports/scores.rpt
 rpt_back=reports/scores.rpt.back
@@ -108,10 +109,10 @@ trojan_runs_counter=0
 # NOTE value not really needed; this array is only to keep track of the individual runs, w/o TI modes
 declare -A trojans
 
-for file in TI/*.dummy; do
+for file in TI.$round/*.dummy; do
 
 	# drop path
-	str=${file##TI/}
+	str=${file##TI.$round/}
 	# drop dummy suffix
 	str=${str%%.dummy}
 	# drop TI_mode_ID
