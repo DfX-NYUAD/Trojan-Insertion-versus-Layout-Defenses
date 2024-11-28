@@ -1,1 +1,0 @@
-TI_wrapper.AIC.sh

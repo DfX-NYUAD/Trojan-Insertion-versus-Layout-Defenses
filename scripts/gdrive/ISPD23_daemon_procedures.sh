@@ -105,12 +105,24 @@ initialize() {
 	echo "ISPD23 -- 0)"
 
 	## sanity check for mode
-	if [[ "$1" == "testing" ]]; then
-		echo "ISPD23 -- 0) Working in \"$1\" mode ..."
-	elif [[ "$1" == "production" ]]; then
-		echo "ISPD23 -- 0) Working in \"$1\" mode ..."
+	if [[ "$mode" == "testing" ]]; then
+		echo "ISPD23 -- 0) Working in \"$mode\" mode ..."
+	elif [[ "$mode" == "production" ]]; then
+		echo "ISPD23 -- 0) Working in \"$mode\" mode ..."
 	else
-		echo "ISPD23 -- 0) ERROR: work mode \"$1\" is unrecognized; abort further processing ..."
+		echo "ISPD23 -- 0) ERROR: work mode \"$mode\" is unrecognized; abort further processing ..."
+
+		# NOTE this exits the caller shell as well, not only the function (for function-only exit use 'return');
+		# needed here to stop the main daemon for this critical error
+		exit 1
+	fi
+	## sanity check for round
+	if [[ "$round" == "AIC" ]]; then
+		echo "ISPD23 -- 0) Working on round \"$round\" ..."
+	elif [[ "$round" == "EXT" ]]; then
+		echo "ISPD23 -- 0) Working on round \"$round\" ..."
+	else
+		echo "ISPD23 -- 0) ERROR: round \"$round\" is unrecognized; abort further processing ..."
 
 		# NOTE this exits the caller shell as well, not only the function (for function-only exit use 'return');
 		# needed here to stop the main daemon for this critical error
@@ -142,14 +154,14 @@ initialize() {
 #	## NOTE since it's crucial for this initialize() procedure to get the correct data from gdrive, we call google_fix_json() before every gdrive call, just to make sure
 #	google_fix_json
 #
-#	if [[ "$1" == "testing" ]]; then
+#	if [[ "$mode" == "testing" ]]; then
 #
 #		while read -r a b; do
 #			google_team_folders[$a]=$b
 #		done < <(./gdrive list --no-header -q "parents in '$google_root_folder' and trashed = false and (name contains '_test')" | awk '{print $1" "$2}')
 #
 ##	# NOTE that's the only remaining option, given the check done above, so a simple else suffices
-##	elif [[ "$1" == "production" ]]; then
+##	elif [[ "$mode" == "production" ]]; then
 #
 #	else
 #		while read -r a b; do
@@ -2325,10 +2337,10 @@ start_eval() {
 
 				if [[ $benchmark == "aes" ]]; then
 
-					call_invs_only scripts/PPA.tcl -log PPA > /dev/null &
+					call_invs_only scripts/PPA.${round}.tcl -log PPA > /dev/null &
 					echo $! > PID.inv_PPA
 				else
-					call_vdi_only scripts/PPA.tcl -log PPA > /dev/null &
+					call_vdi_only scripts/PPA.${round}.tcl -log PPA > /dev/null &
 					echo $! > PID.inv_PPA
 				fi
 
@@ -2337,7 +2349,7 @@ start_eval() {
 				# NOTE this wrapper already covers error handling, monitor subshells, and generation of status files
 				# NOTE separate subshell required such that interrupts on daemon still keep the monitoring subprocesses for TI running
 				# NOTE for id_run, we need quotes since the string itself contains spaces
-				( scripts/TI_wrapper.sh $daemon_settings_file "$id_run" ) &
+				( scripts/TI_wrapper.${round}.sh $daemon_settings_file "$id_run" ) &
 
 				# 6) cleanup downloads dir, to avoid processing again
 

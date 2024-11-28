@@ -1,1 +1,0 @@
-TI_init.AIC.sh

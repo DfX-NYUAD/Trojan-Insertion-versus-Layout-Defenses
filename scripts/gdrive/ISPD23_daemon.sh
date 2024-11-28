@@ -13,7 +13,7 @@ source ISPD23_daemon_procedures.sh
 
 # NOTE this expects the team folder in the Google root drive and, to begin with, an empty subfolder for the current
 # round. The related benchmark sub-subfolders will be initialized by this script
-initialize $mode
+initialize
 
 ## continuous loop: file downloads, script runs, file uploads
 #

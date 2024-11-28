@@ -166,7 +166,7 @@ start_TI() {
 	# NOTE covers semaphore check and lock
 	# NOTE only mute regular stdout, which is put into log file already, but keep stderr
 	#
-	scripts/TI_init.sh $trojan $TI_mode $dbg_files > /dev/null
+	scripts/TI_init.EXT.sh $trojan $TI_mode $dbg_files > /dev/null
 	TI_init_status=$?
 
 	## some error occurred
@@ -222,12 +222,12 @@ start_TI() {
 	# NOTE vdi is limited to 50k instances per license --> ruled out for aes w/ its ~260k instances
 	if [[ "$trojan" == *"aes"* ]]; then
 
-		call_invs_only scripts/TI.tcl -log TI.$trojan_TI > /dev/null &
+		call_invs_only scripts/TI.EXT.tcl -log TI.$trojan_TI > /dev/null &
 		echo $! > PID.TI.$trojan_TI
 	else
 		# NOTE for ECO TI, vdi should be sufficient, but also use invs license if vdi ones are already busy; this should help to get the many parallel ECO runs through the
 		# pipeline, but minor limitation or impact is that, if the backend is already busy, 'aes' submissions for some team w/o other runs would not get started right away
-		call_vdi_invs scripts/TI.tcl -log TI.$trojan_TI > /dev/null &
+		call_vdi_invs scripts/TI.EXT.tcl -log TI.$trojan_TI > /dev/null &
 		echo $! > PID.TI.$trojan_TI
 	fi
 
