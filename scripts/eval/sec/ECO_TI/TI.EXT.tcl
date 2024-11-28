@@ -214,7 +214,7 @@ defOut -netlist -routing -allLayers design.$trojan_name.$TI_mode.final.def
 # NOTE this differs from the netlist w/ Trojan logic integrated but before the ECO flow, which is "$netlist_w_trojan_inserted" or "design.$trojan_name.$TI_mode.v"
 saveNetlist design.$trojan_name.$TI_mode.final.v
 
-# NOTE for post_contest runs, we don't really need the GDS files
+# NOTE turned off for automated runs at participant's local end
 #
 ### GDS
 ##

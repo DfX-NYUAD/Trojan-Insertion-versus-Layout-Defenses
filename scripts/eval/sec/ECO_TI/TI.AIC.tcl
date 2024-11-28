@@ -198,11 +198,13 @@ defOut -netlist -routing -allLayers design.$trojan_name.$TI_mode.final.def
 # NOTE this differs from the netlist w/ Trojan logic integrated but before the ECO flow, which is "$netlist_w_trojan_inserted" or "design.$trojan_name.$TI_mode.v"
 saveNetlist design.$trojan_name.$TI_mode.final.v
 
-## GDS
+# NOTE turned off for automated runs at participant's local end
 #
-set_global timing_enable_simultaneous_setup_hold_mode false
-setStreamOutMode -reset
-streamOut design.$trojan_name.$TI_mode.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName DesignLib -uniquifyCellNames -outputMacros -mode ALL -units 4000 -reportFile $reports_folder/design.$trojan_name.$TI_mode.gds.rpt -merge { ASAP7/asap7sc7p5t_28_L_220121a_scaled4x.gds  ASAP7/asap7sc7p5t_28_SL_220121a_scaled4x.gds }
+### GDS
+##
+#set_global timing_enable_simultaneous_setup_hold_mode false
+#setStreamOutMode -reset
+#streamOut design.$trojan_name.$TI_mode.gds.gz -mapFile {ASAP7/gds2.map} -stripes 1 -libName DesignLib -uniquifyCellNames -outputMacros -mode ALL -units 4000 -reportFile $reports_folder/design.$trojan_name.$TI_mode.gds.rpt -merge { ASAP7/asap7sc7p5t_28_L_220121a_scaled4x.gds  ASAP7/asap7sc7p5t_28_SL_220121a_scaled4x.gds }
 
 ####
 # mark done; exit

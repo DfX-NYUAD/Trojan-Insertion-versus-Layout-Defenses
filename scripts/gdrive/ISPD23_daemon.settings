@@ -14,7 +14,7 @@ round="AIC"
 ## work mode
 mode="production"
 ## dbg for files: arranges results files differently, such that more details for ECO TI are uploaded to the Drive
-dbg_files="0"
+dbg_files="1"
 ## wait time b/w cycles [s]
 check_interval="60"
 ## max runs allowed in parallel per team

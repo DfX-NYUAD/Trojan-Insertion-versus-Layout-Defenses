@@ -2227,11 +2227,13 @@ start_eval() {
 					# NOTE md5sum still needs quotes to capture files w/ spaces etc as one file
 					md5sum "$file" >> processed_files_MD5.rpt
 
-					# pack processed files again; only for dbg mode, to be uploaded again for double-checking
-					# NOTE only mute regular stdout, but keep stderr
-					if [[ $dbg_files == "1" ]]; then
-						zip processed_files.zip $file > /dev/null
-					fi
+#					# NOTE turned off for automated runs at participant's local end
+#
+#					# pack processed files again; only for dbg mode, to be uploaded again for double-checking
+#					# NOTE only mute regular stdout, but keep stderr
+#					if [[ $dbg_files == "1" ]]; then
+#						zip processed_files.zip $file > /dev/null
+#					fi
 				done
 
 				## init reports folder (only now, to not include in md5 hashes)
