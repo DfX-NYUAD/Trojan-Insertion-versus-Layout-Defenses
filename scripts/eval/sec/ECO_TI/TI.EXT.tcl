@@ -182,12 +182,13 @@ ecoRoute
 #####################
 
 ## DRC checks
+# NOTE irrespective of dbg mode, this report should always be shared and thus stored into reports/
 #
 set_verify_drc_mode -limit 100000
-verify_drc -layer_range {2 10} -report $reports_folder/$design_name.$trojan_name.$TI_mode.geom.layers_2_to_10__all.rpt
+verify_drc -layer_range {2 10} -report reports/$design_name.$trojan_name.$TI_mode.geom.layers_2_to_10__all.rpt
 # NOTE exclude MAR on M1 as there can be false positives
 set_verify_drc_mode -disable_rules min_area
-verify_drc -layer_range {1} -report $reports_folder/$design_name.$trojan_name.$TI_mode.geom.layer_1__excl_MAR.rpt
+verify_drc -layer_range {1} -report reports/$design_name.$trojan_name.$TI_mode.geom.layer_1__excl_MAR.rpt
 
 ## timing
 #

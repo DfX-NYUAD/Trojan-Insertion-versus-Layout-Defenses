@@ -154,15 +154,17 @@ for str in "${TI_mode__trojan[@]}"; do
 	if [[ $run_on_backend == 0 ]]; then
 
 		# NOTE we put this dummy rpt always in the work folder, irrespective of dbg_files; this is because of the ordered conditional check just below.
-		dummy_drc_rpt="submission."$trojan_TI_dot".geom.rpt"
+		dummy_drc_rpt="submission."$trojan_TI_dot".geom.dummy.rpt"
 		echo -n "Total Violations : " > $dummy_drc_rpt
-		grep "sec_ti_eco_drc_vio___$trojan_TI_dot" $rpt_back | awk '{print $NF}' >> $dummy_drc_rpt
+		# NOTE the space at the end of the string is needed to separate adv from adv2 etc
+		# NOTE xargs is needed to avoid linebreak by '>>' redirect
+		grep "sec_ti_eco_drc_vio___$trojan_TI_dot " $rpt_back | awk '{print $NF}' | xargs echo -n >> $dummy_drc_rpt
+		# NOTE finally, put the terminating word as in the actual DRC reports; this is important such that the value is correctly parsed in again further below
+		echo " Viols." >> $dummy_drc_rpt
 	fi
 
-	# NOTE in regular mode, related report file have been placed directly in the work dir, not in reports/ -- this is on purpose, as we don't want to share related
-	# details back to participants
-	# NOTE order of the two condition matters here; if we do not run on the backend, we have the file in the work dir, but if we do run on the backend, we still need to check dbg_files
-	if [[ $run_on_backend == 0 || $dbg_files == 0 ]]; then
+	# NOTE if we do not run on the backend, we have the dummy files in the work dir
+	if [[ $run_on_backend == 0 ]]; then
 		trojans_rpt_drc[$trojan_TI____]="*."$trojan_TI_dot".geom.*.rpt"
 	else
 		trojans_rpt_drc[$trojan_TI____]="reports/*."$trojan_TI_dot".geom.*.rpt"

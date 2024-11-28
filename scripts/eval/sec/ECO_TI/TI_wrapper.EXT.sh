@@ -305,12 +305,7 @@ monitor() {
 			## NOTE check outcome
 
 			# prepare checks
-			if [[ $dbg_files == 0 ]]; then
-				rpt_drc="*."$trojan_TI".geom.*.rpt"
-			else
-				rpt_drc="reports/*."$trojan_TI".geom.*.rpt"
-			fi
-			# NOTE timing rpts are always placed in reports/ folder, independent of dbg mode, as they are meant to be shared with participants in any case
+			rpt_drc="reports/*."$trojan_TI".geom.*.rpt"
 			rpt_timing="reports/timing."$trojan_TI".rpt"
 
 			## actual checks; derived from scores.sh
