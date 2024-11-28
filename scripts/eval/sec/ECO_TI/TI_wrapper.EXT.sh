@@ -527,6 +527,11 @@ trojan_runs_counter=0
 
 for file in TI/*.dummy; do
 
+	# sanity check and break if no Trojans are to be considered at all
+	if [[ $file == "TI/*.dummy" ]]; then
+		break
+	fi
+
 	# drop path
 	str=${file##TI/}
 	# drop dummy suffix
