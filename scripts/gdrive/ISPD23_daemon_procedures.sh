@@ -1106,7 +1106,7 @@ check_eval() {
 				else
 					status[inv_TI]=0
 
-					runs_total=$(ls TI/*.dummy 2> /dev/null | wc -l)
+					runs_total=$(ls TI.$round/*.dummy 2> /dev/null | wc -l)
 					runs_done=$(ls DONE.TI.* 2> /dev/null | wc -l)
 					runs_failed=$(ls FAILED.TI.* 2> /dev/null | wc -l)
 					runs_cancelled=$(ls CANCELLED.TI.* 2> /dev/null | wc -l)
@@ -1129,7 +1129,7 @@ check_eval() {
 				echo "ISPD23 -- 3)  $id_run:  Computing scores ..."
 				# NOTE only mute regular stdout, which is put into log file already
 				# NOTE keep stderr in log file; note the '>>' as the script itself also writes out to the same file
-				scripts/scores.sh 6 $baselines_root_folder/$benchmark 1 $dbg_files 1> /dev/null 2>> scores.log
+				scripts/scores.sh 6 $baselines_root_folder/$benchmark 1 $dbg_files $round 1> /dev/null 2>> scores.log
 
 #				# NOTE turned off for automated runs at participant's local end
 #
@@ -1421,7 +1421,7 @@ link_work_dir() {
 	ln -sf $baselines_root_folder/$benchmark/benchmark_name.tcl .
 	ln -sf $baselines_root_folder/$benchmark/design_name.tcl .
 	ln -sf $baselines_root_folder/$benchmark/reports/*.data reports/
-	ln -sf $baselines_root_folder/$benchmark/TI .
+	ln -sf $baselines_root_folder/$benchmark/TI* .
 	# NOTE copy this instead of linking, as details might depend on the design/submission, so should not be mixed across teams
 	cp $baselines_root_folder/$benchmark/rc_model.bin .
 

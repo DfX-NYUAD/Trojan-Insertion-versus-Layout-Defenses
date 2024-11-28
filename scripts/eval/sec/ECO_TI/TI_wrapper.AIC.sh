@@ -564,15 +564,15 @@ monitor() {
 declare -A TI_mode__trojan
 trojan_runs_counter=0
 
-for file in TI/*.dummy; do
+for file in TI.AIC/*.dummy; do
 
 	# sanity check and break if no Trojans are to be considered at all
-	if [[ $file == "TI/*.dummy" ]]; then
+	if [[ $file == "TI.AIC/*.dummy" ]]; then
 		break
 	fi
 
 	# drop path
-	str=${file##TI/}
+	str=${file##TI.AIC/}
 	# drop dummy suffix
 	str=${str%%.dummy}
 	# drop TI_mode_ID
