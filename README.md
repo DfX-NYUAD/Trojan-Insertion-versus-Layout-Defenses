@@ -260,14 +260,14 @@ baseline runs in `data/AIC/CUEDA/$bench/backup_work/run_001/`.
 
 Few notes for organization of the result files. For interpretation, please also refer to our TCHES paper listed in [Context](#context).
 
-1)	In case it exists, check `reports/errors.rpt`, for processing errors at your end, also considering the related remarks on EXT raised in point 3).
+1)	In case it exists, check `reports/errors.rpt` for any processing errors at your end (aside the scoring errors for EXT; see point 3. below).
 
 2)	For AIC, all results are summarized in `reports/scores.rpt`. This file contains all the metrics (for both the baseline and the submission) and the scoring. More extended views -- but no further relevant data beyond that
-	already included in `scores.rpt` -- are covered by the various files in `reports/`. See also the README files in `benchmarks/_release/*/README` for detailed descriptions of the various files.
+	already included in `scores.rpt` -- are covered by the various files in `reports/`. See also the README files in `benchmarks/_release/_final/$bench/README` for detailed descriptions of the various files.
 
 3)	Similarly, for EXT, all results are summarized in `scores.rpt.failed`. *Importantly, unlike the filename suggests, all metrics described in there are valid.*
-	Note that this file is declared as "failed" by the backend as the scoring scheme
-	proposed for AIC was not extended for EXT; the related compuations fail.
+	Note that this file is normally declared as "failed" only because the scoring scheme
+	proposed for AIC was not extended for EXT; the related computations fail.
 	However, for EXT, we actually do not care about the scoring, but rather about the detailed insights provided by all the metrics.
 	Again, please also refer to our TCHES paper for better understanding.
 	
