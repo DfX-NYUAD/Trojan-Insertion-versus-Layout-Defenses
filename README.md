@@ -196,7 +196,7 @@ Configure the daemon through the following steps:
 	Revise lines 20, 21: `max_current_runs_*`
 	according to the number and type of Innovus licenses available at your end. These settings dictate how many ECO runs for HT insertion are operated in parallel. Note that
 	`max_current_runs_aes` mandates / only works with Innovus (invs) licenses, whereas `max_current_runs_default` works with both VDI (vdi) and Innovus (invs) licenses and
-	automatically picks whatever licenses are free. Also note that these settings are per "design run", i.e., by default up-to 6 parallel ECO runs are allowed per jobs -- for
+	automatically picks whatever licenses are free. Also note that these settings are "per design run", i.e., by default up-to 6 parallel ECO runs are allowed per evaluation job -- for
 	the latter, the upper limit for parallel processing is configured in the file `scripts/gdrive/ISPD23_daemon.settings`, line 22: `max_parallel_runs=8`.
 
 ### Data In
@@ -210,7 +210,7 @@ To put runs into the backend, arrange data through the following steps:
 
 	For example, for the AIC mode on sha256, you could pick `data/AIC/CUEDA/sha256/downloads`.
 
-2)	Within the root folder for data input, init new subfolders for each run. It is good practice to use unique IDs for these subfolders, e.g., `run_001`. (However, the latter is
+2)	Within the root folder for data input, init new subfolders for each run. It is good practice to use unique IDs for these subfolders, e.g., `run_001`. (However, it is
 	not mandatory -- in case subfolders with the same name are used again later on, the daemon will avoid conflicts for the data backup by extending the folder names with respective timestamps.)
 
 	For example, for the AIC mode on sha256, you could generate
@@ -221,8 +221,8 @@ To put runs into the backend, arrange data through the following steps:
 3)	For the new subfolder(s), put the design files you want to have evaluated. You must put both the DEF file and the Verilog netlist file. You must only put 1 DEF and 1 Verilog file
 	in each subfolder -- use separate subfolders for multiple runs. The naming of the DEF and Verilog files does not matter.
 
-	To get started, you could reproduce the results documented in our TCHES paper. Toward that end, you want to obtain the best results from the external link given in
-	[Content](#content). Even before that, you could just run the benchmark design files as is, to obtain the baseline references. Continuing the example, you would want to to:
+	To get started, you could reproduce the results documented in our TCHES paper listed in [Context](#context). Toward that end, you want to obtain the best results from the external link given in
+	[Content](#content). Even before that, you could just run the benchmark design files as is, to obtain the baseline references. Continuing the above example, you would want to to:
 	`cp benchmarks/_release/_final/sha256/design.{def,v} data/AIC/CUEDA/sha256/downloads/run_001/`
 
 	As indicated, you can arrange multiple runs at once. For example, to run all benchmarks for baseline evaluation, you could do:
@@ -247,9 +247,9 @@ Few important notes here.
 	runs, you need to kill any lingering processes (innovus, lec, TI_init.\*.sh, TI_wrapper.\*.sh), and also cleanup the related work directories manually.
 
 2)	When seeking to push more runs into the download folders, it's better to first pause (Ctrl Z) or stop (Ctrl C) the daemon, then arrange the new data, and finally continue/restart the daemon.
-	Either way (pausing or stopping the daemon), it's best to do so only once the daemon has finished all ongoing runs. FYI, doing so is required because to the following: unlike the
+	Either way (pausing or stopping the daemon), it's best to do so only once the daemon has finished all ongoing runs. FYI, that is important because, unlike the
 	daemon version for the actual contest backend, this tailored version for local operation is more "fragile" in terms of data management, as we're bypassing the procedures handling
-	the data download and instead directly push files into the downloads folders. While this is not an issue as such, there can be easily race conditions: whenever the daemon checks
+	data downloads and instead directly push files into the system. While this is not an issue as such, there can be easily race conditions: whenever the daemon checks
 	for new downloads, it will right away arrange these files into the processing queue, and the moment your (manual) data arrangement is not done yet, any incomplete set of files
 	would result in processing errors, and you'd have to redo all the concerned runs.
 
@@ -258,4 +258,23 @@ Few important notes here.
 Once the daemon has finished some run, you can access the results in the corresponding `backup_work` folder. Continuing the above example, you would find the results for the
 baseline runs in `data/AIC/CUEDA/$bench/backup_work/run_001/`.
 
-Few notes for understanding of the results.
+Few notes for organization of the result files. For interpretation, please also refer to our TCHES paper listed in [Context](#context).
+
+1)	In case it exists, check `reports/errors.rpt`, for processing errors at your end, also considering the related remarks on EXT raised in point 3).
+
+2)	For AIC, all results are summarized in `reports/scores.rpt`. This file contains all the metrics (for both the baseline and the submission) and the scoring. More extended views -- but no further relevant data beyond that
+	already included in `scores.rpt` -- are covered by the various files in `reports/`. See also the README files in `benchmarks/_release/*/README` for detailed descriptions of the various files.
+
+3)	Similarly, for EXT, all results are summarized in `scores.rpt.failed`. *Importantly, unlike the filename suggests, all metrics described in there are valid.*
+	Note that this file is declared as "failed" by the backend as the scoring scheme
+	proposed for AIC was not extended for EXT; the related compuations fail.
+	However, for EXT, we actually do not care about the scoring, but rather about the detailed insights provided by all the metrics.
+	Again, please also refer to our TCHES paper for better understanding.
+	
+	In short, ignore the scoring in `reports/scores.rpt.failed` but focus on the valid raw metrics. Also ignore errors reported on scoring in `reports/errors.rpt`.
+
+4)	In the main folders, i.e., the parents of the `reports/` folders, you can find further technical details. One further level up, the corresponding zip files contain all the
+	work files, including all HT-infested layouts, and all log files.
+	
+	For beginners, it is recommended to focus only on the `reports/scores.rpt` files and possibly other report files, whereas all these
+	technical details should only be of interest for advanced users which may also aim for their own follow-up research on layout defenses vs HT insertion.
