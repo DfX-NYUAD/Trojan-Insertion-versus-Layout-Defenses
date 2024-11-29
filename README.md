@@ -230,7 +230,7 @@ To put runs into the backend, arrange data through the following steps:
 	in each subfolder -- use separate subfolders for multiple runs. The naming of the DEF and Verilog files does not matter.
 
 To get started,
-you could just run the benchmark design files as is, to obtain the baseline references. Continuing the above example, you would want to:
+you could run the benchmark design files as is, to obtain the baseline references. Continuing the above example, you would want to:
 `cp benchmarks/_release/_final/sha256/design.{def,v} data/AIC/CUEDA/sha256/downloads/run_001/`.
 Next, you could reproduce the full results documented in our TCHES paper listed in [Context](#context). For that, you need to obtain the best results/layouts from the external link given in
 [Content](#content).
@@ -243,7 +243,7 @@ for bench in $(ls benchmarks/_release/_final/); do
 	cp benchmarks/_release/_final/$bench/design.{def,v} data/AIC/CUEDA/$bench/downloads/run_001/
 done
 ```
-	
+
 ### Operation
 
 Start the daemon, preferably from another independent bash session:
