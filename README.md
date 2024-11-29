@@ -185,15 +185,15 @@ Configure the daemon through the following steps:
 	with your local path you've cloned the repository into.
 
 2)	Required. File `scripts/gdrive/ISPD23_daemon.settings`.
-	Check all the lines that start with `alias call_*`. Revise for your local installation of the design tools, if needed.
+	Check all the lines that start with `alias call_\*`. Revise for your local installation of the design tools, if needed.
 
 3)	Optional. File `scripts/gdrive/ISPD23_daemon.settings`.
 	Revise line 13 (`round="AIC"`)
 	for the desired operation. The available options are AIC (short for as in contest) or EXT (short for extended techniques). Please see the TCHES paper listed in
 	[Context](#context) for more details.
 
-4)	Optional. Files `scripts/eval/sec/ECO_TI/TI_wrapper.*.sh`.
-	Revise lines 20, 21 (`max_current_runs_*`)
+4)	Optional. Files `scripts/eval/sec/ECO_TI/TI_wrapper.\*.sh`.
+	Revise lines 20, 21 (`max_current_runs_\*`)
 	according to the number and type of Innovus licenses available at your end. These settings dictate how many ECO runs for HT insertion are operated in parallel. Note that
 	`max_current_runs_aes` mandates / only works with Innovus (invs) licenses, whereas `max_current_runs_default` works with both VDI (vdi) and Innovus (invs) licenses and
 	automatically picks whatever licenses are free. Also note that these settings are per "design run", i.e., by default up-to 6 parallel ECO runs are allowed per jobs -- for
