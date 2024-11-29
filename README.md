@@ -37,7 +37,7 @@ For Conformal/LEC, the official version for the contest was 22.10-s300. We have 
 tool are less sensitive, if at all, regarding different versions (as the related script and its underlying assessments are not complex at all).
 
 To get the framework up and running, you need this repository as well as item (a) from [Content](#content); see also [Folder Setup](#folder-setup) for more related details.
-The items (b), (c), and (d) are optional (i.e., not needed for operation of the framework as such), but it is highly recommend to look at these items the moment you want you pursue
+The items (b), (c), and (d) are optional (i.e., not needed for operation of the framework as such), but it is highly recommended to look at these items the moment you want to pursue
 your on follow-up research for defenses. Note that (c) and (d) both come with their own dedicated README and instructions.
 
 ## Alternative Access
@@ -45,7 +45,7 @@ your on follow-up research for defenses. Note that (c) and (d) both come with th
 If you do not have access to the commercial tools listed in [Requirements](#requirements), you can also get access to the framework used during the contest itself. This access will
 be in the same form as in the contest, i.e., you can upload your hardened layouts and receive back scores and HT-infested layouts.
 (However, you will not be given access to the actual backend itself.)
-See https://wp.nyu.edu/ispd23_contest/evaluation/#platform for more details and drop us an email at ispd23_contest@nyu.edu -- from a Google accout --
+See https://wp.nyu.edu/ispd23_contest/evaluation/#platform for more details and drop us an email at ispd23_contest@nyu.edu -- from a Google account --
 so that we can provide you with access to your dedicated Google Drive as access point.
 
 For that alternative option, you do *not* need to follow the [Setup and Operation](#setup-and-operation) but the instructions given at
@@ -222,7 +222,7 @@ To put runs into the backend, arrange data through the following steps:
 	in each subfolder -- use separate subfolders for multiple runs. The naming of the DEF and Verilog files does not matter.
 
 	To get started, you could reproduce the results documented in our TCHES paper listed in [Context](#context). Toward that end, you want to obtain the best results from the external link given in
-	[Content](#content). Even before that, you could just run the benchmark design files as is, to obtain the baseline references. Continuing the above example, you would want to to:
+	[Content](#content). Even before that, you could just run the benchmark design files as is, to obtain the baseline references. Continuing the above example, you would want to:
 	`cp benchmarks/_release/_final/sha256/design.{def,v} data/AIC/CUEDA/sha256/downloads/run_001/`
 
 	As indicated, you can arrange multiple runs at once. For example, to run all benchmarks for baseline evaluation, you could do:
@@ -260,7 +260,7 @@ baseline runs in `data/AIC/CUEDA/$bench/backup_work/run_001/`.
 
 Few notes for organization of the result files. For interpretation, please also refer to our TCHES paper listed in [Context](#context).
 
-1)	In case it exists, check `reports/errors.rpt` for any processing errors at your end (aside the scoring errors for EXT; see point 3. below).
+1)	In case it exists, check `reports/errors.rpt` for any processing errors at your end (apart from the scoring errors for EXT that can be ignored; see point 3. below).
 
 2)	For AIC, all results are summarized in `reports/scores.rpt`. This file contains all the metrics (for both the baseline and the submission) and the scoring. More extended views -- but no further relevant data beyond that
 	already included in `scores.rpt` -- are covered by the various files in `reports/`. See also the README files in `benchmarks/_release/_final/$bench/README` for detailed descriptions of the various files.
