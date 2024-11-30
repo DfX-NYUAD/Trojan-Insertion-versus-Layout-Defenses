@@ -23,10 +23,10 @@ This repository does *not* contain
 For (a), (b), and (c), see https://drive.google.com/drive/folders/10GJ5hX0BQupwqv1WMtitarsEuEE_Y-vV?usp=sharing; for (d), see
 https://github.com/Centre-for-Hardware-Security/asap7_reference_design. More details on which item/artifact to use how are described throughout this README.
 
-Few notes on the branches in this repository -- these are non-essential remarks and can be skipped.
+Few non-essential notes on the branches in this repository -- feel free to skip ahead.
 The `main` branch of this repository contains a revised standalone version of the framework, which is tailored to be run locally and up-to-date. That branch is the one you want.
 Consider the branch `gh_backend` as FYI only.
-That branch contains the full framework, including the backend's web interface used during the contest itself, although again in some tailored version meant to be run locally (by participants during the contest).
+That branch contains the full framework, including the backend's web interface used during the contest itself, although again in some tailored version meant to be run locally.
 Not all latest edits are reflected in that branch.
 
 ## Requirements
@@ -56,7 +56,7 @@ so that we can provide you with access to your dedicated Google Drive as access 
 For that alternative option, you do *not* need to follow the [Setup and Operation](#setup-and-operation) but the instructions given at
 https://wp.nyu.edu/ispd23_contest/evaluation/#platform.
 	
-Another (non-essential) remark here.
+Some non-essential remarks here.
 For the reference flow and the defense techniques provided via the external link given in [Content](#content), these are also implemented using Cadence Innovus. Thus, you
 would need to pull your own efforts if you want to transfer and extend those for open-source tools. However, there should be a good number of codes and tools online that support
 ASAP7, the open-source technology library of choice for this effort.
@@ -184,7 +184,7 @@ Address compilation issues for your local C++ setup, if any.
 
 ### Configuration
 
-Configure the daemon through the following steps:
+Configure the daemon through the following steps.
 
 1)	Required. File `scripts/gdrive/ISPD23_daemon.settings`.
 	Revise line 32: `local_root_folder="/data/nyu_projects/ISPD23"`
@@ -209,7 +209,7 @@ Configure the daemon through the following steps:
 
 ### Data In
 
-To put runs into the backend, arrange data through the following steps:
+To put runs into the backend, arrange data through the following steps. See a full example toward the end of that subsection.
 
 1)	Choose the correct root folder for data input.
 	First, depending on the mode you want to run, either consider `data/AIC` or `data/EXT`. Second, as indicated in [Folder Setup](#folder-setup), you can
@@ -235,7 +235,7 @@ you could run the benchmark design files as is, to obtain the baseline reference
 Next, you could reproduce the full results documented in our TCHES paper listed in [Context](#context). For that, you need to obtain the best results/layouts from the external link given in
 [Content](#content).
 
-**Full Example.**
+**Full Example:**
 As indicated, you can arrange multiple runs at once. For example, to run all benchmarks through baseline evaluation, you could do:
 ```
 for bench in $(ls benchmarks/_release/_final/); do
