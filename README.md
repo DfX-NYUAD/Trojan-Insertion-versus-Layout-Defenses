@@ -322,5 +322,5 @@ former files contain the actual HT logic, whereas the latter script takes care o
 - You may want to experiment with the ECO-based HT insertion. Toward that end, you'd need to revise the scripts `scripts/eval/sec/ECO_TI/TI.{AIC,EXT}.tcl`. Not all approaches/directions might be fruitful, e.g., we
 are aware that the more aggressive modes try for layout optimization that is not well supported in various versions of Innovus; see https://wp.nyu.edu/ispd23_contest/qa/#ASAP7 Q1 for more details on that.
 
-- You may want to explore more advanced defense techniques; this would probably become the most challenging exercise. Please also refer to our TCHES paper listed in [Context](#context) for more directions toward that
-end.
+- You may want to explore more advanced defense techniques; this would probably become the most challenging exercise. Please also refer to our TCHES paper listed in [Context](#context) and the other artifacts listed in
+[Content](#content) for some starting points toward that end.
