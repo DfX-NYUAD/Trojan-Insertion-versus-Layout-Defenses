@@ -5,7 +5,24 @@
 This repository relates to our contest and benchmarking efforts for insertion of hardware Trojans (HTs) versus layout-level defenses.
 The contest itself was initially introduced as *Advanced Security Closure of Physical Layouts* to the community; see https://wp.nyu.edu/ispd23_contest/ for more details.
 
-The latest TCHES publication with all details can be found at https://eprint.iacr.org/2024/1440.
+The latest TCHES publication with all details can be found at https://tches.iacr.org/index.php/TCHES/article/view/11921.
+
+If you find this framework and work in general useful for your research, please make sure to cite our papers:
+
+```
+@article{Trojan Insertion versus Layout Defenses for Modern ICs: Red-versus-Blue Teaming in a Competitive Community Effort_2024, volume={2025},  url={https://tches.iacr.org/index.php/TCHES/article/view/11921},  DOI={10.46586/tches.v2025.i1.37-77}, abstractNote={Hardware Trojans (HTs) are a longstanding threat to secure computation. Among different threat models, it is the fabrication-time insertion of additional malicious logic directly into the layout of integrated circuits (ICs) that constitutes the most versatile, yet challenging scenario, for both attackers and defenders.Here, we present a large-scale, first-of-its-kind community effort through red-versus-blue teaming that thoroughly explores this threat. Four independently competing blue teams of 23 IC designers in total had to analyze and fix vulnerabilities of representative IC layouts at the pre-silicon stage, whereas a red team of 3 experts in hardware security and IC design continuously pushed the boundaries of these defense efforts through different HTs and novel insertion techniques. Importantly, we find that, despite the blue teams’ commendable design efforts, even highly-optimized layouts retained at least some exploitable vulnerabilities.Our effort follows a real-world setting for a modern 7nm technology node and industrygrade tooling for IC design, all embedded into a fully-automated and extensible benchmarking framework. To ensure the relevance of this work, strict rules that adhere to real-world requirements for IC design and manufacturing were postulated by the organizers. For example, not a single violation for timing and design-rule checks were allowed for defense techniques. Besides, in an advancement over prior art, neither red nor blue teams were allowed to use any so-called fillers and spares for trivial attack or defense approaches.Finally, we release all methods and artifacts: the representative IC layouts and HTs, the devised attack and defense techniques, the evaluation metrics and setup, the technology setup and commercial-grade reference flow for IC design, the encompassing benchmarking framework, and all best results. This full release enables the community to continue exploring this important challenge for hardware security, in particular to focus on the urgent need for further advancements in defense strategies.}, number={1}, journal={IACR Transactions on Cryptographic Hardware and Embedded Systems}, year={2024}, month={Dec.}, pages={37--77} }
+
+@inproceedings{10.1145/3569052.3578924,
+author = {Eslami, Mohammad and Knechtel, Johann and Sinanoglu, Ozgur and Karri, Ramesh and Pagliarini, Samuel},
+title = {Benchmarking Advanced Security Closure of Physical Layouts: {ISPD} 2023 Contest},
+year = {2023},
+doi = {10.1145/3569052.3578924},
+abstract = {Computer-aided design (CAD) tools traditionally optimize "only'' for power, performance, and area (PPA). However, given the wide range of hardware-security threats that have emerged, future CAD flows must also incorporate techniques for designing secure and trustworthy integrated circuits (ICs). This is because threats that are not addressed during design time will inevitably be exploited in the field, where system vulnerabilities induced by ICs are almost impossible to fix. However, there is currently little experience for designing secure ICs within the CAD community.This contest seeks to actively engage with the community to close this gap. The theme is security closure of physical layouts, that is, hardening the physical layouts at design time against threats that are executed post-design time. Acting as security engineers, contest participants will proactively analyse and fix the vulnerabilities of benchmark layouts in a blue-team approach. Benchmarks and submissions are based on the generic DEF format and related files.This contest is focused on the threat of Trojans, with challenging aspects for physical design in general and for hindering Trojan insertion in particular. For one, layouts are based on the ASAP7 library and rules are strict, e.g., no DRC issues and no timing violations are allowed at all. In the alpha/qualifying round, submissions are evaluated using first-order metrics focused on exploitable placement and routing resources, whereas in the final round, submissions are thoroughly evaluated (red-teamed) through actual insertion of different Trojans.},
+booktitle = {Proceedings of the 2023 International Symposium on Physical Design},
+pages = {256--264},
+keywords = {asap7, contest, hardware security, hardware trojans, physical design, security closure},
+}
+```
 
 ## Content
 
@@ -291,3 +308,19 @@ Few notes for organization of the result files. For interpretation, please also 
 	
 	For beginners, it is recommended to focus only on the `reports/scores.rpt` files and possibly other report files, whereas all these
 	technical details should only be of interest for advanced users which may also aim for their own follow-up research on layout defenses vs HT insertion.
+
+## Future Directions
+
+Once you're firm with the framework and all, you may want to use this for future work as follows.
+
+- You may want to customize the evaluation procedures. The related scripts are found within `scripts/eval`, whereas their use/invocation are embedded throughout `scripts/gdrive/ISPD23_daemon_procedures.sh`. For example, you could
+comment out the LEC call in `start_eval()` if you want to experiment for HT insertion with more relaxed constraints. For that particular example, you would also want to comment out `parse_lec_checks` within `check_eval()`.
+
+- You may want to customize the HTs themselves. Toward that end, you'd need to revise the trj files in `benchmarks/_release/_final/*/TI` as well as the script `scripts/eval/sec/ECO_TI/TI_init_netlist.tcl`. The
+former files contain the actual HT logic, whereas the latter script takes care of the integration of the HT logic into the layout files under attack.
+
+- You may want to experiment with the ECO-based HT insertion. Toward that end, you'd need to revise the scripts `scripts/eval/sec/ECO_TI/TI.{AIC,EXT}.tcl`. Not all approaches/directions might be fruitful, e.g., we
+are aware that the more aggressive modes try for layout optimization that is not well supported in various versions of Innovus; see https://wp.nyu.edu/ispd23_contest/qa/#ASAP7 Q1 for more details on that.
+
+- You may want to explore more advanced defense techniques; this would probably become the most challenging exercise. Please also refer to our TCHES paper listed in [Context](#context) for more directions toward that
+end.
