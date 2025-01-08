@@ -282,7 +282,8 @@ cd scripts/gdrive/
 Few important notes here.
 
 1)	Handle this as an actual daemon; keep it going as long as some runs are still working. Otherwise, if you interrupt it during some
-	runs, you need to kill any lingering processes (innovus, lec, TI_init.\*.sh, TI_wrapper.\*.sh), and also cleanup the related work directories manually.
+	runs, you need to kill any lingering processes (innovus, lec, TI_init.\*.sh, TI_wrapper.\*.sh), and also cleanup the related work directories manually. For the latter, this means to identify all the corresponding
+    subfolders in the `data/*/*/*/work` folders for all teams and all benchmarks that the daemon had been working on at the time of interrupting.
 
 2)	When seeking to push more runs into the download folders, it's better to first pause (Ctrl Z) or stop (Ctrl C) the daemon, then arrange the new data, and finally continue/restart the daemon.
 	Either way (pausing or stopping the daemon), it's best to do so only once the daemon has finished all ongoing runs.
@@ -293,9 +294,18 @@ Few important notes here.
 	for new downloads, it will right away arrange these files into the processing queue, and the moment your (manual) data arrangement is not done yet, any incomplete set of files
 	would result in processing errors, and you'd have to redo all the concerned runs.
 
+3)  The expected behaviour for data management by the daemon is as follows. First, for all teams and all benchmarks, it checks for new subfolders in the related `data/*/*/*/downloads` folders. Second, it initializes corresponding
+    subfolders in the `data/*/*/*/work` folders for all these new "downloads". (As indicated above, we don't have actual downloads here, but rather push directly into the same queue-like file structure that handles downloads.)
+    While doing so, the daemon also clears/deletes the related subfolders from the `downloads` folders.
+    Third, once the processing is done -- irrespective of whether any error(s) had occurred or not -- corresponding subfolders are initialized in the `data/*/*/*/backup_work` folders, which contain all important outputs as well
+    as all work files, the latter separately as zip archive (see also below, [Data Out](#data-out), for more details).
+    As before, the daemon also automatically clears/deletes all the subfolders from the `work` folders. This implies that the daemon does *not* support picking up processing of interrupted runs. (FYI, while doing so would
+    be possible, and is actually supported at least in parts by the way the daemon keeps track of all processing steps through status files, it is not overly robust across all possible scenarios or rather incomplete
+    states that could arise during interruptions.)
+
 ### Data Out
 
-Once the daemon has finished some run, you can access the results in the corresponding `backup_work` folder. Continuing the above example, you would find the results for the
+Once the daemon has finished some run, you can access the results in the corresponding `data/*/*/*/backup_work` folder. Continuing the above example, you would find the results for the
 baseline runs in `data/AIC/CUEDA/$bench/backup_work/run_001/`.
 
 Few notes for organization of the result files. For interpretation, please also refer to our TCHES paper listed in [Context](#context).
@@ -318,6 +328,26 @@ Few notes for organization of the result files. For interpretation, please also 
 	
 	For beginners, it is recommended to focus only on the `reports/scores.rpt` files and possibly other report files, whereas all these
 	technical details should only be of interest for advanced users which may also aim for their own follow-up research on layout defenses vs HT insertion.
+
+### Debugging
+
+While the daemon and all related scripts have been developed and revised carefully over many months, there may still occur some hiccups during operation, especially on other server environments and for first-time users.
+Also, while each and every issue will be specific, consider these general guidelines toward debugging. If you're still stuck, feel free to reach out to ispd23_contest@nyu.edu.
+
+1)  First and foremost, make sure you've carefully gone through *all* instructions above. We understand this is quite a bit to read through and may seem overly complex, but the daemon and all its processing stages are
+    complex by nature, so this all requires some efforts.
+
+2)  The main interface for tracking the daemon is its terminal. The daemon keeps logging all steps to the terminal and also copies all into the `ISPD23.log*` files, with `ISPD23.log` being the latest and all others
+    with numbered suffices are from prior runs.
+
+    Keep an eye for any errors in here, 
+
+3)  The main interface for data management is the folder structure.
+
+    TODO will be handled automatically, but cleanup after interrupt
+
+    TODO check *.log files for further details
+
 
 ## Future Directions
 
