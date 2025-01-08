@@ -285,23 +285,27 @@ Few important notes here.
 	runs, you need to kill any lingering processes (innovus, lec, TI_init.\*.sh, TI_wrapper.\*.sh), and also cleanup the related work directories manually. For the latter, this means to identify all the corresponding
     subfolders in the `data/*/*/*/work` folders for all teams and all benchmarks that the daemon had been working on at the time of interrupting.
 
-2)	When seeking to push more runs into the download folders, it's better to first pause (Ctrl Z) or stop (Ctrl C) the daemon, then arrange the new data, and finally continue/restart the daemon.
-	Either way (pausing or stopping the daemon), it's best to do so only once the daemon has finished all ongoing runs.
+2)	When seeking to push more runs into the download folders, it's best to first pause (Ctrl Z) or stop (Ctrl C) the daemon, then arrange the new data, and finally continue/restart the daemon.
+	Either way, when pausing or stopping the daemon, *do so only once the daemon has finished all ongoing runs.* Otherwise, as indicated above and explained in some detail below, you will have to do some manual
+	cleanup of the data related to any incomplete runs.
 	
-	FYI, that approach is important because, unlike the
-	daemon version for the actual contest backend, this tailored version for local operation is more "fragile" in terms of data management, as we're bypassing the procedures handling
-	data downloads and instead directly push files into the system. While this is not an issue as such, there can be easily race conditions: whenever the daemon checks
-	for new downloads, it will right away arrange these files into the processing queue, and the moment your (manual) data arrangement is not done yet, any incomplete set of files
-	would result in processing errors, and you'd have to redo all the concerned runs.
+	FYI, unlike the daemon version for the actual contest backend, this tailored version for local operation is more "fragile" in terms of data management, as we're bypassing the procedures handling data downloads
+	and instead directly push files into the system. While this is not an issue as such, there can be easily race conditions: whenever the daemon checks for new downloads, it will right away arrange these files into
+	the processing queue, and the moment your (manual) data arrangement is not done yet, any incomplete set of files would result in processing errors, and you'd have to redo all the concerned runs.
 
-3)  The expected behaviour for data management by the daemon is as follows. First, for all teams and all benchmarks, it checks for new subfolders in the related `data/*/*/*/downloads` folders. Second, it initializes corresponding
-    subfolders in the `data/*/*/*/work` folders for all these new "downloads". (As indicated above, we don't have actual downloads here, but rather push directly into the same queue-like file structure that handles downloads.)
-    While doing so, the daemon also clears/deletes the related subfolders from the `downloads` folders.
+3)  The expected behaviour for data management by the daemon is as follows.
+
+    First, for all teams and all benchmarks, it checks for new subfolders in the related `data/*/*/*/downloads` folders.
+												    
+    Second, it initializes corresponding subfolders in the `data/*/*/*/work` folders for all these new "downloads". (As indicated above, we don't have actual downloads here, but rather push directly into the same
+    queue-like file structure that handles downloads.) While doing so, the daemon also clears/deletes the related subfolders from the `downloads` folders.
+
     Third, once the processing is done -- irrespective of whether any error(s) had occurred or not -- corresponding subfolders are initialized in the `data/*/*/*/backup_work` folders, which contain all important outputs as well
-    as all work files, the latter separately as zip archive (see also below, [Data Out](#data-out), for more details).
-    As before, the daemon also automatically clears/deletes all the subfolders from the `work` folders. This implies that the daemon does *not* support picking up processing of interrupted runs. (FYI, while doing so would
-    be possible, and is actually supported at least in parts by the way the daemon keeps track of all processing steps through status files, it is not overly robust across all possible scenarios or rather incomplete
-    states that could arise during interruptions.)
+    as all work files, the latter separately as zip archive. See also below, [Data Out](#data-out), for more details on the data output.
+
+    During the third step (similar to the second step), the daemon also automatically clears/deletes all the subfolders from the `work` folders.
+    This implies that the daemon does *not* support picking up processing of interrupted runs. (FYI, while doing so would be possible, and is actually supported at least in parts by the way the daemon keeps track of all
+    processing steps through status files, it is not overly robust across all possible scenarios or rather incomplete states that could arise during interruptions.)
 
 ### Data Out
 
