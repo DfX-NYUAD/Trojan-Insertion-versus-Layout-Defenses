@@ -354,8 +354,7 @@ grep: PPA.log*: No such file or directory
 ISPD23 -- 2)  [ AIC -- CUEDA      -- camellia -- 001 ]:  LEC design checks done; all passed.
 ISPD23 -- 2)  [ AIC -- CUEDA      -- camellia -- 001 ]:  Innovus design checks done; all passed.
 ```
-
-    Importantly, note that the root-cause of this failure is not discernible from that high-level log. Thus, once you observe any errors like that, you want to study the related log files in more detail. Also, as
+   Importantly, note that the root-cause of this failure is not discernible from that high-level log. Thus, once you observe any errors like that, you want to study the related log files in more detail. Also, as
     indicated above, you'd need to first identify the actual run that is failing; since the daemon operates on multiple runs in parallel, you cannot go just by the point/time where the error shows up in the log file.
     Instead, you want to see the final status of the runs in the daemon's log -- lines like below tell you which run exactly went wrong.
 ```
@@ -367,7 +366,7 @@ ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]:  Innovus Trojan insertio
 ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]:  Computing scores ...
 ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]:  Backup work folder to "/CHES_25_ARTIFACTS/first/Trojan-Insertion-versus-Layout-Defenses/data/AIC/CUEDA/seed/backup_work/run_002.zip" ...
 ```
-    Also note that not all error-related keywords indicate actual issues. For example, any particular HT insertion run may fail for tough layouts, i.e., for layouts with competitive defense implementations that hinder HT
+   Also note that not all error-related keywords indicate actual issues. For example, any particular HT insertion run may fail for tough layouts, i.e., for layouts with competitive defense implementations that hinder HT
     insertion altogether. Such cases would be reported as follows, where, again, the statement that "some failure occurred" does *not* imply an actual error occurred in the backend.
 ```
 ISPD23 -- 2)  [ AIC -- CUEDA      -- camellia -- 001 ]:  Innovus Trojan insertion, some failure occurred for Trojan "camellia_burn_random", TI mode "adv".
