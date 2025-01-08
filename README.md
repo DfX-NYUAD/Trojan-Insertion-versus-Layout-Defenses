@@ -334,19 +334,53 @@ Few notes for organization of the result files. For interpretation, please also 
 While the daemon and all related scripts have been developed and revised carefully over many months, there may still occur some hiccups during operation, especially on other server environments and for first-time users.
 Also, while each and every issue will be specific, consider these general guidelines toward debugging. If you're still stuck, feel free to reach out to ispd23_contest@nyu.edu.
 
-1)  First and foremost, make sure you've carefully gone through *all* instructions above. We understand this is quite a bit to read through and may seem overly complex, but the daemon and all its processing stages are
-    complex by nature, so this all requires some efforts.
+1)  First and foremost, make sure you've carefully gone through *all* instructions above. We understand this is quite a bit to read through and may seem overly complex at first, but the daemon and all its processing stages are
+    also complex by construction, so this all requires some efforts for clear understanding by the user as well.
 
-2)  The main interface for tracking the daemon is its terminal. The daemon keeps logging all steps to the terminal and also copies all into the `ISPD23.log*` files, with `ISPD23.log` being the latest and all others
-    with numbered suffices are from prior runs.
+2)  The main interface for tracking the daemon is its terminal: the daemon keeps printing out all steps, and (through the `ISPD23_daemon_wrapper.sh` script) all these steps are also logged into the `ISPD23.log*` files,
+    with `ISPD23.log` being the most recent log file, whereas others with numbered suffixes are the backups from prior runs.
 
-    Keep an eye for any errors in here, 
+    Keep an eye for any errors in here. Note that majors errors would be printed directly at any point they occur, and without the `ISPD23` prefix. For example, the exemplary snippet below indicates that the both the
+    design checks and the PPA evaluation failed for some run (but *not* necessarily for the run of camellia show here for that snippet).
+```
+    ISPD23 -- 5)  Time stamp: 1735587860
+    ISPD23 -- 5)
+    ISPD23 -- 5) Sleeping ...
+    grep: checks.log*: No such file or directory
+    grep: PPA.log*: No such file or directory
+    grep: checks.log*: No such file or directory
+    grep: PPA.log*: No such file or directory
 
-3)  The main interface for data management is the folder structure.
+    ISPD23 -- 2)  [ AIC -- CUEDA      -- camellia -- 001 ]:  LEC design checks done; all passed.
+    ISPD23 -- 2)  [ AIC -- CUEDA      -- camellia -- 001 ]:  Innovus design checks done; all passed.
+```
 
-    TODO will be handled automatically, but cleanup after interrupt
+    Imporantly, note that the root-cause of this failure is not discernable from that high-level log. Thus, once you observe any errors like that, you want to study the related log files in more detail. Also, as
+    indicated above, you'd need to first identify the actual run that is failing; since the daemon operates on multiple runs in parallel, you cannot go just by the point/time where the error shows up in the log file.
+    Instead, you want to see the final status of the runs in the daemon's log -- lines like below tell you which run exactly went wrong.
+```
+	ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]: Checking work folder "/CHES_25_ARTIFACTS/first/Trojan-Insertion-versus-Layout-Defenses/data/AIC/CUEDA/seed/work/run_002"
+	ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]:  Innovus PPA evaluation: failed
+	ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]:  Innovus design checks: failed
+	ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]:  LEC design checks: failed
+	ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]:  Innovus Trojan insertion: done
+	ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]:  Computing scores ...
+	ISPD23 -- 3)  [ AIC -- CUEDA      -- seed     -- 002 ]:  Backup work folder to "/CHES_25_ARTIFACTS/first/Trojan-Insertion-versus-Layout-Defenses/data/AIC/CUEDA/seed/backup_work/run_002.zip" ...
+```
+    Finally, also note that not all error-related keywords indicate actual issues. For example, any particular HT insertion run may fail for tough layouts, i.e., for layouts with competitive defense implementations that hinder
+    HT insertion altogether. Such cases would be reported as follows, where, again, the statement that "some failure occurred" does *not* imply an actual error occurred in the backend.
+```
+	ISPD23 -- 2)  [ AIC -- CUEDA      -- camellia -- 001 ]:  Innovus Trojan insertion, some failure occurred for Trojan "camellia_burn_random", TI mode "adv".
+```
 
-    TODO check *.log files for further details
+3)  The main interface for data management is the subfolders' structure starting from `data`. Please also recall the overall folder structure outlined in [Folder Setup](#folder-setup).
+
+    As indicated above, the daemon handles this structure automatically as follows: any input data -- that must be organized into dedicated `downloads` subfolders as described in [Data In](#data-in) -- is initialized into dedicated
+    `work` subfolders, which are in turn moved over to `backup_work` subfolders once done. Irrespective of whether error(s) occurred or not, the daemon would automatically clean/delete the `downloads` and `work`
+    subfolders -- unless the daemon is interrupted; then, this cleanup *must* be done manually, in order to prevent hiccups for incomplete runs when restarting the daemon.
+
+    With that in mind, any specific error requires investigating the errors.rpt and the log files for the particular process that failed. Please revisit [Data Out](#data-out) for more details on where these files
+    are found.
 
 
 ## Future Directions
