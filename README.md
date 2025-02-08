@@ -158,7 +158,8 @@ Once done, the root folder structures should look like this (only partially show
 	│   │   ├── PPA.AIC.tcl
 	│   │   └── PPA.EXT.tcl
 	│   ├── scores
-	│   │   └── scores.sh
+	│   │   ├── scores.sh
+	│   │   └── scores.sh.wo_routing
 	│   └── sec
 	│       ├── 1st_order
 	│       └── ECO_TI
