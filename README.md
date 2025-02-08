@@ -79,7 +79,7 @@ To get the framework up and running, you only need this repository;
 see [Folder Setup](#folder-setup) for related details on initial setup of the framework.
 The other items/artifacts described in [Content](#content) are optional
 (i.e., not needed for operation of the framework as such), but it is highly recommended to look at these items the moment you want to pursue
-your on follow-up research for defenses.
+your own follow-up research for defenses.
 
 ## Alternative Access
 
@@ -102,7 +102,7 @@ ASAP7, the open-source technology library of choice for this effort.
 ### Folder Setup
 
 First, you need to unzip the archives `benchmarks_HTs_ASAP7.zip` and `data_skeleton.zip`.
-Once done, the root folder structures should look like this (only partially shown here, till level 4):
+Once done, the root folder structures should look like this (only partially shown here):
 ```
 	benchmarks
 	└── _release
@@ -133,51 +133,25 @@ Once done, the root folder structures should look like this (only partially show
 	│   │   ├── seed
 	│   │   └── sha256
 	│   ├── FDUEDA
-	│   │   ├── aes
-	│   │   ├── camellia
-	│   │   ├── cast
-	│   │   ├── misty
-	│   │   ├── seed
+	│   │   ├── ...
 	│   │   └── sha256
 	│   └── NTHU-TCLAB
-	│       ├── aes
-	│       ├── camellia
-	│       ├── cast
-	│       ├── misty
-	│       ├── seed
+	│       ├── ...
 	│       └── sha256
 	└── EXT
 	    ├── CUEDA
-	    │   ├── aes
-	    │   ├── camellia
-	    │   ├── cast
-	    │   ├── misty
-	    │   ├── seed
+	    │   ├── ...
 	    │   └── sha256
 	    ├── FDUEDA
-	    │   ├── aes
-	    │   ├── camellia
-	    │   ├── cast
-	    │   ├── misty
-	    │   ├── seed
+	    │   ├── ...
 	    │   └── sha256
 	    └── NTHU-TCLAB
-	        ├── aes
-	        ├── camellia
-	        ├── cast
-	        ├── misty
-	        ├── seed
+	        ├── ...
 	        └── sha256
 	scripts
 	├── eval
 	│   ├── checks
-	│   │   ├── check_pins.sh
-	│   │   ├── check_rails_stylus.tcl
-	│   │   ├── checks.tcl
-	│   │   ├── check_stripes_area_stylus.tcl
-	│   │   ├── check_stripes_coors_stylus.tcl
-	│   │   ├── check_stripes_set2set_stylus.tcl
-	│   │   ├── check_stripes_width_stylus.tcl
+	│   │   ├── ...
 	│   │   └── lec.do
 	│   ├── des
 	│   │   ├── mmmc.tcl
